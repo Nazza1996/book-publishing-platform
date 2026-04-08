@@ -1,0 +1,109 @@
+#stories {
+    padding: 0px 50px 50px 50px;
+}
+
+#stories h2 {
+    font-family: 'Recoleta', Georgia, serif;
+    font-size: clamp(1.5rem, 5vw, 4rem);
+    margin-bottom: 10px;
+    color: var(--primary-text-color);
+}
+
+.story-title {
+    font-family: 'Recoleta', Georgia, serif;
+    margin-bottom: 5px;
+    color: var(--primary-text-color);
+    font-size: clamp(1.7rem, 3vw, 2.5rem);
+}
+
+#stories p {
+    font-size: clamp(1.2rem, 1.5vw, 1.5rem);
+    margin-bottom: 20px;
+    max-width: 700px;
+    color: var(--secondary-text-color);
+}
+
+.story-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: clamp(20px, 3vw, 40px);
+    justify-content: center;
+    padding: 15px 0;
+    align-items: stretch;
+}
+
+.story-list li {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    text-align: center;
+    min-height: 600px;
+}
+
+.story-cover {
+    width: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.story-list a {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    text-decoration: none;
+    color: var(--primary-text-color);
+    background-color: var(--background-secondary-color);
+    padding: 50px;
+    border-radius: 15px;
+    justify-content: space-between;
+}
+
+.read-story {
+    margin-top: 15px;
+    padding: 10px 20px;
+    background-color: var(--orange);
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+}
+
+@media (max-width: 768px) {
+    #stories {
+        padding: 0px 15px 50px 15px;
+    }
+
+    .story-list {
+        gap: 10px;
+    }
+
+    .story-list li {
+        min-height: auto;
+    }
+}
+
+@media (min-width: 1024px) {
+    .story-list {
+        gap: 40px;
+    }
+
+    .story-cover {
+        width: 250px;
+        height: 375px;
+    }
+}
+
+@media (min-width: 1440px) {
+    .story-list {
+        gap: 50px;
+    }
+
+    .story-cover {
+        width: 300px;
+        height: 450px;
+    }
+}

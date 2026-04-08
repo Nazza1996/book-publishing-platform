@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>My Website</title>
+        <link rel="stylesheet" href="./styles/index.css">
+        <link rel="icon" href="./favicon.ico" type="image/x-icon">
+    </head>
+
+    <style>
+        @font-face {
+            font-family: 'Recoleta';
+            src: url('./Recoleta.otf') format('opentype');
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'Instrumental-Sans';
+            src: url('./InstrumentalSans.ttf') format('woff2');
+            font-display: swap;
+        }
+    </style>
+
+    <body>
+        <nav>
+            <span class="branding">NateThePlot</span>
+            <ul class="nav-list">
+                <li><a href="/">Home</a></li>
+                <li><a href="/aboutMe.html">About Me</a></li>
+            </ul>
+        </nav>
+
+        <section class="hero-section">
+            <div class="bio-container">
+                <div class="bio-content">
+                    <h1 class="name">Hi,<br>I am<br>NateThePlot</h1>
+                    <h3>I'm Nate — NateThePlot across all Socials. The plot in questions has not yet been located.</h3>
+                    <h3>I have dozens of ongoing projects scattered across many docs. Short stories, novellas, and one or two novels lurking in the shadows.</h3>
+                    <h3>If any of that sounds like your kind of chaos, you're in the right place.</h3>
+                </div>
+                <img src="./images/Pfp.jpg" alt="Profile Picture" class="profile-pic">
+            </div>
+        </section>
+
+        <section id="stories">
+            <h2>Short Stories</h2>
+            <p>Step into the worlds I build, one chapter at a time. A collection of sci-fi and fantasy shorts for the curious traveller.</p>
+            <ul class="story-list">
+                <li>
+                    <a href="/stories/story1.html">
+                        <span class="story-title">The Lone Wanderer</span>
+                        <p class="story-description">
+                            The Ruins of a world covered in sand, for miles to see. Alone, one man is left to scavenge to survive. How alone is he really?
+                        </p>
+                        <span class="read-story">Read More</span>
+                    </a>
+                </li>
+                <li>
+                    <a>
+                        <span class="story-title">Coming Soon</span>
+                        <p class="story-description"></p>
+                    </a>
+                </li>
+                <li>
+                    <a>
+                        <span class="story-title">Coming Soon</span>
+                        <p class="story-description"></p>
+                    </a>
+                </li>
+            </ul>
+        </section>
+
+        <footer>
+            <div class="footer-content">
+                <h2>Contact Me</h2>
+                <a href="https://instagram.com/NateThePlot" target="_blank" rel="noopener noreferrer">
+                    <img src="./images/instagram.png" alt="Instagram" class="social-icon">
+                </a>
+                <a href="https://tiktok.com/@natetheplot" target="_blank" rel="noopener noreferrer">
+                    <img src="./images/tik-tok.png" alt="TikTok" class="social-icon">
+                </a>
+                <a href="https://youtube.com/@NateThePlot" target="_blank" rel="noopener noreferrer">
+                    <img src="./images/youtube.png" alt="YouTube" class="social-icon">
+                </a>
+                <a href="https://wattpad.com/NateThePlot" target="_blank" rel="noopener noreferrer">
+                    <img src="./images/wattpad.png" alt="Wattpad" class="social-icon">
+                </a>
+            </div>
+            <p>&copy; <span id="currentYear"></span> NateThePlot. All rights reserved.</p>
+        </footer>
+
+        <script>
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+        </script>
+    </body>
+
+</html>

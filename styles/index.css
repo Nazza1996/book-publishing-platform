@@ -1,0 +1,23 @@
+@import url('navbar.css');
+@import url('intro.css');
+@import url('stories.css');
+@import url('footer.css');
+
+:root {
+    --primary-text-color: #003366;
+    --secondary-text-color: #4D7094;
+
+    --background-color: #FFFFFF;
+    --background-secondary-color: #F5F5F5;
+
+
+    --orange: #FF6B35;
+}
+
+body {
+    font-family: 'Instrumental-Sans', Arial, sans-serif;
+    font-size: clamp(14px, 1.1vw, 18px);
+    background-color: var(--background-color);
+    margin: 0;
+    padding: 0;
+}
