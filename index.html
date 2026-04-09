@@ -13,13 +13,13 @@
     <style>
         @font-face {
             font-family: 'Recoleta';
-            src: url('./Recoleta.otf') format('opentype');
+            src: url('/fonts/Recoleta.otf') format('opentype');
             font-display: swap;
         }
 
         @font-face {
             font-family: 'Instrumental-Sans';
-            src: url('./InstrumentalSans.ttf') format('woff2');
+            src: url('/fonts/InstrumentalSans.ttf') format('woff2');
             font-display: swap;
         }
 
@@ -39,7 +39,7 @@
                     <h3>I have dozens of ongoing projects scattered across many docs. Short stories, novellas, and one or two novels lurking in the shadows.</h3>
                     <h3>If any of that sounds like your kind of chaos, you're in the right place.</h3>
                 </div>
-                <img src="./images/Pfp.jpg" alt="Profile Picture" class="profile-pic">
+                <img src="/images/Pfp.jpg" alt="Profile Picture" class="profile-pic">
             </div>
         </section>
 
@@ -71,28 +71,7 @@
             </ul>
         </section>
 
-        <footer>
-            <div class="footer-content">
-                <h2>Contact Me</h2>
-                <a href="https://instagram.com/NateThePlot" target="_blank" rel="noopener noreferrer">
-                    <img src="./images/instagram.png" alt="Instagram" class="social-icon">
-                </a>
-                <a href="https://tiktok.com/@natetheplot" target="_blank" rel="noopener noreferrer">
-                    <img src="./images/tik-tok.png" alt="TikTok" class="social-icon">
-                </a>
-                <a href="https://youtube.com/@NateThePlot" target="_blank" rel="noopener noreferrer">
-                    <img src="./images/youtube.png" alt="YouTube" class="social-icon">
-                </a>
-                <a href="https://wattpad.com/NateThePlot" target="_blank" rel="noopener noreferrer">
-                    <img src="./images/wattpad.png" alt="Wattpad" class="social-icon">
-                </a>
-            </div>
-            <p>&copy; <span id="currentYear"></span> NateThePlot. All rights reserved.</p>
-        </footer>
-
-        <script>
-            document.getElementById('currentYear').textContent = new Date().getFullYear();
-        </script>
+        <div id="footer"></div>
     </body>
 
 </html>

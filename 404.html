@@ -5,21 +5,21 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="X-UA-Compatible" content="ie=edge">
         <title>NateThePlot</title>
-        <link rel="stylesheet" href="./styles/index.css">
-        <link rel="icon" href="./favicon.ico" type="image/x-icon">
-        <script type="module" src="./js/index.js"></script>
+        <link rel="stylesheet" href="/styles/index.css">
+        <link rel="icon" href="/favicon.ico" type="image/x-icon">
+        <script type="module" src="/js/index.js"></script>
     </head>
 
     <style>
         @font-face {
             font-family: 'Recoleta';
-            src: url('./Recoleta.otf') format('opentype');
+            src: url('/fonts/Recoleta.otf') format('opentype');
             font-display: swap;
         }
 
         @font-face {
             font-family: 'Instrumental-Sans';
-            src: url('./InstrumentalSans.ttf') format('woff2');
+            src: url('/fonts/InstrumentalSans.ttf') format('woff2');
             font-display: swap;
         }
 
@@ -69,28 +69,7 @@
             <p>The page you are looking for does not exist.</p>
         </section>
 
-        <footer>
-            <div class="footer-content">
-                <h2>Contact Me</h2>
-                <a href="https://instagram.com/NateThePlot" target="_blank" rel="noopener noreferrer">
-                    <img src="./images/instagram.png" alt="Instagram" class="social-icon">
-                </a>
-                <a href="https://tiktok.com/@natetheplot" target="_blank" rel="noopener noreferrer">
-                    <img src="./images/tik-tok.png" alt="TikTok" class="social-icon">
-                </a>
-                <a href="https://youtube.com/@NateThePlot" target="_blank" rel="noopener noreferrer">
-                    <img src="./images/youtube.png" alt="YouTube" class="social-icon">
-                </a>
-                <a href="https://wattpad.com/NateThePlot" target="_blank" rel="noopener noreferrer">
-                    <img src="./images/wattpad.png" alt="Wattpad" class="social-icon">
-                </a>
-            </div>
-            <p>&copy; <span id="currentYear"></span> NateThePlot. All rights reserved.</p>
-        </footer>
-
-        <script>
-            document.getElementById('currentYear').textContent = new Date().getFullYear();
-        </script>
+        <div id="footer"></div>
     </body>
 
 </html>
