@@ -10,6 +10,7 @@ nav {
     font-size: clamp(1.5rem, 2vw, 2.5rem);
     font-weight: bold;
     position: absolute;
+    text-decoration: none;
 }
 
 .nav-list {
