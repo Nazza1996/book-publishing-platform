@@ -196,13 +196,14 @@ class BookRepository {
             throw new InvalidArgumentException('This book is not published yet.');
         }
 
+        self::toggleFeatured($slug, false);
         self::writeFile(self::draftPath($slug), $publishedContents);
         @unlink(self::publishedPath($slug));
 
         return $slug;
     }
 
-    public static function toggleFeatured(string $slug): array {
+    public static function toggleFeatured(string $slug, bool $featured = null): array {
         self::ensureStorage();
         $slug = self::normalizeSlug($slug);
 
@@ -220,7 +221,12 @@ class BookRepository {
             $metadata[$slug] = [];
         }
 
-        $metadata[$slug]['featured'] = !($metadata[$slug]['featured'] ?? false);
+        if ($featured === null) {
+            $metadata[$slug]['featured'] = !($metadata[$slug]['featured'] ?? false);
+        } else {
+            $metadata[$slug]['featured'] = $featured;
+        }
+
         self::saveMetadata($metadata);
 
         self::ensureStorage();

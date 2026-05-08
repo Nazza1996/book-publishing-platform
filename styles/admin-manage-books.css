@@ -166,6 +166,11 @@ main {
     color: #166534;
 }
 
+.status-featured {
+    background: #fef3c7;
+    color: #b45309;
+}
+
 .books-editor-card {
     padding: 1.25rem;
 }

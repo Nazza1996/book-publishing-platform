@@ -18,6 +18,26 @@
     $selectedSlug = trim((string)($_GET['book'] ?? ''));
     $newBookRequested = isset($_GET['new']);
 
+    $selectedBook = $newBookRequested || $selectedSlug === ''
+        ? [
+            'slug' => '',
+            'title' => '',
+            'content' => '',
+            'status' => 'draft',
+            'draftExists' => false,
+            'publishedExists' => false,
+            'featured' => false,
+        ]
+        : (BookRepository::getBook($selectedSlug) ?? [
+            'slug' => $selectedSlug,
+            'title' => BookRepository::prettyTitle($selectedSlug),
+            'content' => '',
+            'status' => 'draft',
+            'draftExists' => false,
+            'publishedExists' => false,
+            'featured' => false,
+        ]);
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = (string)($_POST['action'] ?? '');
         $currentSlug = trim((string)($_POST['current_slug'] ?? ''));
@@ -46,21 +66,6 @@
 
                 $slug = BookRepository::convertToDraft($currentSlug);
                 $redirectToBook($slug, 'Book converted to draft.');
-
-                if ($currentSlug === '') {
-                    throw new InvalidArgumentException('Please select a book to toggle featured status.');
-                }
-
-                // Check if trying to add to featured and already at limit
-                $isCurrentlyFeatured = $selectedBook['featured'] ?? false;
-                $featuredCount = BookRepository::countFeaturedBooks();
-
-                if (!$isCurrentlyFeatured && $featuredCount >= 3) {
-                    throw new InvalidArgumentException('You can only feature up to 3 books. Remove one first to add another.');
-                }
-
-                BookRepository::toggleFeatured($currentSlug);
-                $redirectToBook($currentSlug, 'Featured status updated.');
             }
 
             if ($action === 'toggle_featured') {
@@ -92,26 +97,6 @@
     if ($selectedSlug === '' && !$newBookRequested && !empty($books)) {
         $selectedSlug = $books[0]['slug'];
     }
-
-    $selectedBook = $newBookRequested || $selectedSlug === ''
-        ? [
-            'slug' => '',
-            'title' => '',
-            'content' => '',
-            'status' => 'draft',
-            'draftExists' => false,
-            'publishedExists' => false,
-            'featured' => false,
-        ]
-        : (BookRepository::getBook($selectedSlug) ?? [
-            'slug' => $selectedSlug,
-            'title' => BookRepository::prettyTitle($selectedSlug),
-            'content' => '',
-            'status' => 'draft',
-            'draftExists' => false,
-            'publishedExists' => false,
-            'featured' => false,
-        ]);
 
     $slugPreview = BookRepository::normalizeSlug($selectedBook['title'] !== '' ? $selectedBook['title'] : 'untitled-book');
 ?>
@@ -168,6 +153,9 @@
                                     <span class="book-list-title"><?php echo htmlspecialchars($book['title']); ?></span>
                                     <span class="book-list-meta">
                                         <span class="status-pill status-<?php echo htmlspecialchars($book['status']); ?>"><?php echo htmlspecialchars(ucfirst($book['status'])); ?></span>
+                                        <?php if ($book['featured']): ?>
+                                            <span class="status-pill status-featured">Spotlight</span>
+                                        <?php endif; ?>
                                         <span><?php echo htmlspecialchars($book['slug']); ?></span>
                                     </span>
                                 </a>
@@ -217,17 +205,20 @@
 
                         <div class="editor-actions">
                             <button type="submit" name="action" value="save_book" class="toolbar-button secondary">Save Draft</button>
-                                <button type="submit" name="action" value="convert_to_draft" class="toolbar-button secondary">Convert to Draft</button>
                                 <?php 
                                     $isCurrentlyFeatured = $selectedBook['featured'] ?? false;
                                     $featuredCount = BookRepository::countFeaturedBooks();
                                     $canToggle = $isCurrentlyFeatured || $featuredCount < 3;
+                                    $isDraft = $selectedBook['status'] === 'draft';
                                 ?>
-                                <button type="submit" name="action" value="toggle_featured" class="toolbar-button secondary featured-toggle <?php echo $selectedBook['featured'] ? 'is-featured' : ''; ?>" <?php echo $canToggle ? '' : 'disabled title="Spotlight limit reached (3/3). Remove a featured book first."'; ?>>
-                                    <?php echo $selectedBook['featured'] ? '★ Remove from Spotlight' : '☆ Add to Spotlight'; ?>
-                                </button>
-                                <?php if ($featuredCount >= 3 && !$isCurrentlyFeatured): ?>
-                                    <p class="featured-limit-message">Spotlight is full (3/3 featured). Remove one to add this.</p>
+                                <?php if (!$isDraft): ?>
+                                    <button type="submit" name="action" value="convert_to_draft" class="toolbar-button secondary">Convert to Draft</button>
+                                    <button type="submit" name="action" value="toggle_featured" class="toolbar-button secondary featured-toggle <?php echo $selectedBook['featured'] ? 'is-featured' : ''; ?>" <?php echo $canToggle ? '' : 'disabled title="Spotlight limit reached (3/3). Remove a featured book first."'; ?>>
+                                        <?php echo $selectedBook['featured'] ? '★ Remove from Spotlight' : '☆ Add to Spotlight'; ?>
+                                    </button>
+                                    <?php if ($featuredCount >= 3 && !$isCurrentlyFeatured): ?>
+                                        <p class="featured-limit-message">Spotlight is full</p>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             <button type="submit" name="action" value="publish_book" class="toolbar-button primary"><?php echo $selectedBook['publishedExists'] ? 'Republish Book' : 'Publish Book'; ?></button>
                         </div>
