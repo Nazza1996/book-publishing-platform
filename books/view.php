@@ -21,22 +21,23 @@
         <link rel="stylesheet" href="/styles/index.css">
         <link rel="stylesheet" href="/styles/books.css">
         <link rel="stylesheet" href="/styles/book-view.css">
+        <script type="module" src="../js/index.js?v=1.0"></script>
     </head>
 
     <body>
+        <div id="navbar"></div>
+
         <main class="books-site-page">
             <?php if ($book === null): ?>
                 <header class="books-site-hero">
-                    <p class="eyebrow">Published Books</p>
                     <h1>Book not found</h1>
                     <p>The book you requested does not exist or has not been published yet.</p>
-                    <p><a href="/books">← Back to Books</a></p>
+                    <p><a href="/library">← Back to Library</a></p>
                 </header>
             <?php else: ?>
                 <header class="books-site-hero">
-                    <p class="eyebrow">Published Book</p>
                     <h1><?php echo htmlspecialchars($book['title']); ?></h1>
-                    <p><a href="/books">← Back to Books</a></p>
+                    <p><a href="/library">← Back to Library</a></p>
                 </header>
 
                 <article class="book-viewer">
@@ -44,5 +45,7 @@
                 </article>
             <?php endif; ?>
         </main>
+
+        <div id="footer"></div>
     </body>
 </html>

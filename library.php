@@ -18,6 +18,20 @@
         <script type="module" src="./js/index.js?v=1.0"></script>
     </head>
 
+    <style>
+        @font-face {
+            font-family: 'Recoleta';
+            src: url('/fonts/Recoleta.otf') format('opentype');
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'Instrumental-Sans';
+            src: url('/fonts/InstrumentalSans.ttf') format('woff2');
+            font-display: swap;
+        }
+    </style>
+
     <body>
         <div id="navbar"></div>
 
