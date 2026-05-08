@@ -2,6 +2,7 @@
 @import url('intro.css');
 @import url('stories.css');
 @import url('footer.css');
+@import url('login.css');
 
 :root {
     --primary-text-color: #003366;
@@ -20,4 +21,5 @@ body {
     background-color: var(--background-color);
     margin: 0;
     padding: 0;
+    overflow-x: hidden;
 }

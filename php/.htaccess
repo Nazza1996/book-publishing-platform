@@ -1,0 +1,14 @@
+<IfModule mod_authz_core.c>
+    # Deny direct access to any PHP in this directory except login.php
+    <FilesMatch "^(?!login\.php$).+\.php$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+    # Apache 2.2 fallback
+    <FilesMatch "^(?!login\.php$).+\.php$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
