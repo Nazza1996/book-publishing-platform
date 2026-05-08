@@ -62,6 +62,23 @@
                 BookRepository::toggleFeatured($currentSlug);
                 $redirectToBook($currentSlug, 'Featured status updated.');
             }
+
+            if ($action === 'toggle_featured') {
+                if ($currentSlug === '') {
+                    throw new InvalidArgumentException('Please select a book to toggle featured status.');
+                }
+
+                // Check if trying to add to featured and already at limit
+                $isCurrentlyFeatured = $selectedBook['featured'] ?? false;
+                $featuredCount = BookRepository::countFeaturedBooks();
+
+                if (!$isCurrentlyFeatured && $featuredCount >= 3) {
+                    throw new InvalidArgumentException('You can only feature up to 3 books. Remove one first to add another.');
+                }
+
+                BookRepository::toggleFeatured($currentSlug);
+                $redirectToBook($currentSlug, 'Featured status updated.');
+            }
         } catch (Throwable $e) {
             $message = $e instanceof InvalidArgumentException ? $e->getMessage() : 'Unable to save the book.';
             $messageType = 'error';
@@ -84,6 +101,7 @@
             'status' => 'draft',
             'draftExists' => false,
             'publishedExists' => false,
+            'featured' => false,
         ]
         : (BookRepository::getBook($selectedSlug) ?? [
             'slug' => $selectedSlug,
@@ -92,6 +110,7 @@
             'status' => 'draft',
             'draftExists' => false,
             'publishedExists' => false,
+            'featured' => false,
         ]);
 
     $slugPreview = BookRepository::normalizeSlug($selectedBook['title'] !== '' ? $selectedBook['title'] : 'untitled-book');
