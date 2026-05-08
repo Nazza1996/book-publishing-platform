@@ -20,6 +20,7 @@
         <title><?php echo $book ? htmlspecialchars($book['title']) : 'Book Not Found'; ?></title>
         <link rel="stylesheet" href="/styles/index.css">
         <link rel="stylesheet" href="/styles/books.css">
+        <link rel="stylesheet" href="/styles/book-view.css">
     </head>
 
     <body>
@@ -39,7 +40,7 @@
                 </header>
 
                 <article class="book-viewer">
-                    <?php echo BookRepository::markdownToHtml($book['content']); ?>
+                    <?php echo BookRepository::markdownToHtml((string)($book['content'] ?? '')); ?>
                 </article>
             <?php endif; ?>
         </main>

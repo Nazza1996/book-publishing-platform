@@ -46,6 +46,29 @@ class BookRepository {
         return self::publishedDir() . DIRECTORY_SEPARATOR . $slug . '.md';
     }
 
+    private static function metadataPath(): string {
+        return self::baseDir() . DIRECTORY_SEPARATOR . 'metadata.json';
+    }
+
+    private static function loadMetadata(): array {
+        $path = self::metadataPath();
+        if (!is_file($path)) {
+            return [];
+        }
+
+        $json = file_get_contents($path);
+        if ($json === false) {
+            return [];
+        }
+
+        $data = json_decode($json, true);
+        return is_array($data) ? $data : [];
+    }
+
+    private static function saveMetadata(array $metadata): void {
+        file_put_contents(self::metadataPath(), json_encode($metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+
     private static function readFile(string $path): ?string {
         if (!is_file($path)) {
             return null;
@@ -70,6 +93,7 @@ class BookRepository {
         self::ensureStorage();
 
         $books = [];
+        $metadata = self::loadMetadata();
 
         foreach ([
             'draft' => self::draftsDir(),
@@ -83,9 +107,11 @@ class BookRepository {
                     $books[$slug] = [
                         'slug' => $slug,
                         'title' => self::extractTitle($contents, $slug),
+                        'content' => $contents,
                         'status' => $status,
                         'draftExists' => false,
                         'publishedExists' => false,
+                        'featured' => $metadata[$slug]['featured'] ?? false,
                     ];
                 }
 
@@ -124,6 +150,8 @@ class BookRepository {
             return null;
         }
 
+        $metadata = self::loadMetadata();
+
         return [
             'slug' => $slug,
             'title' => self::extractTitle($contents, $slug),
@@ -131,6 +159,7 @@ class BookRepository {
             'status' => $published !== null ? 'published' : 'draft',
             'draftExists' => $draft !== null,
             'publishedExists' => $published !== null,
+            'featured' => $metadata[$slug]['featured'] ?? false,
         ];
     }
 
@@ -173,10 +202,104 @@ class BookRepository {
         return $slug;
     }
 
+    public static function toggleFeatured(string $slug): array {
+        self::ensureStorage();
+        $slug = self::normalizeSlug($slug);
+
+        $book = self::getBook($slug);
+        if ($book === null) {
+            throw new InvalidArgumentException('Book not found.');
+        }
+
+        if (!$book['publishedExists']) {
+            throw new InvalidArgumentException('Only published books can be featured.');
+        }
+
+        $metadata = self::loadMetadata();
+        if (!isset($metadata[$slug])) {
+            $metadata[$slug] = [];
+        }
+
+        $metadata[$slug]['featured'] = !($metadata[$slug]['featured'] ?? false);
+        self::saveMetadata($metadata);
+
+        self::ensureStorage();
+
+        $published = self::getPublishedBooks();
+        $metadata = self::loadMetadata();
+
+        $featured = array_filter($published, static function (array $book) use ($metadata): bool {
+            return $metadata[$book['slug']]['featured'] ?? false;
+        });
+
+        $featured = array_values($featured);
+
+        // Ensure exactly 3 items (fill with placeholders if needed)
+        while (count($featured) < 3) {
+            $featured[] = [
+                'slug' => '',
+                'title' => 'Coming Soon',
+                'content' => '',
+                'featured' => false,
+                'is_placeholder' => true,
+            ];
+        }
+
+        return array_slice($featured, 0, 3);
+    }
+
+    public static function countFeaturedBooks(): int {
+        self::ensureStorage();
+        $published = self::getPublishedBooks();
+        $metadata = self::loadMetadata();
+
+        $featured = array_filter($published, static function (array $book) use ($metadata): bool {
+            return $metadata[$book['slug']]['featured'] ?? false;
+        });
+
+        return count($featured);
+    }
+
     public static function getPublishedBooks(): array {
-        return array_values(array_filter(self::listBooks(), static function (array $book): bool {
+        $published = array_filter(self::listBooks(), static function (array $book): bool {
             return $book['publishedExists'];
-        }));
+        });
+
+        $result = [];
+        foreach ($published as $book) {
+            $bookData = self::getPublishedBook($book['slug']);
+            if ($bookData !== null) {
+                $result[] = $bookData;
+            }
+        }
+
+        return array_values($result);
+    }
+
+    public static function getFeaturedBooks(): array {
+        self::ensureStorage();
+
+        $published = self::getPublishedBooks();
+        $metadata = self::loadMetadata();
+
+        $featured = array_filter($published, static function (array $book) use ($metadata): bool {
+            return $metadata[$book['slug']]['featured'] ?? false;
+        });
+
+        $featured = array_values($featured);
+
+        // Ensure exactly 3 items (fill with placeholders if needed)
+        while (count($featured) < 3) {
+            $featured[] = [
+                'slug' => '',
+                'title' => 'Coming Soon',
+                'content' => '',
+                'featured' => false,
+                'is_placeholder' => true,
+            ];
+        }
+
+        return array_slice($featured, 0, 3);
     }
 
     public static function getPublishedBook(string $slug): ?array {
@@ -187,10 +310,13 @@ class BookRepository {
             return null;
         }
 
+        $metadata = self::loadMetadata();
+
         return [
             'slug' => $slug,
             'title' => self::extractTitle($contents, $slug),
             'content' => $contents,
+            'featured' => $metadata[$slug]['featured'] ?? false,
         ];
     }
 
@@ -203,13 +329,36 @@ class BookRepository {
     }
 
     public static function markdownToHtml(string $markdown): string {
+        $markdown = self::normalizeFormattingMarkup($markdown);
         $markdown = str_replace(["\r\n", "\r"], "\n", $markdown);
         $lines = explode("\n", $markdown);
+        return self::renderMarkdownLines($lines);
+    }
+
+    private static function normalizeFormattingMarkup(string $markdown): string {
+        $replacements = [
+            '/<div\s+class=("|\')text-center\1\s*>/i' => ":::center",
+            '/<div\s+class=("|\')text-right\1\s*>/i' => ":::right",
+            '/<div\s+class=("|\')text-left\1\s*>/i' => ":::left",
+            '/<\/div>/i' => ":::",
+        ];
+
+        return preg_replace(array_keys($replacements), array_values($replacements), $markdown) ?? $markdown;
+    }
+
+    private static function renderMarkdownLines(array $lines): string {
         $html = [];
         $paragraph = [];
         $inList = false;
         $inCode = false;
         $codeLines = [];
+        $inAlignBlock = false;
+        $alignClass = '';
+        $alignLines = [];
+
+        $renderBlock = static function (array $blockLines): string {
+            return self::renderMarkdownLines($blockLines);
+        };
 
         $flushParagraph = static function () use (&$html, &$paragraph): void {
             if ($paragraph === []) {
@@ -228,7 +377,37 @@ class BookRepository {
             }
         };
 
+        $closeAlignBlock = static function () use (&$html, &$inAlignBlock, &$alignClass, &$alignLines, $renderBlock): void {
+            if (!$inAlignBlock) {
+                return;
+            }
+
+            $html[] = '<div class="' . $alignClass . '">' . $renderBlock($alignLines) . '</div>';
+            $inAlignBlock = false;
+            $alignClass = '';
+            $alignLines = [];
+        };
+
         foreach ($lines as $line) {
+            if (!$inAlignBlock && preg_match('/^:::(center|right|left)\s*$/i', trim($line), $matches)) {
+                $flushParagraph();
+                $closeList();
+                $inAlignBlock = true;
+                $alignClass = 'text-' . strtolower($matches[1]);
+                $alignLines = [];
+                continue;
+            }
+
+            if ($inAlignBlock) {
+                if (trim($line) === ':::') {
+                    $closeAlignBlock();
+                } else {
+                    $alignLines[] = $line;
+                }
+
+                continue;
+            }
+
             if (trim($line) === '```') {
                 if ($inCode) {
                     $html[] = '<pre><code>' . htmlspecialchars(implode("\n", $codeLines), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</code></pre>';
@@ -274,6 +453,10 @@ class BookRepository {
             }
 
             $paragraph[] = trim($line);
+        }
+
+        if ($inAlignBlock) {
+            $closeAlignBlock();
         }
 
         if ($inCode) {

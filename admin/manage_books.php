@@ -25,7 +25,7 @@
         $contents = (string)($_POST['markdown_content'] ?? '');
 
         try {
-            if ($action !== 'convert_to_draft' && $title === '') {
+            if ($action !== 'convert_to_draft' && $action !== 'toggle_featured' && $title === '') {
                 throw new InvalidArgumentException('Please provide a book title.');
             }
 
@@ -46,6 +46,21 @@
 
                 $slug = BookRepository::convertToDraft($currentSlug);
                 $redirectToBook($slug, 'Book converted to draft.');
+
+                if ($currentSlug === '') {
+                    throw new InvalidArgumentException('Please select a book to toggle featured status.');
+                }
+
+                // Check if trying to add to featured and already at limit
+                $isCurrentlyFeatured = $selectedBook['featured'] ?? false;
+                $featuredCount = BookRepository::countFeaturedBooks();
+
+                if (!$isCurrentlyFeatured && $featuredCount >= 3) {
+                    throw new InvalidArgumentException('You can only feature up to 3 books. Remove one first to add another.');
+                }
+
+                BookRepository::toggleFeatured($currentSlug);
+                $redirectToBook($currentSlug, 'Featured status updated.');
             }
         } catch (Throwable $e) {
             $message = $e instanceof InvalidArgumentException ? $e->getMessage() : 'Unable to save the book.';
@@ -183,9 +198,18 @@
 
                         <div class="editor-actions">
                             <button type="submit" name="action" value="save_book" class="toolbar-button secondary">Save Draft</button>
-                            <?php if ($selectedBook['publishedExists']): ?>
                                 <button type="submit" name="action" value="convert_to_draft" class="toolbar-button secondary">Convert to Draft</button>
-                            <?php endif; ?>
+                                <?php 
+                                    $isCurrentlyFeatured = $selectedBook['featured'] ?? false;
+                                    $featuredCount = BookRepository::countFeaturedBooks();
+                                    $canToggle = $isCurrentlyFeatured || $featuredCount < 3;
+                                ?>
+                                <button type="submit" name="action" value="toggle_featured" class="toolbar-button secondary featured-toggle <?php echo $selectedBook['featured'] ? 'is-featured' : ''; ?>" <?php echo $canToggle ? '' : 'disabled title="Spotlight limit reached (3/3). Remove a featured book first."'; ?>>
+                                    <?php echo $selectedBook['featured'] ? '★ Remove from Spotlight' : '☆ Add to Spotlight'; ?>
+                                </button>
+                                <?php if ($featuredCount >= 3 && !$isCurrentlyFeatured): ?>
+                                    <p class="featured-limit-message">Spotlight is full (3/3 featured). Remove one to add this.</p>
+                                <?php endif; ?>
                             <button type="submit" name="action" value="publish_book" class="toolbar-button primary"><?php echo $selectedBook['publishedExists'] ? 'Republish Book' : 'Publish Book'; ?></button>
                         </div>
                     </form>

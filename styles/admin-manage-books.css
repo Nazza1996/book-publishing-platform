@@ -257,6 +257,49 @@ main {
 
 .editor-field textarea {
     min-height: 520px;
+    width: 100%;
+    box-sizing: border-box;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.editor-field .CodeMirror {
+    width: 100% !important;
+    box-sizing: border-box;
+    height: 520px !important;
+    max-height: 520px !important;
+}
+
+.editor-field .CodeMirror pre {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+}
+
+/* Live alignment classes applied by CodeMirror while editing */
+.editor-field .CodeMirror-line.mde-align-center {
+    text-align: center;
+}
+
+.editor-field .CodeMirror-line.mde-align-right {
+    text-align: right;
+}
+
+.editor-field .CodeMirror-line.mde-align-left {
+    text-align: left;
+}
+
+.editor-field .CodeMirror-scroll {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 520px;
+    overscroll-behavior: contain;
+}
+
+.editor-field .editor-toolbar {
+    flex-wrap: wrap;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 .editor-actions {
@@ -265,6 +308,38 @@ main {
     gap: 0.75rem;
     flex-wrap: wrap;
     margin-top: 1rem;
+}
+
+.featured-toggle {
+    background: #fff8f0 !important;
+    color: #d97706 !important;
+    border-color: #fed7aa !important;
+}
+
+.featured-toggle:hover {
+    background: #fed7aa !important;
+}
+
+.featured-toggle.is-featured {
+    background: #fef3c7 !important;
+    color: #b45309 !important;
+    border-color: #fcd34d !important;
+}
+
+.featured-toggle:disabled {
+    background: #f0f0f0 !important;
+    color: #999 !important;
+    border-color: #ddd !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+}
+
+.featured-limit-message {
+    font-size: 0.85rem;
+    color: #d97706;
+    margin: 0.5rem 0 0;
+    padding: 0.5rem 0;
+    font-style: italic;
 }
 
 .message {

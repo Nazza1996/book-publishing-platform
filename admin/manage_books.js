@@ -4,12 +4,144 @@ const markdownTextarea = document.getElementById('markdownContent');
 const uploadInput = document.getElementById('markdownUpload');
 const bookForm = document.getElementById('bookForm');
 
+const parseAlignmentBlocks = (markdown, renderMarkdown) => {
+    const lines = String(markdown || '').replace(/\r\n|\r/g, '\n').split('\n');
+    const output = [];
+    let buffer = [];
+    let currentAlign = null;
+    let alignBuffer = [];
+
+    const flushBuffer = () => {
+        if (buffer.length === 0) {
+            return;
+        }
+
+        output.push(renderMarkdown(buffer.join('\n')));
+        buffer = [];
+    };
+
+    const flushAlignBlock = () => {
+        if (!currentAlign) {
+            return;
+        }
+
+        output.push(`<div class="text-${currentAlign}">${renderMarkdown(alignBuffer.join('\n'))}</div>`);
+        currentAlign = null;
+        alignBuffer = [];
+    };
+
+    for (const line of lines) {
+        const openMatch = line.trim().match(/^:::(center|right|left)\s*$/i);
+
+        if (!currentAlign && openMatch) {
+            currentAlign = openMatch[1].toLowerCase();
+            alignBuffer = [];
+            continue;
+        }
+
+        if (currentAlign) {
+            if (line.trim() === ':::') {
+                flushAlignBlock();
+            } else {
+                alignBuffer.push(line);
+            }
+
+            continue;
+        }
+
+        buffer.push(line);
+    }
+
+    flushAlignBlock();
+    flushBuffer();
+
+    return output.join('\n');
+};
+
+const syncAlignmentLineClasses = (codemirror) => {
+    const doc = codemirror.getDoc();
+    let currentAlign = null;
+
+    doc.eachLine((lineHandle) => {
+        const text = lineHandle.text.trim();
+
+        codemirror.removeLineClass(lineHandle, 'text', 'mde-align-center');
+        codemirror.removeLineClass(lineHandle, 'text', 'mde-align-right');
+        codemirror.removeLineClass(lineHandle, 'text', 'mde-align-left');
+
+        const openMatch = text.match(/^:::(center|right|left)\s*$/i);
+        if (openMatch) {
+            currentAlign = openMatch[1].toLowerCase();
+            return;
+        }
+
+        if (text === ':::') {
+            currentAlign = null;
+            return;
+        }
+
+        if (!currentAlign || text === '') {
+            return;
+        }
+
+        codemirror.addLineClass(lineHandle, 'text', `mde-align-${currentAlign}`);
+    });
+};
+
+const wrapSelectionInAlignmentBlock = (editorInstance, align) => {
+    const cm = editorInstance.codemirror;
+    const selection = cm.getSelection() || 'Aligned text';
+    const wrapped = `:::${align}\n${selection}\n:::\n`;
+
+    cm.replaceSelection(wrapped);
+    cm.focus();
+    syncAlignmentLineClasses(cm);
+};
+
 const editor = new EasyMDE({
     element: markdownTextarea,
-    spellChecker: false,
-    status: false,
-    autofocus: false,
     placeholder: 'Write your book in markdown...',
+    previewRender: function(plainText) {
+        return parseAlignmentBlocks(plainText, (segment) => this.parent.markdown(segment));
+    },
+    toolbar: [
+        "bold",
+        "italic",
+        "strikethrough",
+        "heading",
+        "|",
+        "quote",
+        "unordered-list",
+        "ordered-list",
+        "|",
+        "link",
+        "image",
+        "table",
+        "|",
+        {
+            name: "center",
+            action: (editorInstance) => wrapSelectionInAlignmentBlock(editorInstance, 'center'),
+            className: "fa fa-align-center",
+            title: "Center text"
+        },
+        {
+            name: "left",
+            action: (editorInstance) => wrapSelectionInAlignmentBlock(editorInstance, 'left'),
+            className: "fa fa-align-left",
+            title: "Left align text"
+        },
+        {
+            name: "right",
+            action: (editorInstance) => wrapSelectionInAlignmentBlock(editorInstance, 'right'),
+            className: "fa fa-align-right",
+            title: "Right align text"
+        },
+        "|",
+        "preview",
+        "side-by-side",
+        "fullscreen",
+        "guide",
+    ]
 });
 
 const slugify = (value) => value
@@ -63,4 +195,9 @@ bookForm.addEventListener('submit', () => {
     markdownTextarea.value = editor.value();
 });
 
+editor.codemirror.on('change', () => {
+    syncAlignmentLineClasses(editor.codemirror);
+});
+
 updateSlugPreview();
+syncAlignmentLineClasses(editor.codemirror);
