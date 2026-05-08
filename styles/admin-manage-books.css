@@ -298,6 +298,10 @@ main {
     overflow-x: auto;
     overflow-y: auto;
     max-height: 520px;
+    overscroll-behavior: auto;
+}
+
+.editor-field .CodeMirror-scroll.editor-scrollable {
     overscroll-behavior: contain;
 }
 

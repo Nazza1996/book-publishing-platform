@@ -144,6 +144,22 @@ const editor = new EasyMDE({
     ]
 });
 
+const editorScroller = editor.codemirror.getScrollerElement();
+
+const updateEditorScrollState = () => {
+    const isScrollable = editorScroller.scrollHeight > editorScroller.clientHeight + 1;
+
+    editorScroller.classList.toggle('editor-scrollable', isScrollable);
+};
+
+editor.codemirror.getWrapperElement().addEventListener('wheel', (event) => {
+    if (editorScroller.classList.contains('editor-scrollable')) {
+        return;
+    }
+
+    event.stopImmediatePropagation();
+}, { capture: true });
+
 const slugify = (value) => value
     .toLowerCase()
     .trim()
@@ -197,7 +213,11 @@ bookForm.addEventListener('submit', () => {
 
 editor.codemirror.on('change', () => {
     syncAlignmentLineClasses(editor.codemirror);
+    requestAnimationFrame(updateEditorScrollState);
 });
+
+window.addEventListener('resize', updateEditorScrollState);
 
 updateSlugPreview();
 syncAlignmentLineClasses(editor.codemirror);
+updateEditorScrollState();
