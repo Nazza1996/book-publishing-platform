@@ -14,8 +14,17 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}.html -f
 RewriteRule ^(.+)$ $1.html [L]
 
+# Redirect .php → clean URL (skip requests under /php/)
+RewriteCond %{REQUEST_URI} !^/php/
+RewriteCond %{THE_REQUEST} \s(.+?)\.php[\s?] [NC]
+RewriteRule ^ %1 [R=301,L]
 
-ErrorDocument 404 /404.html
+# Only rewrite to a .php file if the .php exists (skip /php/ folder)
+RewriteCond %{REQUEST_URI} !^/php/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.+)$ $1.php [L]
 
 # Route /admin to protected dashboard
 RewriteRule ^admin/?$ /admin/dashboard.php [L]
@@ -27,5 +36,5 @@ RewriteRule ^admin/?$ /admin/dashboard.php [L]
 	</FilesMatch>
 </IfModule>
 
-# Return 404 for forbidden access to keep messages generic
+ErrorDocument 404 /404.html
 ErrorDocument 403 /404.html

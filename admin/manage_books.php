@@ -1,0 +1,198 @@
+<?php
+    require_once __DIR__ . '/../php/auth.php';
+    require_once __DIR__ . '/../php/repositories/BookRepository.php';
+
+    BookRepository::ensureStorage();
+
+    $message = $_SESSION['books_flash_message'] ?? null;
+    $messageType = $_SESSION['books_flash_type'] ?? 'success';
+    unset($_SESSION['books_flash_message'], $_SESSION['books_flash_type']);
+
+    $redirectToBook = static function (string $slug, string $messageText, string $type = 'success'): void {
+        $_SESSION['books_flash_message'] = $messageText;
+        $_SESSION['books_flash_type'] = $type;
+        header('Location: /admin/manage_books?book=' . urlencode($slug));
+        exit;
+    };
+
+    $selectedSlug = trim((string)($_GET['book'] ?? ''));
+    $newBookRequested = isset($_GET['new']);
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $action = (string)($_POST['action'] ?? '');
+        $currentSlug = trim((string)($_POST['current_slug'] ?? ''));
+        $title = trim((string)($_POST['book_title'] ?? ''));
+        $contents = (string)($_POST['markdown_content'] ?? '');
+
+        try {
+            if ($action !== 'convert_to_draft' && $title === '') {
+                throw new InvalidArgumentException('Please provide a book title.');
+            }
+
+            if ($action === 'save_book') {
+                $slug = BookRepository::saveDraft($currentSlug, $title, $contents);
+                $redirectToBook($slug, 'Draft saved successfully.');
+            }
+
+            if ($action === 'publish_book') {
+                $slug = BookRepository::publishBook($currentSlug, $title, $contents);
+                $redirectToBook($slug, 'Book published successfully.');
+            }
+
+            if ($action === 'convert_to_draft') {
+                if ($currentSlug === '') {
+                    throw new InvalidArgumentException('Please select a published book to convert.');
+                }
+
+                $slug = BookRepository::convertToDraft($currentSlug);
+                $redirectToBook($slug, 'Book converted to draft.');
+            }
+        } catch (Throwable $e) {
+            $message = $e instanceof InvalidArgumentException ? $e->getMessage() : 'Unable to save the book.';
+            $messageType = 'error';
+            $selectedSlug = $currentSlug;
+            $newBookRequested = $selectedSlug === '';
+        }
+    }
+
+    $books = BookRepository::listBooks();
+
+    if ($selectedSlug === '' && !$newBookRequested && !empty($books)) {
+        $selectedSlug = $books[0]['slug'];
+    }
+
+    $selectedBook = $newBookRequested || $selectedSlug === ''
+        ? [
+            'slug' => '',
+            'title' => '',
+            'content' => '',
+            'status' => 'draft',
+            'draftExists' => false,
+            'publishedExists' => false,
+        ]
+        : (BookRepository::getBook($selectedSlug) ?? [
+            'slug' => $selectedSlug,
+            'title' => BookRepository::prettyTitle($selectedSlug),
+            'content' => '',
+            'status' => 'draft',
+            'draftExists' => false,
+            'publishedExists' => false,
+        ]);
+
+    $slugPreview = BookRepository::normalizeSlug($selectedBook['title'] !== '' ? $selectedBook['title'] : 'untitled-book');
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Manage Books - Admin</title>
+        <link rel="stylesheet" href="/styles/index.css">
+        <link rel="stylesheet" href="/styles/admin-manage-books.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+        <script type="module" src="/admin/index.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+        <script defer src="/admin/manage_books.js"></script>
+    </head>
+
+    <body>
+        <div id="adminNav"></div>
+
+        <main class="manage-books-page">
+            <section class="manage-books-hero">
+                <div>
+                    <p class="eyebrow">Book CMS</p>
+                    <h1>Manage Books</h1>
+                    <p class="manage-books-intro">Upload markdown, edit it in EasyMDE, save drafts to the filesystem, and publish books to the public site.</p>
+                </div>
+
+                <div class="manage-books-actions">
+                    <a class="toolbar-button secondary" href="/admin/manage_books?new=1">New Book</a>
+                    <a class="toolbar-button secondary" href="/admin">Dashboard</a>
+                </div>
+            </section>
+
+            <?php if ($message): ?>
+                <p class="message <?php echo htmlspecialchars($messageType); ?>"><?php echo htmlspecialchars($message); ?></p>
+            <?php endif; ?>
+
+            <section class="books-layout">
+                <aside class="books-sidebar">
+                    <div class="sidebar-head">
+                        <h2>Book Library</h2>
+                        <p><?php echo count($books); ?> total</p>
+                    </div>
+
+                    <?php if (empty($books)): ?>
+                        <div class="empty-state">No books yet. Create your first one with the button above.</div>
+                    <?php else: ?>
+                        <div class="book-list" aria-label="Books">
+                            <?php foreach ($books as $book): ?>
+                                <a class="book-list-item <?php echo $book['slug'] === $selectedBook['slug'] ? 'is-active' : ''; ?>" href="/admin/manage_books?book=<?php echo urlencode($book['slug']); ?>">
+                                    <span class="book-list-title"><?php echo htmlspecialchars($book['title']); ?></span>
+                                    <span class="book-list-meta">
+                                        <span class="status-pill status-<?php echo htmlspecialchars($book['status']); ?>"><?php echo htmlspecialchars(ucfirst($book['status'])); ?></span>
+                                        <span><?php echo htmlspecialchars($book['slug']); ?></span>
+                                    </span>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </aside>
+
+                <section class="books-editor-panel">
+                    <form method="post" id="bookForm" class="books-editor-card">
+                        <input type="hidden" name="current_slug" id="currentSlug" value="<?php echo htmlspecialchars($selectedBook['slug']); ?>">
+
+                        <div class="editor-topbar">
+                            <div>
+                                <p class="eyebrow">Editor</p>
+                                <h2><?php echo $selectedBook['slug'] !== '' ? 'Editing ' . htmlspecialchars($selectedBook['slug']) : 'New Book'; ?></h2>
+                            </div>
+
+                            <div class="editor-topbar-meta">
+                                <span class="status-pill status-<?php echo htmlspecialchars($selectedBook['status']); ?>"><?php echo htmlspecialchars(ucfirst($selectedBook['status'])); ?></span>
+                                <a class="view-book-link <?php echo $selectedBook['publishedExists'] ? '' : 'is-disabled'; ?>" href="<?php echo $selectedBook['publishedExists'] ? '/books/view.php?slug=' . urlencode($selectedBook['slug']) : '#'; ?>" <?php echo $selectedBook['publishedExists'] ? '' : 'aria-disabled="true" tabindex="-1"'; ?>>View Published</a>
+                            </div>
+                        </div>
+
+                        <div class="editor-grid">
+                            <label class="field">
+                                <span>Book Title</span>
+                                <input type="text" name="book_title" id="bookTitle" value="<?php echo htmlspecialchars($selectedBook['title']); ?>" placeholder="Enter a title" required>
+                            </label>
+
+                            <div class="field">
+                                <span>File Slug</span>
+                                <div class="slug-preview" id="slugPreview"><?php echo htmlspecialchars($slugPreview); ?></div>
+                            </div>
+                        </div>
+
+                        <div class="upload-row">
+                            <label class="upload-button" for="markdownUpload">Upload Markdown File</label>
+                            <input type="file" id="markdownUpload" accept=".md,.markdown,text/markdown">
+                            <p class="upload-hint">Choose a markdown file to load its contents into the editor.</p>
+                        </div>
+
+                        <label class="field editor-field">
+                            <span>Markdown Content</span>
+                            <textarea name="markdown_content" id="markdownContent" rows="22" placeholder="Write your book here..."><?php echo htmlspecialchars($selectedBook['content']); ?></textarea>
+                        </label>
+
+                        <div class="editor-actions">
+                            <button type="submit" name="action" value="save_book" class="toolbar-button secondary">Save Draft</button>
+                            <?php if ($selectedBook['publishedExists']): ?>
+                                <button type="submit" name="action" value="convert_to_draft" class="toolbar-button secondary">Convert to Draft</button>
+                            <?php endif; ?>
+                            <button type="submit" name="action" value="publish_book" class="toolbar-button primary"><?php echo $selectedBook['publishedExists'] ? 'Republish Book' : 'Publish Book'; ?></button>
+                        </div>
+                    </form>
+                </section>
+            </section>
+        </main>
+
+        <div id="footer"></div>
+    </body>
+</html>

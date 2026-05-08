@@ -31,6 +31,30 @@
             max-width: 800px;
             margin: 2rem auto;
             padding: 0 1rem;
+            height: 60vh;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.25rem;
+            flex-wrap: wrap;
+        }
+
+        .admin-actions .btn {
+            display: inline-block;
+            padding: 0.6rem 1rem;
+            background: #222;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .admin-actions .btn.secondary {
+            background: transparent;
+            color: #222;
+            border: 2px solid #222;
         }
     </style>
 
@@ -40,6 +64,11 @@
         <section id="adminDashboard">
             <h1>Dashboard</h1>
             <p>Welcome back, admin.</p>
+
+            <div class="admin-actions">
+                <a class="btn" href="/admin/users/">View Users</a>
+                <a class="btn secondary" href="/admin/manage_books">Manage Books</a>
+            </div>
         </section>
 
         <div id="footer"></div>
