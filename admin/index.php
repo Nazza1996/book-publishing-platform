@@ -11,7 +11,7 @@
         <title>NateThePlot - Admin</title>
         <link rel="stylesheet" href="/styles/index.css">
         <link rel="icon" href="/favicon.ico" type="image/x-icon">
-        <script type="module" src="index.js"></script>
+        <script type="module" src="/js/index.js"></script>
     </head>
 
     <style>
@@ -59,7 +59,7 @@
     </style>
 
     <body>
-        <div id="adminNav"></div>
+        <div id="navbar"></div>
 
         <section id="adminDashboard">
             <h1>Dashboard</h1>

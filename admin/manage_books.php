@@ -111,13 +111,13 @@
         <link rel="stylesheet" href="/styles/index.css">
         <link rel="stylesheet" href="/styles/admin-manage-books.css">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
-        <script type="module" src="/admin/index.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+        <script type="module" src="/js/index.js"></script>
         <script defer src="/admin/manage_books.js"></script>
     </head>
 
     <body>
-        <div id="adminNav"></div>
+        <div id="navbar"></div>
 
         <main class="manage-books-page">
             <section class="manage-books-hero">

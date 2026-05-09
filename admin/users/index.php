@@ -85,7 +85,7 @@
         <title>Users - Admin</title>
         <link rel="stylesheet" href="/styles/index.css">
         <link rel="stylesheet" href="/styles/admin-users.css">
-        <script type="module" src="/admin/index.js"></script>
+        <script type="module" src="/js/index.js"></script>
         <script defer src="./users.js"></script>
 
         <style>
@@ -125,7 +125,7 @@
     </head>
 
     <body>
-        <div id="adminNav"></div>
+        <div id="navbar"></div>
 
         <main class="users-container">
             <h1>Users</h1>

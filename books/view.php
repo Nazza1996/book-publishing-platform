@@ -29,7 +29,7 @@
 
         <main class="books-site-page">
             <?php if ($book === null): ?>
-                <header class="books-site-hero">
+                <header class="books-site-hero book-not-found">
                     <h1>Book not found</h1>
                     <p>The book you requested does not exist or has not been published yet.</p>
                     <p><a href="/library">← Back to Library</a></p>

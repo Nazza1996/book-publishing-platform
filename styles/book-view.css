@@ -1,79 +1,252 @@
 /* Book View Page Styles */
 
-.book-not-found {
-    min-height: 70vh;
+/* Not Found State */
+.books-site-hero.book-not-found {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px 20px;
-}
-
-.error-container {
+    min-height: 60vh;
     text-align: center;
-    max-width: 500px;
+    border-bottom: none;
+    padding: 3rem 1rem;
 }
 
-.error-container h1 {
+.books-site-hero.book-not-found h1 {
     font-size: 2.5rem;
-    font-family: 'Recoleta', serif;
-    margin-bottom: 20px;
+    margin-bottom: 1rem;
+}
+
+.books-site-hero.book-not-found p {
+    margin: 0.75rem 0;
+    color: #666;
+}
+
+.books-site-hero.book-not-found p:last-child {
+    margin-top: 1.5rem;
+}
+
+/* Hero/Header Section */
+.books-site-hero {
+    padding: 3rem 0 1.5rem;
+    margin-bottom: 3rem;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.books-site-hero h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 1rem 0;
     color: var(--primary-text-color);
 }
 
-.error-container p {
+.books-site-hero p {
+    margin: 1rem 0 0;
     font-size: 1.1rem;
-    color: #666;
-    margin-bottom: 30px;
-    line-height: 1.6;
 }
 
-.book-view {
-    max-width: 850px;
-    margin: 0 auto;
-    padding: 60px 20px 80px;
-}
-
-.book-content {
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-.book-header {
-    padding: 40px;
-    border-bottom: 1px solid #e5e5e5;
-}
-
-.back-link {
-    display: inline-block;
+.books-site-hero a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
     color: var(--primary-text-color);
     text-decoration: none;
     font-weight: 600;
-    margin-bottom: 20px;
-    transition: color 0.3s ease;
+    transition: all 0.3s ease;
+    padding: 0.5rem 0;
 }
 
-.back-link:hover {
+.books-site-hero a:hover {
     color: var(--secondary-text-color);
+    transform: translateX(-4px);
 }
 
-.book-header h1 {
-    font-size: 2.5rem;
-    font-family: 'Recoleta', serif;
-    margin: 0;
-    color: var(--primary-text-color);
-    line-height: 1.3;
-}
-
-.book-body {
-    padding: 40px;
+/* Main Book Viewer */
+.book-viewer {
+    max-width: 72ch;
+    margin: 0 auto;
+    font-size: 1.05rem;
     line-height: 1.8;
     color: #333;
 }
 
-.book-body p {
-    margin: 0 0 20px;
-    font-size: 1.05rem;
+/* Markdown Content Styling */
+.book-viewer h2,
+.book-viewer h3,
+.book-viewer h4,
+.book-viewer h5,
+.book-viewer h6 {
+    font-weight: 700;
+    color: var(--primary-text-color);
+    scroll-margin-top: 80px;
+}
+
+.book-viewer h2 {
+    font-size: 1.95rem;
+    margin: 2.5rem 0 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f0f0f0;
+}
+
+.book-viewer h2:first-child {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+}
+
+.book-viewer h3 {
+    font-size: 1.5rem;
+    margin: 2rem 0 0.75rem;
+}
+
+.book-viewer h4 {
+    font-size: 1.25rem;
+    margin: 1.5rem 0 0.5rem;
+}
+
+.book-viewer h5,
+.book-viewer h6 {
+    font-size: 1.1rem;
+    margin: 1.25rem 0 0.5rem;
+}
+
+.book-viewer p {
+    margin: 0 0 1.5rem;
+}
+
+.book-viewer p:last-child {
+    margin-bottom: 0;
+}
+
+/* Lists */
+.book-viewer ul,
+.book-viewer ol {
+    margin: 1.5rem 0;
+    padding-left: 2.5rem;
+}
+
+.book-viewer li {
+    margin: 0.75rem 0;
+    padding-left: 0.5rem;
+}
+
+.book-viewer li:last-child {
+    margin-bottom: 0;
+}
+
+/* Blockquotes */
+.book-viewer blockquote {
+    margin: 2rem 0;
+    padding: 1.25rem 1.75rem;
+    border-left: 4px solid var(--primary-text-color);
+    background: #f9f9f9;
+    border-radius: 0 4px 4px 0;
+    font-style: italic;
+    color: #555;
+}
+
+.book-viewer blockquote p {
+    margin: 0.5rem 0;
+}
+
+.book-viewer blockquote p:first-child {
+    margin-top: 0;
+}
+
+.book-viewer blockquote p:last-child {
+    margin-bottom: 0;
+}
+
+/* Code Blocks */
+.book-viewer pre {
+    background: #282c34;
+    border-radius: 8px;
+    padding: 1.5rem;
+    overflow-x: auto;
+    margin: 2rem 0;
+    line-height: 1.5;
+}
+
+.book-viewer pre code {
+    color: #abb2bf;
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+    font-size: 0.95rem;
+}
+
+/* Inline Code */
+.book-viewer code:not(pre code) {
+    background: #f5f5f5;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    color: #d73a49;
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+    font-size: 0.95em;
+}
+
+/* Text Formatting */
+.book-viewer strong {
+    font-weight: 700;
+    /* color: var(--primary-text-color); */
+}
+
+.book-viewer em {
+    font-style: italic;
+    color: #555;
+}
+
+/* Links */
+.book-viewer a {
+    color: var(--primary-text-color);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.book-viewer a:hover {
+    border-bottom-color: var(--primary-text-color);
+}
+
+/* Images */
+.book-viewer img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 2rem 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Horizontal Rules */
+.book-viewer hr {
+    margin: 2rem 0;
+    border: none;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #ddd, transparent);
+}
+
+/* Tables */
+.book-viewer table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.5rem 0;
+}
+
+.book-viewer th,
+.book-viewer td {
+    border: 1px solid #e0e0e0;
+    padding: 0.75rem 1rem;
+    text-align: left;
+}
+
+.book-viewer th {
+    background: #f8f8f8;
+    font-weight: 700;
+    color: var(--primary-text-color);
+}
+
+.book-viewer tr:nth-child(even) {
+    background: #fafafa;
 }
 
 /* Utility text alignment classes for rendered markdown */
@@ -81,121 +254,52 @@
 .text-right { text-align: right; }
 .text-left { text-align: left; }
 
-.book-body h2 {
-    font-family: 'Recoleta', serif;
-    font-size: 1.8rem;
-    margin: 40px 0 20px;
-    color: var(--primary-text-color);
-}
-
-.book-body h3 {
-    font-family: 'Recoleta', serif;
-    font-size: 1.4rem;
-    margin: 30px 0 15px;
-    color: var(--primary-text-color);
-}
-
-.book-body h4 {
-    font-family: 'Recoleta', serif;
-    font-size: 1.1rem;
-    margin: 25px 0 10px;
-    color: var(--primary-text-color);
-}
-
-.book-body ul,
-.book-body ol {
-    margin: 20px 0;
-    padding-left: 30px;
-}
-
-.book-body li {
-    margin: 8px 0;
-}
-
-.book-body pre {
-    background: #f5f5f5;
-    border-radius: 8px;
-    padding: 20px;
-    overflow-x: auto;
-    margin: 20px 0;
-}
-
-.book-body code {
-    font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
-}
-
-.book-body pre code {
-    color: #333;
-}
-
-.book-body strong {
-    font-weight: 700;
-    color: var(--primary-text-color);
-}
-
-.book-body em {
-    font-style: italic;
-}
-
-.book-body a {
-    color: var(--primary-text-color);
-    text-decoration: none;
-    border-bottom: 1px solid var(--primary-text-color);
-    transition: color 0.3s ease;
-}
-
-.book-body a:hover {
-    color: var(--secondary-text-color);
-    border-bottom-color: var(--secondary-text-color);
-}
-
-.book-footer {
-    padding: 40px;
-    border-top: 1px solid #e5e5e5;
-    text-align: center;
-}
-
-.button {
-    display: inline-block;
-    padding: 12px 30px;
-    background-color: var(--primary-text-color);
-    color: white;
-    text-decoration: none;
-    border-radius: 6px;
-    font-weight: 600;
-    transition: background-color 0.3s ease;
-}
-
-.button:hover {
-    background-color: var(--secondary-text-color);
-}
-
-/* Responsive */
+/* Responsive Design */
 @media (max-width: 768px) {
-    .book-header {
-        padding: 30px 20px;
+    .books-site-hero {
+        padding: 2rem 0 1rem;
+        margin-bottom: 2rem;
     }
 
-    .book-header h1 {
-        font-size: 1.8rem;
+    .books-site-hero h1 {
+        font-size: 2rem;
     }
 
-    .book-body {
-        padding: 30px 20px;
+    .book-viewer {
+        font-size: 1rem;
     }
 
-    .book-body h2 {
-        font-size: 1.5rem;
-        margin: 30px 0 15px;
+    .book-viewer h2 {
+        font-size: 1.6rem;
+        margin: 1.75rem 0 0.75rem;
     }
 
-    .book-body h3 {
-        font-size: 1.2rem;
+    .book-viewer h3 {
+        font-size: 1.3rem;
+        margin: 1.5rem 0 0.6rem;
     }
 
-    .book-footer {
-        padding: 30px 20px;
+    .book-viewer h4 {
+        font-size: 1.1rem;
+    }
+
+    .book-viewer ul,
+    .book-viewer ol {
+        padding-left: 1.75rem;
+    }
+
+    .book-viewer pre {
+        padding: 1rem;
+        margin: 1.5rem 0;
+    }
+
+    .book-viewer blockquote {
+        padding: 1rem 1.25rem;
+        margin: 1.5rem 0;
+    }
+
+    .book-viewer img {
+        margin: 1.5rem 0;
     }
 }
 

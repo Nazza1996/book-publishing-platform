@@ -1,4 +1,6 @@
 export default async function animateOnScroll(element, options = {}) {
+    if (!element) return;
+
     const defaultOptions = {
         type: 'slide',
         direction: 'right', // Default direction for sliding (left, right, top, down)

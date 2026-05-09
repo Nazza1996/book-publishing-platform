@@ -26,9 +26,6 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME}.php -f
 RewriteRule ^(.+)$ $1.php [L]
 
-# Route /admin to protected dashboard
-RewriteRule ^admin/?$ /admin/dashboard.php [L]
-
 # Deny direct web access to sensitive php files placed in /php
 <IfModule mod_authz_core.c>
 	<FilesMatch "^(db|auth)\.php$">
