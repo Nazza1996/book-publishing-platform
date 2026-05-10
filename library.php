@@ -55,9 +55,10 @@
                                 <h3 class="book-card-title"><?php echo htmlspecialchars($book['title']); ?></h3>
                                 <p class="book-card-excerpt">
                                     <?php
-                                        $content = (string)($book['content'] ?? '');
-                                        $excerpt = substr(strip_tags(BookRepository::markdownToHtml($content)), 0, 150);
-                                        echo htmlspecialchars($excerpt) . '...';
+                                        $description = (string)($book['description'] ?? '');
+                                        $excerpt = strip_tags(BookRepository::markdownToHtml($description));
+                                        $excerpt = substr($excerpt, 0, 150);
+                                        echo htmlspecialchars($excerpt) . (strlen(strip_tags(BookRepository::markdownToHtml($description))) > 150 ? '...' : '');
                                     ?>
                                 </p>
                             </div>

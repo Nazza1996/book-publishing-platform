@@ -38,20 +38,6 @@ class BookRepository {
         return $title !== '' ? ucwords($title) : 'Untitled Book';
     }
 
-    public static function deleteBook(string $slug): void {
-        self::ensureStorage();
-        $slug = self::normalizeSlug($slug);
-
-        @unlink(self::draftPath($slug));
-        @unlink(self::publishedPath($slug));
-
-        $metadata = self::loadMetadata();
-        if (isset($metadata[$slug])) {
-            unset($metadata[$slug]);
-            self::saveMetadata($metadata);
-        }
-    }
-
     private static function draftPath(string $slug): string {
         return self::draftsDir() . DIRECTORY_SEPARATOR . $slug . '.md';
     }
@@ -126,6 +112,7 @@ class BookRepository {
                         'draftExists' => false,
                         'publishedExists' => false,
                         'featured' => $metadata[$slug]['featured'] ?? false,
+                        'description' => $metadata[$slug]['description'] ?? '',
                     ];
                 }
 
@@ -174,6 +161,7 @@ class BookRepository {
             'draftExists' => $draft !== null,
             'publishedExists' => $published !== null,
             'featured' => $metadata[$slug]['featured'] ?? false,
+            'description' => $metadata[$slug]['description'] ?? '',
         ];
     }
 
@@ -313,6 +301,7 @@ class BookRepository {
             $featured[] = [
                 'slug' => '',
                 'title' => 'Coming Soon',
+                'description' => '',
                 'content' => '',
                 'featured' => false,
                 'is_placeholder' => true,
@@ -337,6 +326,7 @@ class BookRepository {
             'title' => self::extractTitle($contents, $slug),
             'content' => $contents,
             'featured' => $metadata[$slug]['featured'] ?? false,
+            'description' => $metadata[$slug]['description'] ?? '',
         ];
     }
 
@@ -497,5 +487,26 @@ class BookRepository {
         $text = preg_replace('/\[([^\]]+)\]\(([^)]+)\)/', '<a href="$2">$1</a>', $text) ?? $text;
 
         return $text;
+    }
+
+    public static function setDescription(string $slug, string $description): void {
+        self::ensureStorage();
+        $slug = self::normalizeSlug($slug);
+
+        $metadata = self::loadMetadata();
+        if (!isset($metadata[$slug])) {
+            $metadata[$slug] = [];
+        }
+
+        $metadata[$slug]['description'] = $description;
+        self::saveMetadata($metadata);
+    }
+
+    public static function getDescription(string $slug): string {
+        self::ensureStorage();
+        $slug = self::normalizeSlug($slug);
+
+        $metadata = self::loadMetadata();
+        return $metadata[$slug]['description'] ?? '';
     }
 }

@@ -64,10 +64,10 @@
                                     <span class="story-title"><?php echo htmlspecialchars($book['title']); ?></span>
                                     <p class="story-description">
                                         <?php
-                                            $content = (string)($book['content'] ?? '');
-                                            $excerpt = strip_tags(BookRepository::markdownToHtml($content));
+                                            $description = (string)($book['description'] ?? '');
+                                            $excerpt = strip_tags(BookRepository::markdownToHtml($description));
                                             $excerpt = substr($excerpt, 0, 150);
-                                            echo htmlspecialchars($excerpt) . (strlen(strip_tags(BookRepository::markdownToHtml($content))) > 150 ? '...' : '');
+                                            echo htmlspecialchars($excerpt) . (strlen(strip_tags(BookRepository::markdownToHtml($description))) > 150 ? '...' : '');
                                         ?>
                                     </p>
                                     <span class="read-story">Read Story</span>

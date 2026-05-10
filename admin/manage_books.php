@@ -27,6 +27,7 @@
             'draftExists' => false,
             'publishedExists' => false,
             'featured' => false,
+            'description' => '',
         ]
         : (BookRepository::getBook($selectedSlug) ?? [
             'slug' => $selectedSlug,
@@ -36,6 +37,7 @@
             'draftExists' => false,
             'publishedExists' => false,
             'featured' => false,
+            'description' => '',
         ]);
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -43,6 +45,7 @@
         $currentSlug = trim((string)($_POST['current_slug'] ?? ''));
         $title = trim((string)($_POST['book_title'] ?? ''));
         $contents = (string)($_POST['markdown_content'] ?? '');
+        $description = trim((string)($_POST['book_description'] ?? ''));
 
         try {
             if ($action !== 'convert_to_draft' && $action !== 'toggle_featured' && $action !== 'delete_book' && $title === '') {
@@ -51,11 +54,17 @@
 
             if ($action === 'save_book') {
                 $slug = BookRepository::saveDraft($currentSlug, $title, $contents);
+                if ($description !== '') {
+                    BookRepository::setDescription($slug, $description);
+                }
                 $redirectToBook($slug, 'Draft saved successfully.');
             }
 
             if ($action === 'publish_book') {
                 $slug = BookRepository::publishBook($currentSlug, $title, $contents);
+                if ($description !== '') {
+                    BookRepository::setDescription($slug, $description);
+                }
                 $redirectToBook($slug, 'Book published successfully.');
             }
 
@@ -132,9 +141,7 @@
         <main class="manage-books-page">
             <section class="manage-books-hero">
                 <div>
-                    <p class="eyebrow">Book CMS</p>
                     <h1>Manage Books</h1>
-                    <p class="manage-books-intro">Upload markdown, edit it in EasyMDE, save drafts to the filesystem, and publish books to the public site.</p>
                 </div>
 
                 <div class="manage-books-actions">
@@ -200,6 +207,13 @@
                                 <span>File Slug</span>
                                 <div class="slug-preview" id="slugPreview"><?php echo htmlspecialchars($slugPreview); ?></div>
                             </div>
+                        </div>
+
+                        <div class="editor-grid">
+                            <label class="field">
+                                <span>Book Description</span>
+                                <input type="text" name="book_description" id="bookDescription" value="<?php echo htmlspecialchars($selectedBook['description']); ?>" placeholder="Enter a description" required>
+                            </label>
                         </div>
 
                         <div class="upload-row">
