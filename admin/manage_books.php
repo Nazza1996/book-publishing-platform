@@ -40,18 +40,24 @@
             }
 
             if ($action === 'save_book') {
-                $slug = BookRepository::saveDraft($currentSlug, $title, $contents);
-                if ($description !== '') {
-                    BookRepository::setDescription($slug, $description);
-                }
+                $slug = BookRepository::saveDraft($currentSlug, new Book(
+                    $currentSlug,
+                    $title,
+                    $contents,
+                    'draft',
+                    description: $description
+                ));
                 $redirectToBook($slug, 'Draft saved successfully.');
             }
 
             if ($action === 'publish_book') {
-                $slug = BookRepository::publishBook($currentSlug, $title, $contents);
-                if ($description !== '') {
-                    BookRepository::setDescription($slug, $description);
-                }
+                $slug = BookRepository::publishBook($currentSlug, new Book(
+                    $currentSlug,
+                    $title,
+                    $contents,
+                    'published',
+                    description: $description
+                ));
                 $redirectToBook($slug, 'Book published successfully.');
             }
 
@@ -91,7 +97,7 @@
                 $redirectToBook($currentSlug, 'Featured status updated.');
             }
         } catch (Throwable $e) {
-            $message = $e instanceof InvalidArgumentException ? $e->getMessage() : 'Unable to save the book.';
+            $message = $e instanceof InvalidArgumentException ? $e->getMessage() : $e->getMessage();
             $messageType = 'error';
             $selectedSlug = $currentSlug;
             $newBookRequested = $selectedSlug === '';

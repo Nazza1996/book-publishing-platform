@@ -67,7 +67,20 @@ class BookRepository {
         return is_array($data) ? $data : [];
     }
 
-    private static function saveMetadata(array $metadata): void {
+    private static function saveMetadata(Book $book): void {
+        $metadata = self::loadMetadata();
+
+        $bookData = get_object_vars($book);
+        unset($bookData['content']);
+        $metadata[$book->slug] = $bookData;
+
+        file_put_contents(self::metadataPath(), json_encode($metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+
+    private static function deleteMetadata(string $slug): void {
+        $metadata = self::loadMetadata();
+
+        unset($metadata[$slug]);
         file_put_contents(self::metadataPath(), json_encode($metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
 
@@ -108,7 +121,7 @@ class BookRepository {
                 if (!isset($books[$slug])) {
                     $books[$slug] = new Book(
                         $slug,
-                        self::extractTitle($contents, $slug),
+                        $metadata[$slug]['title'] ?? '',
                         $contents,
                         $status,
                         false,
@@ -119,7 +132,7 @@ class BookRepository {
                 }
 
                 $books[$slug]->content = $contents;
-                $books[$slug]->title = self::extractTitle($contents, $slug);
+                $books[$slug]->title = $metadata[$slug]['title'] ?? '';
 
                 if ($status === 'draft') {
                     $books[$slug]->draftExists = true;
@@ -156,7 +169,7 @@ class BookRepository {
 
         return new Book(
             $slug,
-            self::extractTitle($contents, $slug),
+            $metadata[$slug]['title'],
             $contents,
             $published !== null ? 'published' : 'draft',
             $draft !== null,
@@ -166,10 +179,10 @@ class BookRepository {
         );
     }
 
-    public static function saveDraft(string $existingSlug, string $title, string $contents): string {
+    public static function saveDraft(string $existingSlug, Book $book): string {
         self::ensureStorage();
 
-        $newSlug = self::normalizeSlug($title);
+        $newSlug = self::normalizeSlug($book->title);
         $existingSlug = self::normalizeSlug($existingSlug);
 
         if ($existingSlug !== '' && $existingSlug !== $newSlug) {
@@ -177,14 +190,32 @@ class BookRepository {
             self::moveIfExists(self::publishedPath($existingSlug), self::publishedPath($newSlug));
         }
 
-        self::writeFile(self::draftPath($newSlug), $contents);
+        self::writeFile(self::draftPath($newSlug), $book->content);
+
+        // persist metadata (whole book minus contents)
+        $book->slug = $newSlug;
+        self::saveMetadata($book);
+
+        // remove old metadata key when renaming
+        if ($existingSlug !== '' && $existingSlug !== $newSlug) {
+            self::deleteMetadata($existingSlug);
+        }
 
         return $newSlug;
     }
 
-    public static function publishBook(string $existingSlug, string $title, string $contents): string {
-        $slug = self::saveDraft($existingSlug, $title, $contents);
+    public static function publishBook(string $existingSlug, Book $book): string {
+        $slug = self::saveDraft($existingSlug, $book);
         copy(self::draftPath($slug), self::publishedPath($slug));
+
+        // ensure metadata saved for published state as well
+        $book->slug = $slug;
+        $book->status = 'published';
+        self::saveMetadata($book);
+
+        if ($existingSlug !== '' && $existingSlug !== $slug) {
+            self::deleteMetadata($existingSlug);
+        }
 
         return $slug;
     }
@@ -219,18 +250,9 @@ class BookRepository {
             throw new InvalidArgumentException('Only published books can be featured.');
         }
 
-        $metadata = self::loadMetadata();
-        if (!isset($metadata[$slug])) {
-            $metadata[$slug] = [];
-        }
+        $book->featured = $featured ?? !$book->featured;
 
-        if ($featured === null) {
-            $metadata[$slug]['featured'] = !($metadata[$slug]['featured'] ?? false);
-        } else {
-            $metadata[$slug]['featured'] = $featured;
-        }
-
-        self::saveMetadata($metadata);
+        self::saveMetadata($book);
 
         self::ensureStorage();
 
@@ -311,7 +333,7 @@ class BookRepository {
 
         return new Book(
             $slug,
-            self::extractTitle($contents, $slug),
+            $metadata[$slug]['title'] ?? '',
             $contents,
             'published',
             false,
@@ -319,14 +341,6 @@ class BookRepository {
             (bool)($metadata[$slug]['featured'] ?? false),
             (string)($metadata[$slug]['description'] ?? '')
         );
-    }
-
-    public static function extractTitle(string $markdown, string $fallbackSlug): string {
-        if (preg_match('/^#\s+(.+)$/m', $markdown, $matches)) {
-            return trim($matches[1]);
-        }
-
-        return self::prettyTitle($fallbackSlug);
     }
 
     public static function markdownToHtml(string $markdown): string {
@@ -480,27 +494,6 @@ class BookRepository {
         return $text;
     }
 
-    public static function setDescription(string $slug, string $description): void {
-        self::ensureStorage();
-        $slug = self::normalizeSlug($slug);
-
-        $metadata = self::loadMetadata();
-        if (!isset($metadata[$slug])) {
-            $metadata[$slug] = [];
-        }
-
-        $metadata[$slug]['description'] = $description;
-        self::saveMetadata($metadata);
-    }
-
-    public static function getDescription(string $slug): string {
-        self::ensureStorage();
-        $slug = self::normalizeSlug($slug);
-
-        $metadata = self::loadMetadata();
-        return $metadata[$slug]['description'] ?? '';
-    }
-
     public static function deleteBook(string $slug): void {
         self::ensureStorage();
         $slug = self::normalizeSlug($slug);
@@ -508,10 +501,6 @@ class BookRepository {
         @unlink(self::draftPath($slug));
         @unlink(self::publishedPath($slug));
 
-        $metadata = self::loadMetadata();
-        if (isset($metadata[$slug])) {
-            unset($metadata[$slug]);
-            self::saveMetadata($metadata);
-        }
+        self::deleteMetadata($slug);
     }
 }
