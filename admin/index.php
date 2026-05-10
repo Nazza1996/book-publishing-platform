@@ -31,7 +31,7 @@
             max-width: 800px;
             margin: 2rem auto;
             padding: 0 1rem;
-            height: 60vh;
+            flex: 1;
         }
 
         .admin-actions {

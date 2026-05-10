@@ -15,6 +15,10 @@
     --orange: #FF6B35;
 }
 
+html {
+    height: 100%;
+}
+
 body {
     font-family: 'Instrumental-Sans', Arial, sans-serif;
     font-size: clamp(14px, 1.1vw, 18px);
@@ -22,4 +26,17 @@ body {
     margin: 0;
     padding: 0;
     overflow-x: hidden;
+    min-height: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+body > * {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#footer {
+    margin-top: auto;
 }
