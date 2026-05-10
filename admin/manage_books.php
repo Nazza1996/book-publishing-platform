@@ -182,7 +182,7 @@
                         <div class="editor-topbar">
                             <div>
                                 <p class="eyebrow">Editor</p>
-                                <h2><?php echo $selectedBook['slug'] !== '' ? 'Editing ' . htmlspecialchars($selectedBook['slug']) : 'New Book'; ?></h2>
+                                <h2><?php echo $selectedBook['title'] !== '' ? 'Editing ' . htmlspecialchars($selectedBook['title']) : 'New Book'; ?></h2>
                             </div>
 
                             <div class="editor-topbar-meta">
