@@ -380,8 +380,14 @@ class BookRepository {
                 return;
             }
 
-            $text = implode(' ', $paragraph);
-            $html[] = '<p>' . self::formatInline($text) . '</p>';
+            $raw = implode("\n", $paragraph);
+            $formatted = self::formatInline($raw);
+            $formatted = preg_replace_callback('/(^|\\n)( +)/', function($m) {
+                return $m[1] . str_repeat('&nbsp;', strlen($m[2]));
+            }, $formatted);
+            $formatted = str_replace("\n", "<br />", $formatted);
+
+            $html[] = '<p>' . $formatted . '</p>';
             $paragraph = [];
         };
 
@@ -467,7 +473,7 @@ class BookRepository {
                 continue;
             }
 
-            $paragraph[] = trim($line);
+            $paragraph[] = $line;
         }
 
         if ($inAlignBlock) {
