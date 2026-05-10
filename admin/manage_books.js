@@ -104,19 +104,42 @@ const wrapSelectionInAlignmentBlock = (editorInstance, align) => {
     syncAlignmentLineClasses(cm);
 };
 
+const wrapSelectionWithUnderline = (editorInstance) => {
+    const cm = editorInstance.codemirror;
+    const selection = cm.getSelection() || 'underlined text';
+    const wrapped = `==${selection}==`;
+
+    cm.replaceSelection(wrapped);
+    cm.focus();
+};
+
+const applyCustomInlineFormatting = (html) => {
+    let formatted = String(html || '');
+
+    formatted = formatted.replace(/==([^=]+)==/g, '<span class="text-underline">$1</span>');
+
+    return formatted;
+};
+
 const editor = new EasyMDE({
     element: markdownTextarea,
     placeholder: 'Write your book in markdown...',
     previewRender: function(plainText) {
-        return parseAlignmentBlocks(plainText, (segment) => this.parent.markdown(segment));
+        const rendered = parseAlignmentBlocks(plainText, (segment) => this.parent.markdown(segment));
+        return applyCustomInlineFormatting(rendered);
     },
     toolbar: [
         "bold",
         "italic",
+        {
+            name: "underline",
+            action: (editorInstance) => wrapSelectionWithUnderline(editorInstance),
+            className: "fa fa-underline",
+            title: "Underline text"
+        },
         "strikethrough",
         "heading",
         "|",
-        "quote",
         "unordered-list",
         "ordered-list",
         "|",
@@ -125,16 +148,16 @@ const editor = new EasyMDE({
         "table",
         "|",
         {
-            name: "center",
-            action: (editorInstance) => wrapSelectionInAlignmentBlock(editorInstance, 'center'),
-            className: "fa fa-align-center",
-            title: "Center text"
-        },
-        {
             name: "left",
             action: (editorInstance) => wrapSelectionInAlignmentBlock(editorInstance, 'left'),
             className: "fa fa-align-left",
             title: "Left align text"
+        },
+        {
+            name: "center",
+            action: (editorInstance) => wrapSelectionInAlignmentBlock(editorInstance, 'center'),
+            className: "fa fa-align-center",
+            title: "Center text"
         },
         {
             name: "right",

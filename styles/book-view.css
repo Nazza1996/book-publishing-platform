@@ -195,6 +195,10 @@
     color: #555;
 }
 
+.book-viewer .text-underline {
+    text-decoration: underline;
+}
+
 /* Links */
 .book-viewer a {
     color: var(--primary-text-color);

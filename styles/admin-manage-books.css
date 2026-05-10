@@ -311,6 +311,12 @@ main {
     width: 100%;
 }
 
+.editor-preview .text-underline,
+.editor-preview-side .text-underline,
+.editor-field .text-underline {
+    text-decoration: underline;
+}
+
 .editor-actions {
     display: flex;
     justify-content: flex-end;
@@ -437,6 +443,23 @@ main {
 .empty-state {
     color: #666;
     padding: 1rem 0;
+}
+
+/* Preview pane styling for custom markdown elements */
+.editor-preview .text-center {
+    text-align: center !important;
+}
+
+.editor-preview .text-left {
+    text-align: left !important;
+}
+
+.editor-preview .text-right {
+    text-align: right !important;
+}
+
+.editor-preview .text-underline {
+    text-decoration: underline !important;
 }
 
 @media (max-width: 980px) {

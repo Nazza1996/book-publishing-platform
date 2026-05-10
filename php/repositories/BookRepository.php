@@ -495,6 +495,9 @@ class BookRepository {
         $text = preg_replace('/`([^`]+)`/', '<code>$1</code>', $text) ?? $text;
         $text = preg_replace('/\*\*([^*]+)\*\*/', '<strong>$1</strong>', $text) ?? $text;
         $text = preg_replace('/(?<!\*)\*([^*]+)\*(?!\*)/', '<em>$1</em>', $text) ?? $text;
+        $text = preg_replace('/==([^=]+)==/', '<span class="text-underline">$1</span>', $text) ?? $text;
+        $text = preg_replace('/\+\+([^+]+)\+\+/', '<span class="text-underline">$1</span>', $text) ?? $text;
+        $text = preg_replace('/__([^_]+)__/', '<span class="text-underline">$1</span>', $text) ?? $text;
         $text = preg_replace('/\[([^\]]+)\]\(([^)]+)\)/', '<a href="$2">$1</a>', $text) ?? $text;
 
         return $text;
