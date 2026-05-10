@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../models/Book.php';
+
 class BookRepository {
     private static function baseDir(): string {
         return dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'content' . DIRECTORY_SEPARATOR . 'books';
@@ -104,41 +106,40 @@ class BookRepository {
                 $contents = self::readFile($path) ?? '';
 
                 if (!isset($books[$slug])) {
-                    $books[$slug] = [
-                        'slug' => $slug,
-                        'title' => self::extractTitle($contents, $slug),
-                        'content' => $contents,
-                        'status' => $status,
-                        'draftExists' => false,
-                        'publishedExists' => false,
-                        'featured' => $metadata[$slug]['featured'] ?? false,
-                        'description' => $metadata[$slug]['description'] ?? '',
-                    ];
+                    $books[$slug] = new Book(
+                        $slug,
+                        self::extractTitle($contents, $slug),
+                        $contents,
+                        $status,
+                        false,
+                        false,
+                        (bool)($metadata[$slug]['featured'] ?? false),
+                        (string)($metadata[$slug]['description'] ?? '')
+                    );
                 }
 
+                $books[$slug]->content = $contents;
+                $books[$slug]->title = self::extractTitle($contents, $slug);
+
                 if ($status === 'draft') {
-                    $books[$slug]['draftExists'] = true;
+                    $books[$slug]->draftExists = true;
                 }
 
                 if ($status === 'published') {
-                    $books[$slug]['publishedExists'] = true;
-                    $books[$slug]['status'] = 'published';
-                }
-
-                if ($books[$slug]['title'] === self::prettyTitle($slug)) {
-                    $books[$slug]['title'] = self::extractTitle($contents, $slug);
+                    $books[$slug]->publishedExists = true;
+                    $books[$slug]->status = 'published';
                 }
             }
         }
 
-        usort($books, static function (array $left, array $right): int {
-            return strcasecmp($left['title'], $right['title']);
+        usort($books, static function (Book $left, Book $right): int {
+            return strcasecmp($left->title, $right->title);
         });
 
         return $books;
     }
 
-    public static function getBook(string $slug): ?array {
+    public static function getBook(string $slug): ?Book {
         self::ensureStorage();
         $slug = self::normalizeSlug($slug);
 
@@ -153,16 +154,16 @@ class BookRepository {
 
         $metadata = self::loadMetadata();
 
-        return [
-            'slug' => $slug,
-            'title' => self::extractTitle($contents, $slug),
-            'content' => $contents,
-            'status' => $published !== null ? 'published' : 'draft',
-            'draftExists' => $draft !== null,
-            'publishedExists' => $published !== null,
-            'featured' => $metadata[$slug]['featured'] ?? false,
-            'description' => $metadata[$slug]['description'] ?? '',
-        ];
+        return new Book(
+            $slug,
+            self::extractTitle($contents, $slug),
+            $contents,
+            $published !== null ? 'published' : 'draft',
+            $draft !== null,
+            $published !== null,
+            (bool)($metadata[$slug]['featured'] ?? false),
+            (string)($metadata[$slug]['description'] ?? '')
+        );
     }
 
     public static function saveDraft(string $existingSlug, string $title, string $contents): string {
@@ -214,7 +215,7 @@ class BookRepository {
             throw new InvalidArgumentException('Book not found.');
         }
 
-        if (!$book['publishedExists']) {
+        if (!$book->publishedExists) {
             throw new InvalidArgumentException('Only published books can be featured.');
         }
 
@@ -236,21 +237,15 @@ class BookRepository {
         $published = self::getPublishedBooks();
         $metadata = self::loadMetadata();
 
-        $featured = array_filter($published, static function (array $book) use ($metadata): bool {
-            return $metadata[$book['slug']]['featured'] ?? false;
+        $featured = array_filter($published, static function (Book $book) use ($metadata): bool {
+            return $metadata[$book->slug]['featured'] ?? false;
         });
 
         $featured = array_values($featured);
 
         // Ensure exactly 3 items (fill with placeholders if needed)
         while (count($featured) < 3) {
-            $featured[] = [
-                'slug' => '',
-                'title' => 'Coming Soon',
-                'content' => '',
-                'featured' => false,
-                'is_placeholder' => true,
-            ];
+            $featured[] = Book::placeholder();
         }
 
         return array_slice($featured, 0, 3);
@@ -261,21 +256,21 @@ class BookRepository {
         $published = self::getPublishedBooks();
         $metadata = self::loadMetadata();
 
-        $featured = array_filter($published, static function (array $book) use ($metadata): bool {
-            return $metadata[$book['slug']]['featured'] ?? false;
+        $featured = array_filter($published, static function (Book $book) use ($metadata): bool {
+            return $metadata[$book->slug]['featured'] ?? false;
         });
 
         return count($featured);
     }
 
     public static function getPublishedBooks(): array {
-        $published = array_filter(self::listBooks(), static function (array $book): bool {
-            return $book['publishedExists'];
+        $published = array_filter(self::listBooks(), static function (Book $book): bool {
+            return $book->publishedExists;
         });
 
         $result = [];
         foreach ($published as $book) {
-            $bookData = self::getPublishedBook($book['slug']);
+            $bookData = self::getPublishedBook($book->slug);
             if ($bookData !== null) {
                 $result[] = $bookData;
             }
@@ -290,28 +285,21 @@ class BookRepository {
         $published = self::getPublishedBooks();
         $metadata = self::loadMetadata();
 
-        $featured = array_filter($published, static function (array $book) use ($metadata): bool {
-            return $metadata[$book['slug']]['featured'] ?? false;
+        $featured = array_filter($published, static function (Book $book) use ($metadata): bool {
+            return $metadata[$book->slug]['featured'] ?? false;
         });
 
         $featured = array_values($featured);
 
         // Ensure exactly 3 items (fill with placeholders if needed)
         while (count($featured) < 3) {
-            $featured[] = [
-                'slug' => '',
-                'title' => 'Coming Soon',
-                'description' => '',
-                'content' => '',
-                'featured' => false,
-                'is_placeholder' => true,
-            ];
+            $featured[] = Book::placeholder();
         }
 
         return array_slice($featured, 0, 3);
     }
 
-    public static function getPublishedBook(string $slug): ?array {
+    public static function getPublishedBook(string $slug): ?Book {
         $slug = self::normalizeSlug($slug);
         $contents = self::readFile(self::publishedPath($slug));
 
@@ -321,13 +309,16 @@ class BookRepository {
 
         $metadata = self::loadMetadata();
 
-        return [
-            'slug' => $slug,
-            'title' => self::extractTitle($contents, $slug),
-            'content' => $contents,
-            'featured' => $metadata[$slug]['featured'] ?? false,
-            'description' => $metadata[$slug]['description'] ?? '',
-        ];
+        return new Book(
+            $slug,
+            self::extractTitle($contents, $slug),
+            $contents,
+            'published',
+            false,
+            true,
+            (bool)($metadata[$slug]['featured'] ?? false),
+            (string)($metadata[$slug]['description'] ?? '')
+        );
     }
 
     public static function extractTitle(string $markdown, string $fallbackSlug): string {

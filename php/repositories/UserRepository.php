@@ -1,44 +1,78 @@
 <?php
-    class UserRepository {
-        public static function getAll(PDO $pdo): array {
-            $stmt = $pdo->query("
-                SELECT *
-                FROM users
-                ORDER BY id ASC
-            ");
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        }
 
-        public static function createUser(PDO $pdo, string $username, string $passwordHash): int {
-            $stmt = $pdo->prepare("
-                INSERT INTO users (username, password_hash)
-                VALUES (:username, :password_hash)
-            ");
-            $stmt->execute([
-                'username' => $username,
-                'password_hash' => $passwordHash,
-            ]);
-            return (int)$pdo->lastInsertId();
-        }
-    
-        public static function updateUsername(PDO $pdo, int $userId, string $username): void {
-            $stmt = $pdo->prepare("
-                UPDATE users
-                SET username = :username
-                WHERE id = :id
-            ");
-            $stmt->execute([
-                'username' => $username,
-                'id' => $userId,
-            ]);
-        }
+declare(strict_types=1);
 
-        public static function deleteUser(PDO $pdo, int $userId): void {
-            $stmt = $pdo->prepare("
-                DELETE FROM users
-                WHERE id = :id
-            ");
-            $stmt->execute(['id' => $userId]);
-        }
+require_once __DIR__ . '/../models/User.php';
+
+class UserRepository {
+    public static function getAll(PDO $pdo): array {
+        $stmt = $pdo->query("
+            SELECT id, username, password_hash
+            FROM users
+            ORDER BY id ASC
+        ");
+
+        return array_map(static fn(array $row): User => User::fromArray($row), $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
-?>
+
+    public static function findById(PDO $pdo, int $userId): ?User {
+        $stmt = $pdo->prepare("
+            SELECT id, username, password_hash
+            FROM users
+            WHERE id = :id
+            LIMIT 1
+        ");
+        $stmt->execute(['id' => $userId]);
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row === false ? null : User::fromArray($row);
+    }
+
+    public static function findByUsername(PDO $pdo, string $username): ?User {
+        $stmt = $pdo->prepare("
+            SELECT id, username, password_hash
+            FROM users
+            WHERE username = :username
+            LIMIT 1
+        ");
+        $stmt->execute(['username' => $username]);
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row === false ? null : User::fromArray($row);
+    }
+
+    public static function createUser(PDO $pdo, string $username, string $passwordHash): int {
+        $stmt = $pdo->prepare("
+            INSERT INTO users (username, password_hash)
+            VALUES (:username, :password_hash)
+        ");
+        $stmt->execute([
+            'username' => $username,
+            'password_hash' => $passwordHash,
+        ]);
+
+        return (int)$pdo->lastInsertId();
+    }
+
+    public static function updateUsername(PDO $pdo, int $userId, string $username): void {
+        $stmt = $pdo->prepare("
+            UPDATE users
+            SET username = :username
+            WHERE id = :id
+        ");
+        $stmt->execute([
+            'username' => $username,
+            'id' => $userId,
+        ]);
+    }
+
+    public static function deleteUser(PDO $pdo, int $userId): void {
+        $stmt = $pdo->prepare("
+            DELETE FROM users
+            WHERE id = :id
+        ");
+        $stmt->execute(['id' => $userId]);
+    }
+}

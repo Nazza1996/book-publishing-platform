@@ -19,26 +19,13 @@
     $newBookRequested = isset($_GET['new']);
 
     $selectedBook = $newBookRequested || $selectedSlug === ''
-        ? [
-            'slug' => '',
-            'title' => '',
-            'content' => '',
-            'status' => 'draft',
-            'draftExists' => false,
-            'publishedExists' => false,
-            'featured' => false,
-            'description' => '',
-        ]
-        : (BookRepository::getBook($selectedSlug) ?? [
-            'slug' => $selectedSlug,
-            'title' => BookRepository::prettyTitle($selectedSlug),
-            'content' => '',
-            'status' => 'draft',
-            'draftExists' => false,
-            'publishedExists' => false,
-            'featured' => false,
-            'description' => '',
-        ]);
+        ? Book::blankDraft()
+        : (BookRepository::getBook($selectedSlug) ?? new Book(
+            $selectedSlug,
+            BookRepository::prettyTitle($selectedSlug),
+            '',
+            'draft'
+        ));
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = (string)($_POST['action'] ?? '');

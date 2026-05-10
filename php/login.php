@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/repositories/UserRepository.php';
 
 $username = trim($_POST['username'] ?? '');
 $password = $_POST['password'] ?? '';
@@ -30,16 +31,7 @@ if ($username === '' || $password === '') {
 }
 
 try {
-    $stmt = $pdo->prepare("
-        SELECT id, password_hash
-        FROM users
-        WHERE username = ?
-        LIMIT 1
-    ");
-
-    $stmt->execute([$username]);
-
-    $user = $stmt->fetch();
+    $user = UserRepository::findByUsername($pdo, $username);
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode([
@@ -49,11 +41,11 @@ try {
     exit;
 }
 
-if ($user && password_verify($password, $user['password_hash'])) {
+if ($user !== null && $user->passwordHash !== null && password_verify($password, $user->passwordHash)) {
 
     session_regenerate_id(true);
 
-    $_SESSION['user_id'] = $user['id'];
+    $_SESSION['user_id'] = $user->id;
 
     echo json_encode([
         'success' => true,
