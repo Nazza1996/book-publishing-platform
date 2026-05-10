@@ -45,7 +45,7 @@
         $contents = (string)($_POST['markdown_content'] ?? '');
 
         try {
-            if ($action !== 'convert_to_draft' && $action !== 'toggle_featured' && $title === '') {
+            if ($action !== 'convert_to_draft' && $action !== 'toggle_featured' && $action !== 'delete_book' && $title === '') {
                 throw new InvalidArgumentException('Please provide a book title.');
             }
 
@@ -66,6 +66,16 @@
 
                 $slug = BookRepository::convertToDraft($currentSlug);
                 $redirectToBook($slug, 'Book converted to draft.');
+            }
+
+            if ($action === 'delete_book') {
+                if ($currentSlug === '') {
+                    throw new InvalidArgumentException('Please select a book to delete.');
+                }
+
+                BookRepository::deleteBook($currentSlug);
+                header('Location: /admin/manage_books');
+                exit;
             }
 
             if ($action === 'toggle_featured') {
@@ -204,28 +214,60 @@
                         </label>
 
                         <div class="editor-actions">
+                            <?php 
+                                $isCurrentlyFeatured = $selectedBook['featured'] ?? false;
+                                $featuredCount = BookRepository::countFeaturedBooks();
+                                $canToggle = $isCurrentlyFeatured || $featuredCount < 3;
+                                $isDraft = $selectedBook['status'] === 'draft';
+                                $isExisting = $selectedBook['slug'] !== '';
+                            ?>
+
+                            <?php if ($isExisting): ?>
+                                <button
+                                    type="button"
+                                    id="openDeleteBookModal"
+                                    class="toolbar-button secondary"
+                                    data-book-slug="<?php echo htmlspecialchars($selectedBook['slug']); ?>"
+                                    data-book-title="<?php echo htmlspecialchars($selectedBook['title']); ?>"
+                                    >Delete Book</button>
+                            <?php endif; ?>
+
                             <button type="submit" name="action" value="save_book" class="toolbar-button secondary">Save Draft</button>
-                                <?php 
-                                    $isCurrentlyFeatured = $selectedBook['featured'] ?? false;
-                                    $featuredCount = BookRepository::countFeaturedBooks();
-                                    $canToggle = $isCurrentlyFeatured || $featuredCount < 3;
-                                    $isDraft = $selectedBook['status'] === 'draft';
-                                ?>
-                                <?php if (!$isDraft): ?>
-                                    <button type="submit" name="action" value="convert_to_draft" class="toolbar-button secondary">Convert to Draft</button>
-                                    <button type="submit" name="action" value="toggle_featured" class="toolbar-button secondary featured-toggle <?php echo $selectedBook['featured'] ? 'is-featured' : ''; ?>" <?php echo $canToggle ? '' : 'disabled title="Spotlight limit reached (3/3). Remove a featured book first."'; ?>>
-                                        <?php echo $selectedBook['featured'] ? '★ Remove from Spotlight' : '☆ Add to Spotlight'; ?>
-                                    </button>
-                                    <?php if ($featuredCount >= 3 && !$isCurrentlyFeatured): ?>
-                                        <p class="featured-limit-message">Spotlight is full</p>
-                                    <?php endif; ?>
+                            <?php if (!$isDraft): ?>
+                                <button type="submit" name="action" value="convert_to_draft" class="toolbar-button secondary">Convert to Draft</button>
+                                <button type="submit" name="action" value="toggle_featured" class="toolbar-button secondary featured-toggle <?php echo $selectedBook['featured'] ? 'is-featured' : ''; ?>" <?php echo $canToggle ? '' : 'disabled title="Spotlight limit reached (3/3). Remove a featured book first."'; ?>>
+                                    <?php echo $selectedBook['featured'] ? '★ Remove from Spotlight' : '☆ Add to Spotlight'; ?>
+                                </button>
+                                <?php if ($featuredCount >= 3 && !$isCurrentlyFeatured): ?>
+                                    <p class="featured-limit-message">Spotlight is full</p>
                                 <?php endif; ?>
+                            <?php endif; ?>
                             <button type="submit" name="action" value="publish_book" class="toolbar-button primary"><?php echo $selectedBook['publishedExists'] ? 'Republish Book' : 'Publish Book'; ?></button>
                         </div>
                     </form>
                 </section>
             </section>
         </main>
+
+        <div class="modal-backdrop" id="deleteBookModal" aria-hidden="true">
+            <div class="edit-modal" role="dialog" aria-modal="true" aria-labelledby="deleteBookTitle">
+                <h2 id="deleteBookTitle">Delete Book</h2>
+                <div class="modal-content">
+                    <p class="modal-meta" id="deleteBookMessage">Are you sure you want to delete this book?</p>
+                    <p class="modal-meta">This action cannot be undone.</p>
+                </div>
+
+                <form method="post" id="deleteBookForm">
+                    <input type="hidden" name="action" value="delete_book">
+                    <input type="hidden" name="current_slug" id="deleteBookSlug" value="<?php echo htmlspecialchars($selectedBook['slug']); ?>">
+
+                    <div class="modal-actions">
+                        <button type="button" class="modal-button secondary" id="closeDeleteBookModal">Cancel</button>
+                        <button type="submit" class="modal-button primary">Delete Book</button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
         <div id="footer"></div>
     </body>

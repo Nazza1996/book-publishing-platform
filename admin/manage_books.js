@@ -3,6 +3,12 @@ const slugPreview = document.getElementById('slugPreview');
 const markdownTextarea = document.getElementById('markdownContent');
 const uploadInput = document.getElementById('markdownUpload');
 const bookForm = document.getElementById('bookForm');
+const openDeleteBookModalButton = document.getElementById('openDeleteBookModal');
+const deleteBookModal = document.getElementById('deleteBookModal');
+const closeDeleteBookModalButton = document.getElementById('closeDeleteBookModal');
+const deleteBookForm = document.getElementById('deleteBookForm');
+const deleteBookSlugInput = document.getElementById('deleteBookSlug');
+const deleteBookMessage = document.getElementById('deleteBookMessage');
 
 const parseAlignmentBlocks = (markdown, renderMarkdown) => {
     const lines = String(markdown || '').replace(/\r\n|\r/g, '\n').split('\n');
@@ -186,6 +192,29 @@ const extractTitle = (fileName, markdown) => {
     return titleCase(fileName.replace(/\.[^.]+$/, ''));
 };
 
+const openDeleteBookModal = () => {
+    if (!deleteBookModal || !openDeleteBookModalButton || !deleteBookSlugInput || !deleteBookMessage) {
+        return;
+    }
+
+    const slug = openDeleteBookModalButton.dataset.bookSlug || '';
+    const title = openDeleteBookModalButton.dataset.bookTitle || slug || 'this book';
+
+    deleteBookSlugInput.value = slug;
+    deleteBookMessage.textContent = `Are you sure you want to delete ${title}?`;
+    deleteBookModal.classList.add('is-open');
+    deleteBookModal.setAttribute('aria-hidden', 'false');
+};
+
+const closeDeleteBookModal = () => {
+    if (!deleteBookModal) {
+        return;
+    }
+
+    deleteBookModal.classList.remove('is-open');
+    deleteBookModal.setAttribute('aria-hidden', 'true');
+};
+
 titleInput.addEventListener('input', updateSlugPreview);
 
 uploadInput.addEventListener('change', () => {
@@ -210,6 +239,34 @@ uploadInput.addEventListener('change', () => {
 bookForm.addEventListener('submit', () => {
     markdownTextarea.value = editor.value();
 });
+
+if (openDeleteBookModalButton) {
+    openDeleteBookModalButton.addEventListener('click', openDeleteBookModal);
+}
+
+if (closeDeleteBookModalButton) {
+    closeDeleteBookModalButton.addEventListener('click', closeDeleteBookModal);
+}
+
+if (deleteBookModal) {
+    deleteBookModal.addEventListener('click', (event) => {
+        if (event.target === deleteBookModal) {
+            closeDeleteBookModal();
+        }
+    });
+}
+
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && deleteBookModal?.classList.contains('is-open')) {
+        closeDeleteBookModal();
+    }
+});
+
+if (deleteBookForm) {
+    deleteBookForm.addEventListener('submit', () => {
+        closeDeleteBookModal();
+    });
+}
 
 editor.codemirror.on('change', () => {
     syncAlignmentLineClasses(editor.codemirror);

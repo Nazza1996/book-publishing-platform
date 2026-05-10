@@ -38,6 +38,20 @@ class BookRepository {
         return $title !== '' ? ucwords($title) : 'Untitled Book';
     }
 
+    public static function deleteBook(string $slug): void {
+        self::ensureStorage();
+        $slug = self::normalizeSlug($slug);
+
+        @unlink(self::draftPath($slug));
+        @unlink(self::publishedPath($slug));
+
+        $metadata = self::loadMetadata();
+        if (isset($metadata[$slug])) {
+            unset($metadata[$slug]);
+            self::saveMetadata($metadata);
+        }
+    }
+
     private static function draftPath(string $slug): string {
         return self::draftsDir() . DIRECTORY_SEPARATOR . $slug . '.md';
     }
