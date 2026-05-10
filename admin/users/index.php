@@ -33,7 +33,9 @@
                     throw new InvalidArgumentException('Please provide a username and password.');
                 }
 
-                UserRepository::createUser($pdo, $username, password_hash($password, PASSWORD_DEFAULT));
+                $userToCreate = new User(0, $username, password_hash($password, PASSWORD_DEFAULT));
+
+                UserRepository::createUser($pdo, $userToCreate);
                 $redirectToUsers('User created successfully.');
             } elseif ($action === 'update_user') {
                 $userId = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
@@ -43,7 +45,8 @@
                     throw new InvalidArgumentException('Please provide a valid username.');
                 }
 
-                UserRepository::updateUsername($pdo, $userId, $username);
+                $userToUpdate = new User($userId, $username);
+                UserRepository::updateUser($pdo, $userToUpdate);
                 $redirectToUsers('User updated successfully.');
             } elseif ($action === 'delete_user') {
                 $userId = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
@@ -56,12 +59,14 @@
                     throw new InvalidArgumentException('You cannot delete your own account.');
                 }
 
-                UserRepository::deleteUser($pdo, $userId);
+                $userToDelete = new User($userId, '');
+                UserRepository::deleteUser($pdo, $userToDelete);
                 $redirectToUsers('User deleted successfully.');
             }
         } catch (Throwable $e) {
             $message = $e instanceof InvalidArgumentException ? $e->getMessage() : 'Unable to process the request.';
             $messageType = 'error';
+            $redirectToUsers($message, $messageType);
         }
     }
 

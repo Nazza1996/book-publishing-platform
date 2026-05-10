@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 final class User implements ArrayAccess, JsonSerializable {
     public int $id;
-    public string $username;
-    public ?string $passwordHash;
+    readonly string $username;
+    readonly ?string $passwordHash;
 
     public function __construct(int $id, string $username, ?string $passwordHash = null) {
         $this->id = $id;

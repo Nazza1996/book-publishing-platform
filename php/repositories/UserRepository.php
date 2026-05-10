@@ -43,36 +43,36 @@ class UserRepository {
         return $row === false ? null : User::fromArray($row);
     }
 
-    public static function createUser(PDO $pdo, string $username, string $passwordHash): int {
+    public static function createUser(PDO $pdo, User $user): int {
         $stmt = $pdo->prepare("
             INSERT INTO users (username, password_hash)
             VALUES (:username, :password_hash)
         ");
         $stmt->execute([
-            'username' => $username,
-            'password_hash' => $passwordHash,
+            'username' => $user->username,
+            'password_hash' => $user->passwordHash,
         ]);
 
         return (int)$pdo->lastInsertId();
     }
 
-    public static function updateUsername(PDO $pdo, int $userId, string $username): void {
+    public static function updateUser(PDO $pdo, User $user): void {
         $stmt = $pdo->prepare("
             UPDATE users
             SET username = :username
             WHERE id = :id
         ");
         $stmt->execute([
-            'username' => $username,
-            'id' => $userId,
+            'id' => $user->id,
+            'username' => $user->username,
         ]);
     }
 
-    public static function deleteUser(PDO $pdo, int $userId): void {
+    public static function deleteUser(PDO $pdo, User $user): void {
         $stmt = $pdo->prepare("
             DELETE FROM users
             WHERE id = :id
         ");
-        $stmt->execute(['id' => $userId]);
+        $stmt->execute(['id' => $user->id]);
     }
 }
