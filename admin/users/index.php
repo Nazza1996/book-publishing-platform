@@ -4,7 +4,6 @@
     require_once __DIR__ . '/../../php/repositories/UserRepository.php';
 
     $columns = [
-        'id' => 'ID',
         'username' => 'Username',
     ];
 
