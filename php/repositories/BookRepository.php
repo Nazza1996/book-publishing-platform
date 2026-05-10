@@ -500,4 +500,18 @@ class BookRepository {
         $metadata = self::loadMetadata();
         return $metadata[$slug]['description'] ?? '';
     }
+
+    public static function deleteBook(string $slug): void {
+        self::ensureStorage();
+        $slug = self::normalizeSlug($slug);
+
+        @unlink(self::draftPath($slug));
+        @unlink(self::publishedPath($slug));
+
+        $metadata = self::loadMetadata();
+        if (isset($metadata[$slug])) {
+            unset($metadata[$slug]);
+            self::saveMetadata($metadata);
+        }
+    }
 }

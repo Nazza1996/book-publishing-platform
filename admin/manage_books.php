@@ -95,6 +95,7 @@
             $messageType = 'error';
             $selectedSlug = $currentSlug;
             $newBookRequested = $selectedSlug === '';
+            $redirectToBook($selectedSlug, $message, $messageType);
         }
     }
 
