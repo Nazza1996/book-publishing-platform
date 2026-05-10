@@ -44,17 +44,14 @@
         .admin-actions .btn {
             display: inline-block;
             padding: 0.6rem 1rem;
-            background: #222;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 600;
-        }
-
-        .admin-actions .btn.secondary {
             background: transparent;
             color: #222;
+            text-decoration: none;
+            border-radius: 6px;
             border: 2px solid #222;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
         }
     </style>
 
@@ -67,11 +64,23 @@
 
             <div class="admin-actions">
                 <a class="btn" href="/admin/users/">View Users</a>
-                <a class="btn secondary" href="/admin/manage_books">Manage Books</a>
+                <a class="btn" href="/admin/manage_books">Manage Books</a>
+                <button class="btn" onclick="logout()">Logout</button>
             </div>
         </section>
 
         <div id="footer"></div>
     </body>
+
+    <script>
+        function logout() {
+            fetch('/php/logout.php', {
+                method: 'POST',
+                credentials: 'include'
+            }).then(() => {
+                window.location.href = '/login.html';
+            });
+        }
+    </script>
 
 </html>
