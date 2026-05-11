@@ -9,6 +9,15 @@ const closeDeleteBookModalButton = document.getElementById('closeDeleteBookModal
 const deleteBookForm = document.getElementById('deleteBookForm');
 const deleteBookSlugInput = document.getElementById('deleteBookSlug');
 const deleteBookMessage = document.getElementById('deleteBookMessage');
+const addChapterButton = document.getElementById('addChapterButton');
+const chaptersList = document.getElementById('chaptersList');
+const chaptersJson = document.getElementById('chaptersJson');
+const chaptersTitle = document.getElementById('chaptersTitle');
+
+let chapters = [];
+let currentChapterIndex = null;
+let editor = null;
+let editorScroller = null;
 
 const parseAlignmentBlocks = (markdown, renderMarkdown) => {
     const lines = String(markdown || '').replace(/\r\n|\r/g, '\n').split('\n');
@@ -115,79 +124,9 @@ const wrapSelectionWithUnderline = (editorInstance) => {
 
 const applyCustomInlineFormatting = (html) => {
     let formatted = String(html || '');
-
     formatted = formatted.replace(/==([^=]+)==/g, '<span class="text-underline">$1</span>');
-
     return formatted;
 };
-
-const editor = new EasyMDE({
-    element: markdownTextarea,
-    placeholder: 'Write your book in markdown...',
-    previewRender: function(plainText) {
-        const rendered = parseAlignmentBlocks(plainText, (segment) => this.parent.markdown(segment));
-        return applyCustomInlineFormatting(rendered);
-    },
-    toolbar: [
-        "bold",
-        "italic",
-        {
-            name: "underline",
-            action: (editorInstance) => wrapSelectionWithUnderline(editorInstance),
-            className: "fa fa-underline",
-            title: "Underline text"
-        },
-        "strikethrough",
-        "heading",
-        "|",
-        "unordered-list",
-        "ordered-list",
-        "|",
-        "link",
-        "image",
-        "table",
-        "|",
-        {
-            name: "left",
-            action: (editorInstance) => wrapSelectionInAlignmentBlock(editorInstance, 'left'),
-            className: "fa fa-align-left",
-            title: "Left align text"
-        },
-        {
-            name: "center",
-            action: (editorInstance) => wrapSelectionInAlignmentBlock(editorInstance, 'center'),
-            className: "fa fa-align-center",
-            title: "Center text"
-        },
-        {
-            name: "right",
-            action: (editorInstance) => wrapSelectionInAlignmentBlock(editorInstance, 'right'),
-            className: "fa fa-align-right",
-            title: "Right align text"
-        },
-        "|",
-        "preview",
-        "side-by-side",
-        "fullscreen",
-        "guide",
-    ]
-});
-
-const editorScroller = editor.codemirror.getScrollerElement();
-
-const updateEditorScrollState = () => {
-    const isScrollable = editorScroller.scrollHeight > editorScroller.clientHeight + 1;
-
-    editorScroller.classList.toggle('editor-scrollable', isScrollable);
-};
-
-editor.codemirror.getWrapperElement().addEventListener('wheel', (event) => {
-    if (editorScroller.classList.contains('editor-scrollable')) {
-        return;
-    }
-
-    event.stopImmediatePropagation();
-}, { capture: true });
 
 const slugify = (value) => value
     .toLowerCase()
@@ -207,97 +146,360 @@ const updateSlugPreview = () => {
 
 const extractTitle = (fileName, markdown) => {
     const headingMatch = markdown.match(/^#\s+(.+)$/m);
-
     if (headingMatch?.[1]) {
         return headingMatch[1].trim();
     }
-
     return titleCase(fileName.replace(/\.[^.]+$/, ''));
 };
 
-const openDeleteBookModal = () => {
-    if (!deleteBookModal || !openDeleteBookModalButton || !deleteBookSlugInput || !deleteBookMessage) {
-        return;
-    }
-
-    const slug = openDeleteBookModalButton.dataset.bookSlug || '';
-    const title = openDeleteBookModalButton.dataset.bookTitle || slug || 'this book';
-
-    deleteBookSlugInput.value = slug;
-    deleteBookMessage.textContent = `Are you sure you want to delete ${title}?`;
-    deleteBookModal.classList.add('is-open');
-    deleteBookModal.setAttribute('aria-hidden', 'false');
+const updateEditorScrollState = () => {
+    if (!editorScroller) return;
+    const isScrollable = editorScroller.scrollHeight > editorScroller.clientHeight + 1;
+    editorScroller.classList.toggle('editor-scrollable', isScrollable);
 };
 
-const closeDeleteBookModal = () => {
-    if (!deleteBookModal) {
-        return;
+// ============ EDITOR INITIALIZATION ============
+const initializeEditor = () => {
+    if (!markdownTextarea) return;
+
+    if (editor) {
+        editor.toTextArea();
+        editor = null;
+        editorScroller = null;
     }
 
-    deleteBookModal.classList.remove('is-open');
-    deleteBookModal.setAttribute('aria-hidden', 'true');
+    editor = new EasyMDE({
+        element: markdownTextarea,
+        placeholder: 'Write your book in markdown...',
+        previewRender: function(plainText) {
+            const rendered = parseAlignmentBlocks(plainText, (segment) => this.parent.markdown(segment));
+            return applyCustomInlineFormatting(rendered);
+        },
+        toolbar: [
+            "bold",
+            "italic",
+            {
+                name: "underline",
+                action: (editorInstance) => wrapSelectionWithUnderline(editorInstance),
+                className: "fa fa-underline",
+                title: "Underline text"
+            },
+            "strikethrough",
+            "heading",
+            "|",
+            "unordered-list",
+            "ordered-list",
+            "|",
+            "link",
+            "image",
+            "table",
+            "|",
+            {
+                name: "left",
+                action: (editorInstance) => wrapSelectionInAlignmentBlock(editorInstance, 'left'),
+                className: "fa fa-align-left",
+                title: "Left align text"
+            },
+            {
+                name: "center",
+                action: (editorInstance) => wrapSelectionInAlignmentBlock(editorInstance, 'center'),
+                className: "fa fa-align-center",
+                title: "Center text"
+            },
+            {
+                name: "right",
+                action: (editorInstance) => wrapSelectionInAlignmentBlock(editorInstance, 'right'),
+                className: "fa fa-align-right",
+                title: "Right align text"
+            },
+            "|",
+            "preview",
+            "side-by-side",
+            "fullscreen",
+            "guide",
+        ]
+    });
+
+    editorScroller = editor.codemirror.getScrollerElement();
+
+    editor.codemirror.getWrapperElement().addEventListener('wheel', (event) => {
+        if (editorScroller?.classList.contains('editor-scrollable')) {
+            return;
+        }
+        event.stopImmediatePropagation();
+    }, { capture: true });
+
+    editor.codemirror.on('change', () => {
+        syncAlignmentLineClasses(editor.codemirror);
+        requestAnimationFrame(updateEditorScrollState);
+    });
+
+    syncAlignmentLineClasses(editor.codemirror);
+    updateEditorScrollState();
 };
 
-titleInput.addEventListener('input', updateSlugPreview);
-
-uploadInput.addEventListener('change', () => {
-    const file = uploadInput.files?.[0];
-
-    if (!file) {
+// ============ CHAPTER MANAGEMENT ============
+const renderChapters = () => {
+    if (chapters.length === 0) {
+        chaptersList.innerHTML = '<p class="empty-state">No chapters yet. Click the button above to create one.</p>';
+        chaptersTitle.textContent = 'Chapters';
+        currentChapterIndex = null;
         return;
     }
 
-    const reader = new FileReader();
+    chaptersTitle.textContent = `Chapters (${chapters.length})`;
 
-    reader.onload = () => {
-        const contents = String(reader.result || '');
-        editor.value(contents);
-        titleInput.value = extractTitle(file.name, contents);
-        updateSlugPreview();
+    const ul = document.createElement('ul');
+    ul.className = 'chapters-list';
+
+    chapters.forEach((chapter, index) => {
+        const li = document.createElement('li');
+        li.className = `chapter-item ${currentChapterIndex === index ? 'is-active' : ''}`;
+        li.style.cursor = 'pointer';
+        li.innerHTML = `
+            <div class="chapter-item-content">
+                <div class="chapter-number">Chapter ${index + 1}</div>
+                <div class="chapter-title-text" data-index="${index}">${htmlEscape(chapter.title || 'Untitled')}</div>
+            </div>
+            <div class="chapter-item-actions">
+                <button type="button" class="chapter-btn" data-index="${index}">Edit</button>
+                <button type="button" class="chapter-btn delete" data-index="${index}" ${chapters.length === 1 ? 'disabled' : ''}>Delete</button>
+            </div>
+        `;
+
+        // Make the entire item clickable to select
+        li.addEventListener('click', (e) => {
+            if (e.target.closest('.chapter-btn.delete')) {
+                return; // Don't select if delete button was clicked
+            }
+            selectChapter(index);
+        });
+
+        // Make the title editable
+        const titleElement = li.querySelector('.chapter-title-text');
+        li.querySelector('.chapter-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            editChapterTitle(titleElement, index);
+        });
+
+        li.querySelector('.chapter-btn.delete').addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteChapter(index);
+        });
+
+        ul.appendChild(li);
+    });
+
+    chaptersList.innerHTML = '';
+    chaptersList.appendChild(ul);
+};
+
+const editChapterTitle = (titleElement, index) => {
+    const currentTitle = chapters[index].title;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentTitle;
+    input.className = 'chapter-title-input';
+    
+    const finishEditing = () => {
+        const newTitle = input.value.trim();
+        if (newTitle !== '') {
+            chapters[index].title = newTitle;
+        }
+        renderChapters();
+        // Restore selection after re-render
+        if (currentChapterIndex === index) {
+            const items = chaptersList.querySelectorAll('.chapter-item');
+            if (items[index]) {
+                items[index].classList.add('is-active');
+            }
+        }
     };
 
+    titleElement.replaceWith(input);
+    input.focus();
+    input.select();
+
+    input.addEventListener('blur', finishEditing);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            finishEditing();
+        } else if (e.key === 'Escape') {
+            renderChapters();
+            if (currentChapterIndex === index) {
+                const items = chaptersList.querySelectorAll('.chapter-item');
+                if (items[index]) {
+                    items[index].classList.add('is-active');
+                }
+            }
+        }
+    });
+};
+
+const selectChapter = (index) => {
+    // Save current chapter if editing
+    if (currentChapterIndex !== null && editor) {
+        chapters[currentChapterIndex].content = editor.value();
+    }
+
+    currentChapterIndex = index;
+    if (editor) {
+        markdownTextarea.value = chapters[index].content || '';
+        editor.value(chapters[index].content || '');
+    }
+
+    renderChapters();
+};
+
+const addChapter = () => {
+    chapters.push({
+        title: `Chapter ${chapters.length + 1}`,
+        content: ''
+    });
+    selectChapter(chapters.length - 1);
+};
+
+const deleteChapter = (index) => {
+    if (chapters.length === 1) {
+        alert('You must have at least one chapter. Cannot delete the last chapter.');
+        return;
+    }
+    
+    if (confirm(`Delete Chapter ${index + 1}?`)) {
+        chapters.splice(index, 1);
+        if (currentChapterIndex === index) {
+            currentChapterIndex = null;
+            if (editor) {
+                markdownTextarea.value = '';
+                editor.value('');
+            }
+        }
+        renderChapters();
+        
+        // Auto-select first chapter after deletion
+        if (chapters.length > 0) {
+            selectChapter(0);
+        }
+    }
+};
+
+const updateChapterFromEditor = () => {
+    if (currentChapterIndex !== null && editor) {
+        chapters[currentChapterIndex].content = editor.value();
+        const titleMatch = chapters[currentChapterIndex].content.match(/^#\s+(.+)$/m);
+        if (titleMatch) {
+            chapters[currentChapterIndex].title = titleMatch[1].trim();
+            renderChapters();
+        }
+    }
+};
+
+const htmlEscape = (text) => {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+};
+
+// ============ EVENT LISTENERS ============
+titleInput?.addEventListener('input', updateSlugPreview);
+
+addChapterButton?.addEventListener('click', () => {
+    addChapter();
+});
+
+uploadInput?.addEventListener('change', () => {
+    const file = uploadInput.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        const contents = String(reader.result || '');
+        if (editor) {
+            editor.value(contents);
+        }
+        if (titleInput) {
+            titleInput.value = extractTitle(file.name, contents);
+        }
+        updateSlugPreview();
+    };
     reader.readAsText(file);
 });
 
-bookForm.addEventListener('submit', () => {
-    markdownTextarea.value = editor.value();
+bookForm?.addEventListener('submit', (e) => {
+    // Save current chapter being edited
+    updateChapterFromEditor();
+
+    // Store chapters as JSON with both title and content
+    chaptersJson.value = JSON.stringify(chapters.map(ch => ({
+        title: ch.title,
+        content: ch.content
+    })));
 });
 
 if (openDeleteBookModalButton) {
-    openDeleteBookModalButton.addEventListener('click', openDeleteBookModal);
+    openDeleteBookModalButton.addEventListener('click', () => {
+        if (!deleteBookModal) return;
+        const slug = openDeleteBookModalButton.dataset.bookSlug || '';
+        const title = openDeleteBookModalButton.dataset.bookTitle || slug || 'this book';
+        deleteBookSlugInput.value = slug;
+        deleteBookMessage.textContent = `Are you sure you want to delete ${title}?`;
+        deleteBookModal.classList.add('is-open');
+        deleteBookModal.setAttribute('aria-hidden', 'false');
+    });
 }
 
 if (closeDeleteBookModalButton) {
-    closeDeleteBookModalButton.addEventListener('click', closeDeleteBookModal);
+    closeDeleteBookModalButton.addEventListener('click', () => {
+        if (!deleteBookModal) return;
+        deleteBookModal.classList.remove('is-open');
+        deleteBookModal.setAttribute('aria-hidden', 'true');
+    });
 }
 
 if (deleteBookModal) {
     deleteBookModal.addEventListener('click', (event) => {
         if (event.target === deleteBookModal) {
-            closeDeleteBookModal();
+            deleteBookModal.classList.remove('is-open');
+            deleteBookModal.setAttribute('aria-hidden', 'true');
         }
     });
 }
 
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && deleteBookModal?.classList.contains('is-open')) {
-        closeDeleteBookModal();
+        deleteBookModal.classList.remove('is-open');
+        deleteBookModal.setAttribute('aria-hidden', 'true');
     }
 });
 
 if (deleteBookForm) {
     deleteBookForm.addEventListener('submit', () => {
-        closeDeleteBookModal();
+        if (deleteBookModal) {
+            deleteBookModal.classList.remove('is-open');
+            deleteBookModal.setAttribute('aria-hidden', 'true');
+        }
     });
 }
 
-editor.codemirror.on('change', () => {
-    syncAlignmentLineClasses(editor.codemirror);
-    requestAnimationFrame(updateEditorScrollState);
-});
-
 window.addEventListener('resize', updateEditorScrollState);
 
+// Initialize
+initializeEditor();
 updateSlugPreview();
-syncAlignmentLineClasses(editor.codemirror);
+
+// Load existing chapters from server if available
+if (window.initialChapters && Array.isArray(window.initialChapters)) {
+    chapters = window.initialChapters;
+}
+
+// Create first chapter if none exist
+if (chapters.length === 0) {
+    addChapter();
+} else {
+    renderChapters();
+    // Auto-select first chapter if available
+    if (chapters.length > 0) {
+        selectChapter(0);
+    }
+}
 updateEditorScrollState();

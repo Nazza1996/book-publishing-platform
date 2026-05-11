@@ -27,12 +27,15 @@
             'draft'
         ));
 
+    $chapters = !$newBookRequested && $selectedSlug !== '' ? BookRepository::listChapters($selectedSlug, false) : [];
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = (string)($_POST['action'] ?? '');
         $currentSlug = trim((string)($_POST['current_slug'] ?? ''));
         $title = trim((string)($_POST['book_title'] ?? ''));
-        $contents = (string)($_POST['markdown_content'] ?? '');
         $description = trim((string)($_POST['book_description'] ?? ''));
+        $chaptersJson = (string)($_POST['chapters_json'] ?? '[]');
+        $chapters_data = json_decode($chaptersJson, true) ?: [];
 
         try {
             if ($action !== 'convert_to_draft' && $action !== 'toggle_featured' && $action !== 'delete_book' && $title === '') {
@@ -43,10 +46,28 @@
                 $slug = BookRepository::saveDraft($currentSlug, new Book(
                     $currentSlug,
                     $title,
-                    $contents,
+                    '',
                     'draft',
                     description: $description
                 ));
+
+                // Save chapters (content and metadata)
+                $chapterMetadata = [];
+                foreach ($chapters_data as $chapterNum => $chapterData) {
+                    $chapterContent = is_array($chapterData) ? ($chapterData['content'] ?? '') : $chapterData;
+                    $chapterTitle = is_array($chapterData) ? ($chapterData['title'] ?? '') : '';
+                    
+                    BookRepository::saveChapter($slug, (int)$chapterNum + 1, $chapterContent);
+                    
+                    if ($chapterTitle) {
+                        $chapterMetadata[(int)$chapterNum + 1] = $chapterTitle;
+                    }
+                }
+                
+                if (!empty($chapterMetadata)) {
+                    BookRepository::saveChaptersMetadata($slug, false, $chapterMetadata);
+                }
+
                 $redirectToBook($slug, 'Draft saved successfully.');
             }
 
@@ -54,10 +75,30 @@
                 $slug = BookRepository::publishBook($currentSlug, new Book(
                     $currentSlug,
                     $title,
-                    $contents,
+                    '',
                     'published',
                     description: $description
                 ));
+
+                // Save and publish chapters (content and metadata)
+                $chapterMetadata = [];
+                foreach ($chapters_data as $chapterNum => $chapterData) {
+                    $chapterContent = is_array($chapterData) ? ($chapterData['content'] ?? '') : $chapterData;
+                    $chapterTitle = is_array($chapterData) ? ($chapterData['title'] ?? '') : '';
+                    
+                    BookRepository::saveChapter($slug, (int)$chapterNum + 1, $chapterContent);
+                    
+                    if ($chapterTitle) {
+                        $chapterMetadata[(int)$chapterNum + 1] = $chapterTitle;
+                    }
+                }
+                
+                if (!empty($chapterMetadata)) {
+                    BookRepository::saveChaptersMetadata($slug, false, $chapterMetadata);
+                }
+                
+                BookRepository::publishChapters($slug);
+
                 $redirectToBook($slug, 'Book published successfully.');
             }
 
@@ -143,118 +184,145 @@
                     <a class="toolbar-button secondary" href="/admin">Dashboard</a>
                 </div>
             </section>
-
+            
             <?php if ($message): ?>
                 <p class="message <?php echo htmlspecialchars($messageType); ?>"><?php echo htmlspecialchars($message); ?></p>
-            <?php endif; ?>
-
-            <section class="books-layout">
-                <aside class="books-sidebar">
-                    <div class="sidebar-head">
-                        <h2>Book Library</h2>
-                        <p><?php echo count($books); ?> total</p>
-                    </div>
-
-                    <?php if (empty($books)): ?>
-                        <div class="empty-state">No books yet. Create your first one with the button above.</div>
-                    <?php else: ?>
-                        <div class="book-list" aria-label="Books">
-                            <?php foreach ($books as $book): ?>
-                                <a class="book-list-item <?php echo $book['slug'] === $selectedBook['slug'] ? 'is-active' : ''; ?>" href="/admin/manage_books?book=<?php echo urlencode($book['slug']); ?>">
-                                    <span class="book-list-title"><?php echo htmlspecialchars($book['title']); ?></span>
-                                    <span class="book-list-meta">
-                                        <span class="status-pill status-<?php echo htmlspecialchars($book['status']); ?>"><?php echo htmlspecialchars(ucfirst($book['status'])); ?></span>
-                                        <?php if ($book['featured']): ?>
-                                            <span class="status-pill status-featured">Spotlight</span>
-                                        <?php endif; ?>
-                                        <span><?php echo htmlspecialchars($book['slug']); ?></span>
-                                    </span>
-                                </a>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
-                </aside>
-
-                <section class="books-editor-panel">
-                    <form method="post" id="bookForm" class="books-editor-card">
-                        <input type="hidden" name="current_slug" id="currentSlug" value="<?php echo htmlspecialchars($selectedBook['slug']); ?>">
-
-                        <div class="editor-topbar">
-                            <div>
-                                <p class="eyebrow">Editor</p>
-                                <h2><?php echo $selectedBook['title'] !== '' ? 'Editing ' . htmlspecialchars($selectedBook['title']) : 'New Book'; ?></h2>
-                            </div>
-
-                            <div class="editor-topbar-meta">
-                                <span class="status-pill status-<?php echo htmlspecialchars($selectedBook['status']); ?>"><?php echo htmlspecialchars(ucfirst($selectedBook['status'])); ?></span>
-                                <a class="view-book-link <?php echo $selectedBook['publishedExists'] ? '' : 'is-disabled'; ?>" href="<?php echo $selectedBook['publishedExists'] ? '/books/view.php?slug=' . urlencode($selectedBook['slug']) : '#'; ?>" <?php echo $selectedBook['publishedExists'] ? '' : 'aria-disabled="true" tabindex="-1"'; ?>>View Published</a>
-                            </div>
+                <?php endif; ?>
+                
+            <form method="post" id="bookForm">
+                <section class="books-layout">
+                    <aside class="books-sidebar">
+                        <div class="sidebar-head">
+                            <h2>Book Library</h2>
+                            <p><?php echo count($books); ?> total</p>
                         </div>
 
-                        <div class="editor-grid">
-                            <label class="field">
-                                <span>Book Title</span>
-                                <input type="text" name="book_title" id="bookTitle" value="<?php echo htmlspecialchars($selectedBook['title']); ?>" placeholder="Enter a title" required>
-                            </label>
+                        <?php if (empty($books)): ?>
+                            <div class="empty-state">No books yet. Create your first one with the button above.</div>
+                        <?php else: ?>
+                            <div class="book-list" aria-label="Books">
+                                <?php foreach ($books as $book): ?>
+                                    <a class="book-list-item <?php echo $book['slug'] === $selectedBook['slug'] ? 'is-active' : ''; ?>" href="/admin/manage_books?book=<?php echo urlencode($book['slug']); ?>">
+                                        <span class="book-list-title"><?php echo htmlspecialchars($book['title']); ?></span>
+                                        <span class="book-list-meta">
+                                            <span class="status-pill status-<?php echo htmlspecialchars($book['status']); ?>"><?php echo htmlspecialchars(ucfirst($book['status'])); ?></span>
+                                            <?php if ($book['featured']): ?>
+                                                <span class="status-pill status-featured">Spotlight</span>
+                                            <?php endif; ?>
+                                            <span><?php echo htmlspecialchars($book['slug']); ?></span>
+                                        </span>
+                                    </a>
+                                    <?php endforeach; ?>
+                                </div>
+                        <?php endif; ?>
+                    </aside>
 
-                            <div class="field">
-                                <span>File Slug</span>
-                                <div class="slug-preview" id="slugPreview"><?php echo htmlspecialchars($slugPreview); ?></div>
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <section class="books-editor-card">
+                            <div class="editor-topbar">
+                                <div>
+                                    <p class="eyebrow">Details</p>
+                                    <h2>Book Details</h2>
+                                </div>
+
+                                <div class="editor-topbar-meta">
+                                    <span class="status-pill status-<?php echo htmlspecialchars($selectedBook['status']); ?>"><?php echo htmlspecialchars(ucfirst($selectedBook['status'])); ?></span>
+                                    <a class="view-book-link <?php echo $selectedBook['publishedExists'] ? '' : 'is-disabled'; ?>" href="<?php echo $selectedBook['publishedExists'] ? '/books/view.php?slug=' . urlencode($selectedBook['slug']) : '#'; ?>" <?php echo $selectedBook['publishedExists'] ? '' : 'aria-disabled="true" tabindex="-1"'; ?>>View Published</a>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="editor-grid">
+                            <div class="editor-grid">
+                                <label class="field">
+                                    <span>Book Title</span>
+                                    <input type="text" name="book_title" id="bookTitle" value="<?php echo htmlspecialchars($selectedBook['title']); ?>" placeholder="Enter a title" required>
+                                </label>
+
+                                <div class="field">
+                                    <span>File Slug</span>
+                                    <div class="slug-preview" id="slugPreview"><?php echo htmlspecialchars($slugPreview); ?></div>
+                                </div>
+                            </div>
+
                             <label class="field">
                                 <span>Book Description</span>
                                 <input type="text" name="book_description" id="bookDescription" value="<?php echo htmlspecialchars($selectedBook['description']); ?>" placeholder="Enter a description" required>
                             </label>
-                        </div>
+                        </section>
+                        
+                        <section class="books-editor-card">
+                            <div class="editor-topbar">
+                                <div>
+                                    <p class="eyebrow">Chapters</p>
+                                    <h2 id="chaptersTitle">Chapters</h2>
+                                </div>
 
-                        <div class="upload-row">
-                            <label class="upload-button" for="markdownUpload">Upload Markdown File</label>
-                            <input type="file" id="markdownUpload" accept=".md,.markdown,text/markdown">
-                            <p class="upload-hint">Choose a markdown file to load its contents into the editor.</p>
-                        </div>
+                                <button type="button" id="addChapterButton" class="toolbar-button secondary">+ New Chapter</button>
+                            </div>
 
-                        <label class="field editor-field">
-                            <span>Markdown Content</span>
-                            <textarea name="markdown_content" id="markdownContent" rows="22" placeholder="Write your book here..."><?php echo htmlspecialchars($selectedBook['content']); ?></textarea>
-                        </label>
+                            <div class="chapters-list" id="chaptersList">
+                                <p class="empty-state">No chapters yet. Click the button above to create one.</p>
+                            </div>
 
-                        <div class="editor-actions">
-                            <?php 
-                                $isCurrentlyFeatured = $selectedBook['featured'] ?? false;
-                                $featuredCount = BookRepository::countFeaturedBooks();
-                                $canToggle = $isCurrentlyFeatured || $featuredCount < 3;
-                                $isDraft = $selectedBook['status'] === 'draft';
-                                $isExisting = $selectedBook['slug'] !== '';
-                            ?>
+                        </section>
 
-                            <?php if ($isExisting): ?>
-                                <button
-                                    type="button"
-                                    id="openDeleteBookModal"
-                                    class="toolbar-button secondary"
-                                    data-book-slug="<?php echo htmlspecialchars($selectedBook['slug']); ?>"
-                                    data-book-title="<?php echo htmlspecialchars($selectedBook['title']); ?>"
-                                    >Delete Book</button>
-                            <?php endif; ?>
+                        <section class="books-editor-card">
+                            <input type="hidden" name="current_slug" id="currentSlug" value="<?php echo htmlspecialchars($selectedBook['slug']); ?>">
+                            <input type="hidden" name="chapters_json" id="chaptersJson" value="[]">
 
-                            <button type="submit" name="action" value="save_book" class="toolbar-button secondary">Save Draft</button>
-                            <?php if (!$isDraft): ?>
-                                <button type="submit" name="action" value="convert_to_draft" class="toolbar-button secondary">Convert to Draft</button>
-                                <button type="submit" name="action" value="toggle_featured" class="toolbar-button secondary featured-toggle <?php echo $selectedBook['featured'] ? 'is-featured' : ''; ?>" <?php echo $canToggle ? '' : 'disabled title="Spotlight limit reached (3/3). Remove a featured book first."'; ?>>
-                                    <?php echo $selectedBook['featured'] ? '★ Remove from Spotlight' : '☆ Add to Spotlight'; ?>
-                                </button>
-                                <?php if ($featuredCount >= 3 && !$isCurrentlyFeatured): ?>
-                                    <p class="featured-limit-message">Spotlight is full</p>
+                            <div class="editor-topbar">
+                                <div>
+                                    <p class="eyebrow">Editor</p>
+                                    <h2><?php echo $selectedBook['title'] !== '' ? 'Editing ' . htmlspecialchars($selectedBook['title']) : 'New Book'; ?></h2>
+                                </div>                                
+                            </div>
+
+                            <div class="upload-row">
+                                <label class="upload-button" for="markdownUpload">Upload Markdown File</label>
+                                <input type="file" id="markdownUpload" accept=".md,.markdown,text/markdown">
+                                <p class="upload-hint">Choose a markdown file to load its contents into the editor.</p>
+                            </div>
+
+                            <label class="field editor-field">
+                                <span>Markdown Content</span>
+                                <textarea name="markdown_content" id="markdownContent" rows="22" placeholder="Write your book here..."><?php echo htmlspecialchars($selectedBook['content']); ?></textarea>
+                            </label>
+
+                            <div class="editor-actions">
+                                <?php 
+                                    $isCurrentlyFeatured = $selectedBook['featured'] ?? false;
+                                    $featuredCount = BookRepository::countFeaturedBooks();
+                                    $canToggle = $isCurrentlyFeatured || $featuredCount < 3;
+                                    $isDraft = $selectedBook['status'] === 'draft';
+                                    $isExisting = $selectedBook['slug'] !== '';
+                                ?>
+
+                                <?php if ($isExisting): ?>
+                                    <button
+                                        type="button"
+                                        id="openDeleteBookModal"
+                                        class="toolbar-button secondary"
+                                        data-book-slug="<?php echo htmlspecialchars($selectedBook['slug']); ?>"
+                                        data-book-title="<?php echo htmlspecialchars($selectedBook['title']); ?>"
+                                        >Delete Book</button>
                                 <?php endif; ?>
-                            <?php endif; ?>
-                            <button type="submit" name="action" value="publish_book" class="toolbar-button primary"><?php echo $selectedBook['publishedExists'] ? 'Republish Book' : 'Publish Book'; ?></button>
-                        </div>
-                    </form>
+
+                                <button type="submit" name="action" value="save_book" class="toolbar-button secondary">Save Draft</button>
+                                <?php if (!$isDraft): ?>
+                                    <button type="submit" name="action" value="convert_to_draft" class="toolbar-button secondary">Convert to Draft</button>
+                                    <button type="submit" name="action" value="toggle_featured" class="toolbar-button secondary featured-toggle <?php echo $selectedBook['featured'] ? 'is-featured' : ''; ?>" <?php echo $canToggle ? '' : 'disabled title="Spotlight limit reached (3/3). Remove a featured book first."'; ?>>
+                                        <?php echo $selectedBook['featured'] ? '★ Remove from Spotlight' : '☆ Add to Spotlight'; ?>
+                                    </button>
+                                    <?php if ($featuredCount >= 3 && !$isCurrentlyFeatured): ?>
+                                        <p class="featured-limit-message">Spotlight is full</p>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                                <button type="submit" name="action" value="publish_book" class="toolbar-button primary"><?php echo $selectedBook['publishedExists'] ? 'Republish Book' : 'Publish Book'; ?></button>
+                            </div>
+                        </section>
+                    </div>
+                    
                 </section>
-            </section>
+            </form>
         </main>
 
         <div class="modal-backdrop" id="deleteBookModal" aria-hidden="true">
@@ -278,5 +346,10 @@
         </div>
 
         <div id="footer"></div>
+
+        <script>
+            // Initialize chapters from server data
+            window.initialChapters = <?php echo json_encode(array_map(fn($ch) => ['title' => $ch['title'] ?? 'Untitled', 'content' => $ch['content'] ?? ''], $chapters)); ?>;
+        </script>
     </body>
 </html>

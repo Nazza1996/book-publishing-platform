@@ -512,4 +512,183 @@ class BookRepository {
 
         self::deleteMetadata($slug);
     }
+
+    private static function chaptersMetadataPath(string $bookSlug, bool $published): string {
+        $dir = self::chaptersDir($bookSlug, $published);
+        return $dir . DIRECTORY_SEPARATOR . 'metadata.json';
+    }
+
+    private static function loadChaptersMetadata(string $bookSlug, bool $published): array {
+        $path = self::chaptersMetadataPath($bookSlug, $published);
+        if (!is_file($path)) {
+            return [];
+        }
+
+        $json = file_get_contents($path);
+        if ($json === false) {
+            return [];
+        }
+
+        $data = json_decode($json, true);
+        return is_array($data) ? $data : [];
+    }
+
+    public static function saveChaptersMetadata(string $bookSlug, bool $published, array $metadata): void {
+        self::ensureStorage();
+        $bookSlug = self::normalizeSlug($bookSlug);
+        $path = self::chaptersMetadataPath($bookSlug, $published);
+
+        $dir = dirname($path);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
+
+        file_put_contents($path, json_encode($metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+
+    private static function chaptersDir(string $bookSlug, bool $published): string {
+        $base = $published ? self::publishedDir() : self::draftsDir();
+        return $base . DIRECTORY_SEPARATOR . $bookSlug . DIRECTORY_SEPARATOR . 'chapters';
+    }
+
+    private static function chapterPath(string $bookSlug, int $chapterNum, bool $published): string {
+        $dir = self::chaptersDir($bookSlug, $published);
+        $filename = str_pad((string)$chapterNum, 3, '0', STR_PAD_LEFT) . '.md';
+        return $dir . DIRECTORY_SEPARATOR . $filename;
+    }
+
+    public static function listChapters(string $bookSlug, bool $published): array {
+        self::ensureStorage();
+        $bookSlug = self::normalizeSlug($bookSlug);
+        $dir = self::chaptersDir($bookSlug, $published);
+
+        if (!is_dir($dir)) {
+            return [];
+        }
+
+        $chapters = [];
+        $metadata = self::loadChaptersMetadata($bookSlug, $published);
+
+        foreach (glob($dir . DIRECTORY_SEPARATOR . '*.md') ?: [] as $path) {
+            $filename = basename($path);
+            $chapterNum = (int)pathinfo($filename, PATHINFO_FILENAME);
+            $content = self::readFile($path) ?? '';
+            
+            // Get title from metadata or extract from content
+            $title = $metadata[$chapterNum] ?? self::extractChapterTitle($content);
+
+            $chapters[] = [
+                'num' => $chapterNum,
+                'title' => $title,
+                'content' => $content,
+            ];
+        }
+
+        usort($chapters, static function (array $a, array $b): int {
+            return $a['num'] <=> $b['num'];
+        });
+
+        return $chapters;
+    }
+
+    public static function getChapter(string $bookSlug, int $chapterNum, bool $published): ?array {
+        self::ensureStorage();
+        $bookSlug = self::normalizeSlug($bookSlug);
+        $path = self::chapterPath($bookSlug, $chapterNum, $published);
+
+        $content = self::readFile($path);
+        if ($content === null) {
+            return null;
+        }
+
+        $metadata = self::loadChaptersMetadata($bookSlug, $published);
+        $title = $metadata[$chapterNum] ?? self::extractChapterTitle($content);
+
+        return [
+            'num' => $chapterNum,
+            'title' => $title,
+            'content' => $content,
+        ];
+    }
+
+    public static function saveChapter(string $bookSlug, int $chapterNum, string $content): void {
+        self::ensureStorage();
+        $bookSlug = self::normalizeSlug($bookSlug);
+        $path = self::chapterPath($bookSlug, $chapterNum, false);
+
+        $dir = dirname($path);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
+
+        self::writeFile($path, $content);
+    }
+
+    public static function deleteChapter(string $bookSlug, int $chapterNum): void {
+        self::ensureStorage();
+        $bookSlug = self::normalizeSlug($bookSlug);
+        $path = self::chapterPath($bookSlug, $chapterNum, false);
+
+        if (is_file($path)) {
+            @unlink($path);
+        }
+    }
+
+    public static function reorderChapters(string $bookSlug, array $newOrder): void {
+        self::ensureStorage();
+        $bookSlug = self::normalizeSlug($bookSlug);
+        $chapters = self::listChapters($bookSlug, false);
+
+        // Renumber chapters based on new order
+        foreach ($newOrder as $newNum => $oldNum) {
+            $oldPath = self::chapterPath($bookSlug, $oldNum, false);
+            $newPath = self::chapterPath($bookSlug, $newNum + 1, false);
+
+            if (is_file($oldPath) && $oldPath !== $newPath) {
+                $content = self::readFile($oldPath);
+                if ($content !== null) {
+                    self::writeFile($newPath, $content);
+                    @unlink($oldPath);
+                }
+            }
+        }
+    }
+
+    public static function publishChapters(string $bookSlug): void {
+        self::ensureStorage();
+        $bookSlug = self::normalizeSlug($bookSlug);
+
+        $draftDir = self::chaptersDir($bookSlug, false);
+        $publishedDir = self::chaptersDir($bookSlug, true);
+
+        // Ensure published chapters directory exists
+        if (!is_dir($publishedDir)) {
+            mkdir($publishedDir, 0775, true);
+        }
+
+        // Copy all draft chapters to published
+        if (is_dir($draftDir)) {
+            foreach (glob($draftDir . DIRECTORY_SEPARATOR . '*.md') ?: [] as $srcFile) {
+                $filename = basename($srcFile);
+                $dstFile = $publishedDir . DIRECTORY_SEPARATOR . $filename;
+                copy($srcFile, $dstFile);
+            }
+        }
+
+        // Copy chapter metadata
+        $draftMetadata = self::loadChaptersMetadata($bookSlug, false);
+        if (!empty($draftMetadata)) {
+            self::saveChaptersMetadata($bookSlug, true, $draftMetadata);
+        }
+    }
+
+    private static function extractChapterTitle(string $content): string {
+        $lines = explode("\n", $content);
+        foreach ($lines as $line) {
+            if (preg_match('/^#\s+(.+)$/', $line, $matches)) {
+                return trim($matches[1]);
+            }
+        }
+        return 'Untitled Chapter';
+    }
 }
