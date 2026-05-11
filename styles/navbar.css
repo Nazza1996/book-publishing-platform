@@ -11,6 +11,12 @@ nav {
     font-weight: bold;
     position: absolute;
     text-decoration: none;
+    display: flex;
+    gap: 10px;
+}
+
+.branding img {
+    width: 50px;
 }
 
 .nav-list {

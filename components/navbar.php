@@ -4,7 +4,10 @@ if (!isset($_SESSION)) {
 }
 ?>
 <nav>
-    <a class="branding" href="/">NateThePlot</a>
+    <a href="/" class="branding">
+        <img src="/favicon.ico" alt="NateThePlot Logo">
+        <span>NateThePlot</span>
+    </a>
     <ul class="nav-list">
         <li><a href="/">Home</a></li>
         <li><a href="/library">Library</a></li>
