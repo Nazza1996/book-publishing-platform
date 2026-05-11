@@ -78,7 +78,7 @@
                 </ul>
             </section>
 
-        <section id="stories" style="justify-items: center;text-align: center;">
+        <section id="stories" style="justify-items: center;text-align: center;display: grid;">
             <h2>All Stories</h2>
             <p>Explore the complete collection of my published works or start reading from the featured selection above.</p>
             <a href="/library" class="library-link">Browse Full Library</a>

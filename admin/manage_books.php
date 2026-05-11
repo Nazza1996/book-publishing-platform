@@ -361,6 +361,18 @@
         <script>
             // Initialize chapters from server data
             window.initialChapters = <?php echo json_encode(array_map(fn($ch) => ['title' => $ch['title'] ?? 'Untitled', 'content' => $ch['content'] ?? ''], $chapters)); ?>;
+            
+            // Pass list of existing slugs to frontend for duplicate detection
+            window.existingSlugs = <?php 
+                $slugs = [];
+                foreach ($books as $book) {
+                    $slugs[] = $book['slug'];
+                }
+                echo json_encode($slugs);
+            ?>;
+            
+            // If editing an existing book, exclude its own slug from duplicate check
+            window.currentBookSlug = <?php echo json_encode($selectedSlug); ?>;
         </script>
     </body>
 </html>
