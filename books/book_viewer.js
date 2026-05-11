@@ -91,7 +91,7 @@ class BookViewer {
         if (!viewer) return;
 
         viewer.innerHTML = `
-            <h1>${chapter.title}</h1>
+            <h1 style="text-align: center;">${chapter.title}</h1>
             <div class="chapter-content">
                 ${chapter.html}
             </div>
