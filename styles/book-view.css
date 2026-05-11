@@ -64,7 +64,7 @@
 
 /* Main Book Viewer */
 .book-viewer {
-    max-width: 72ch;
+    width: 100%;
     margin: 0 auto;
     font-size: 1.05rem;
     line-height: 1.8;
@@ -333,4 +333,69 @@
     .back-link {
         font-size: 0.95rem;
     }
+}
+
+/* Chapter Navigation */
+.book-chapters {
+    padding: 2rem;
+    background: #f9f9f9;
+    border-radius: 8px;
+    position: sticky;
+    top: 1rem;
+}
+
+.book-chapters h2 {
+    font-size: 1.5rem;
+    color: var(--primary-text-color);
+    margin: 0 0 1.5rem;
+    padding: 0;
+    border: none;
+}
+
+.book-chapters ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.book-chapters li {
+    margin: 0.5rem 0;
+    padding: 0;
+}
+
+.book-chapters a {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: var(--primary-text-color);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    border-radius: 0 4px 4px 0;
+    transition: all 0.3s ease;
+}
+
+.book-chapters a:hover {
+    background: #f0f0f0;
+    border-left-color: var(--primary-text-color);
+}
+
+.book-chapters a.active {
+    background: white;
+    border-left-color: var(--primary-text-color);
+    font-weight: 600;
+    color: var(--primary-text-color);
+}
+
+@media (max-width: 980px) {
+    .book-chapters {
+        position: static;
+    }
+}
+
+/* Chapter Content */
+.chapter-content {
+    margin: 2rem 0;
+}
+
+.chapter-content p:first-of-type {
+    margin-top: 0;
 }

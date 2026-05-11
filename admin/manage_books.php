@@ -68,6 +68,10 @@
                     BookRepository::saveChaptersMetadata($slug, false, $chapterMetadata);
                 }
 
+                // Clean up orphaned chapter files from deleted chapters
+                $maxChapterNum = count($chapters_data) > 0 ? max(array_keys($chapters_data)) + 1 : 1;
+                BookRepository::cleanupOrphanedChapters($slug, $maxChapterNum, false);
+
                 $redirectToBook($slug, 'Draft saved successfully.');
             }
 
@@ -97,7 +101,14 @@
                     BookRepository::saveChaptersMetadata($slug, false, $chapterMetadata);
                 }
                 
+                // Clean up orphaned chapter files from deleted chapters
+                $maxChapterNum = count($chapters_data) > 0 ? max(array_keys($chapters_data)) + 1 : 1;
+                BookRepository::cleanupOrphanedChapters($slug, $maxChapterNum, false);
+                
                 BookRepository::publishChapters($slug);
+
+                // Also clean up published orphaned chapters
+                BookRepository::cleanupOrphanedChapters($slug, $maxChapterNum, true);
 
                 $redirectToBook($slug, 'Book published successfully.');
             }

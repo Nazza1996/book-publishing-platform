@@ -691,4 +691,25 @@ class BookRepository {
         }
         return 'Untitled Chapter';
     }
+
+    public static function cleanupOrphanedChapters(string $bookSlug, int $maxChapterNum, bool $published): void {
+        self::ensureStorage();
+        $bookSlug = self::normalizeSlug($bookSlug);
+        $dir = self::chaptersDir($bookSlug, $published);
+
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        // Delete any chapter files numbered higher than maxChapterNum
+        for ($num = $maxChapterNum + 1; $num <= 999; $num++) {
+            $path = self::chapterPath($bookSlug, $num, $published);
+            if (is_file($path)) {
+                @unlink($path);
+            } else {
+                // Stop searching once we hit the first missing file
+                break;
+            }
+        }
+    }
 }

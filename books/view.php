@@ -9,6 +9,8 @@
     if ($book === null) {
         http_response_code(404);
     }
+
+    $chapters = $book !== null ? BookRepository::listChapters($slug, true) : [];
 ?>
 
 <!DOCTYPE html>
@@ -21,7 +23,9 @@
         <link rel="stylesheet" href="/styles/index.css">
         <link rel="stylesheet" href="/styles/books.css">
         <link rel="stylesheet" href="/styles/book-view.css">
+        <link rel="stylesheet" href="/styles/admin-manage-books.css">
         <script type="module" src="../js/index.js?v=1.0"></script>
+        <script type="module" src="/books/book_viewer.js"></script>
     </head>
 
     <body>
@@ -40,12 +44,28 @@
                     <p><a href="/library">← Back to Library</a></p>
                 </header>
 
-                <article class="book-viewer">
-                    <?php echo BookRepository::markdownToHtml((string)($book['content'] ?? '')); ?>
-                </article>
+                <section class="books-layout">
+                    <aside class="book-chapters">
+                        <h2>Chapters</h2>
+                        <ul>
+                            <?php foreach ($chapters as $chapter): ?>
+                                <li><a href="#<?php echo (int)$chapter['num']; ?>"><?php echo htmlspecialchars($chapter['title']); ?></a></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </aside>
+    
+                    <article class="book-viewer">
+                        <p>Loading chapter...</p>
+                    </article>
+                </section>
+
             <?php endif; ?>
         </main>
 
         <div id="footer"></div>
+
+        <script>
+            window.initialChapters = <?php echo json_encode($chapters); ?>;
+        </script>
     </body>
 </html>

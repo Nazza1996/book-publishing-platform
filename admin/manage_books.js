@@ -262,7 +262,7 @@ const renderChapters = () => {
                 <div class="chapter-title-text" data-index="${index}">${htmlEscape(chapter.title || 'Untitled')}</div>
             </div>
             <div class="chapter-item-actions">
-                <button type="button" class="chapter-btn" data-index="${index}">Edit</button>
+                <button type="button" class="chapter-btn edit" data-index="${index}">Edit</button>
                 <button type="button" class="chapter-btn delete" data-index="${index}" ${chapters.length === 1 ? 'disabled' : ''}>Delete</button>
             </div>
         `;
@@ -277,7 +277,7 @@ const renderChapters = () => {
 
         // Make the title editable
         const titleElement = li.querySelector('.chapter-title-text');
-        li.querySelector('.chapter-btn').addEventListener('click', (e) => {
+        li.querySelector('.chapter-btn.edit').addEventListener('click', (e) => {
             e.stopPropagation();
             editChapterTitle(titleElement, index);
         });
@@ -357,6 +357,7 @@ const addChapter = () => {
         content: ''
     });
     selectChapter(chapters.length - 1);
+    editChapterTitle(chaptersList.querySelector('.chapter-title-text[data-index="' + (chapters.length - 1) + '"]'), chapters.length - 1);
 };
 
 const deleteChapter = (index) => {
