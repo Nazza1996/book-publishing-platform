@@ -195,6 +195,29 @@ const slugify = (value) => value
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'untitled-book';
 
+const generateUniqueSlug = (baseSlug) => {
+    // Check if the base slug exists
+    if (!window.existingSlugs.includes(baseSlug)) {
+        return baseSlug;
+    }
+
+    // If it's the current book being edited, allow it
+    if (baseSlug === window.currentBookSlug) {
+        return baseSlug;
+    }
+
+    // Generate unique slug by appending -2, -3, etc.
+    for (let i = 2; i <= 999; i++) {
+        const newSlug = `${baseSlug}-${i}`;
+        if (!window.existingSlugs.includes(newSlug) || newSlug === window.currentBookSlug) {
+            return newSlug;
+        }
+    }
+
+    // Fallback (should rarely happen)
+    return `${baseSlug}-${Date.now()}`;
+};
+
 const titleCase = (value) => value
     .replace(/[-_]+/g, ' ')
     .replace(/\s+/g, ' ')
@@ -202,8 +225,11 @@ const titleCase = (value) => value
     .replace(/\b\w/g, (character) => character.toUpperCase()) || 'Untitled Book';
 
 const updateSlugPreview = () => {
-    slugPreview.textContent = slugify(titleInput.value || 'untitled-book');
+    const baseSlug = slugify(titleInput.value || 'untitled-book');
+    const uniqueSlug = generateUniqueSlug(baseSlug);
+    slugPreview.textContent = uniqueSlug;
 };
+
 
 const extractTitle = (fileName, markdown) => {
     const headingMatch = markdown.match(/^#\s+(.+)$/m);

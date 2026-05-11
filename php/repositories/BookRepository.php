@@ -33,6 +33,31 @@ class BookRepository {
         return $slug !== '' ? $slug : 'untitled-book';
     }
 
+    public static function slugExists(string $slug): bool {
+        self::ensureStorage();
+        $metadata = self::loadMetadata();
+        return isset($metadata[$slug]);
+    }
+
+    public static function generateUniqueSlug(string $baseSlug): string {
+        self::ensureStorage();
+        
+        if (!self::slugExists($baseSlug)) {
+            return $baseSlug;
+        }
+
+        // If slug exists, append -2, -3, -4, etc.
+        for ($i = 2; $i <= 999; $i++) {
+            $newSlug = $baseSlug . '-' . $i;
+            if (!self::slugExists($newSlug)) {
+                return $newSlug;
+            }
+        }
+
+        // Fallback (should rarely happen)
+        return $baseSlug . '-' . time();
+    }
+
     public static function prettyTitle(string $slug): string {
         $title = str_replace(['-', '_'], ' ', $slug);
         $title = trim(preg_replace('/\s+/', ' ', $title) ?? $slug);
@@ -182,10 +207,21 @@ class BookRepository {
     public static function saveDraft(string $existingSlug, Book $book): string {
         self::ensureStorage();
 
-        $newSlug = self::normalizeSlug($book->title);
+        $baseSlug = self::normalizeSlug($book->title);
         $existingSlug = self::normalizeSlug($existingSlug);
 
+        // If creating a new book (no existing slug), generate a unique slug
+        if ($existingSlug === '') {
+            $newSlug = self::generateUniqueSlug($baseSlug);
+        } else {
+            $newSlug = $baseSlug;
+        }
+
         if ($existingSlug !== '' && $existingSlug !== $newSlug) {
+            // Check if the new slug already exists for a different book (prevent overwrite)
+            if (self::slugExists($newSlug)) {
+                throw new InvalidArgumentException("A book with the title '" . self::prettyTitle($newSlug) . "' already exists. Please choose a different title.");
+            }
             self::moveIfExists(self::draftPath($existingSlug), self::draftPath($newSlug));
             self::moveIfExists(self::publishedPath($existingSlug), self::publishedPath($newSlug));
         }
