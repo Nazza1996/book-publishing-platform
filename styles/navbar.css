@@ -13,6 +13,7 @@ nav {
     text-decoration: none;
     display: flex;
     gap: 10px;
+    align-items: center;
 }
 
 .branding img {
@@ -48,6 +49,10 @@ nav {
     .branding {
         position: relative;
         font-size: clamp(1.2rem, 3vw, 2rem);
+    }
+
+    .branding span {
+        display: none;
     }
     
 }

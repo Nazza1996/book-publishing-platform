@@ -37,8 +37,9 @@
     font-size: 3rem;
     font-weight: 700;
     line-height: 1.2;
-    margin: 1rem 0;
+    margin: 0 0 20px 0;
     color: var(--primary-text-color);
+    text-align: center;
 }
 
 .books-site-hero p {
@@ -46,7 +47,8 @@
     font-size: 1.1rem;
 }
 
-.books-site-hero a {
+.books-site-hero a,
+.books-site-footer a {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -391,6 +393,15 @@
     }
 }
 
+.book-controls {
+    display: flex;
+    justify-content: space-between;
+}
+
+.book-controls p {
+    margin: 0;
+}
+
 /* Chapter Content */
 .chapter-content {
     margin: 2rem 0;
@@ -398,4 +409,18 @@
 
 .chapter-content p:first-of-type {
     margin-top: 0;
+}
+
+#chapter-selector,
+#chapter-selector-bottom {
+    padding: 10px 20px;
+    border: 1px solid #c0c0c0;
+    border-radius: 14px;
+    background: #fafafa;
+}
+
+.books-site-footer {
+    margin-top: 3rem;
+    border-top: 2px solid #e0e0e0;
+    padding-top: 1.5rem;
 }

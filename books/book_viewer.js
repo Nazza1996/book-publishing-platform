@@ -11,23 +11,32 @@ class BookViewer {
         if (!slug) return;
 
         this.slug = slug;
-        this.setupChapterLinks();
+        this.setupChapterSelector();
         this.loadInitialChapter();
         this.setupHashNavigation();
     }
 
-    setupChapterLinks() {
-        const links = document.querySelectorAll('.book-chapters a');
-        links.forEach((link) => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const chapterNum = parseInt(link.hash.substring(1), 10);
-                if (chapterNum > 0) {
-                    this.loadChapter(chapterNum);
-                    window.location.hash = chapterNum;
-                }
-            });
-        });
+    setupChapterSelector() {
+        const selectorTop = document.getElementById('chapter-selector');
+        const selectorBottom = document.getElementById('chapter-selector-bottom');
+
+        if (!selectorTop && !selectorBottom) return;
+
+        const handleChapterChange = (e, scrollToTop = false) => {
+            const chapterNum = parseInt(e.target.value, 10);
+            if (chapterNum > 0) {
+                this.loadChapter(chapterNum, scrollToTop);
+                window.history.pushState(null, '', `?slug=${encodeURIComponent(this.slug)}#${chapterNum}`);
+            }
+        };
+
+        if (selectorTop) {
+            selectorTop.addEventListener('change', handleChapterChange);
+        }
+
+        if (selectorBottom) {
+            selectorBottom.addEventListener('change', (e) => handleChapterChange(e, true));
+        }
     }
 
     loadInitialChapter() {
@@ -53,7 +62,7 @@ class BookViewer {
         });
     }
 
-    async loadChapter(chapterNum) {
+    async loadChapter(chapterNum, scrollToTop = false) {
         try {
             const response = await fetch(
                 `/api/get-chapter.php?slug=${encodeURIComponent(this.slug)}&num=${chapterNum}`
@@ -69,7 +78,9 @@ class BookViewer {
             this.currentChapter = chapterNum;
 
             // Scroll to top
-            document.querySelector('.book-viewer').scrollIntoView({ behavior: 'smooth' });
+            if (scrollToTop) {
+                document.querySelector('.book-viewer').scrollIntoView({ behavior: 'smooth' });
+            }
         } catch (error) {
             console.error('Error loading chapter:', error);
         }
@@ -86,15 +97,16 @@ class BookViewer {
             </div>
         `;
 
-        // Highlight current chapter in sidebar
-        const links = document.querySelectorAll('.book-chapters a');
-        links.forEach((link) => {
-            link.classList.remove('active');
-            const href = link.getAttribute('href');
-            if (href === `#${chapter.num}`) {
-                link.classList.add('active');
-            }
-        });
+        // Update chapter selectors
+        const selector = document.getElementById('chapter-selector');
+        if (selector) {
+            selector.value = chapter.num;
+        }
+        
+        const selectorBottom = document.getElementById('chapter-selector-bottom');
+        if (selectorBottom) {
+            selectorBottom.value = chapter.num;
+        }
     }
 }
 

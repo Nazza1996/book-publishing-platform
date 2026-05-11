@@ -40,24 +40,33 @@
                 </header>
             <?php else: ?>
                 <header class="books-site-hero">
-                    <h1><?php echo htmlspecialchars($book['title']); ?></h1>
-                    <p><a href="/library">← Back to Library</a></p>
-                </header>
-
-                <section class="books-layout">
-                    <aside class="book-chapters">
-                        <h2>Chapters</h2>
-                        <ul>
+                    <div>
+                        <h1><?php echo htmlspecialchars($book['title']); ?></h1>
+                    </div>
+                    <div class="book-controls">
+                        <p><a href="/library">← Back to Library</a></p>
+                        <select id="chapter-selector">
                             <?php foreach ($chapters as $chapter): ?>
-                                <li><a href="#<?php echo (int)$chapter['num']; ?>"><?php echo htmlspecialchars($chapter['title']); ?></a></li>
+                                <option value="<?php echo (int)$chapter['num']; ?>"><?php echo htmlspecialchars($chapter['title']); ?></option>
                             <?php endforeach; ?>
-                        </ul>
-                    </aside>
-    
-                    <article class="book-viewer">
-                        <p>Loading chapter...</p>
-                    </article>
-                </section>
+                        </select>
+                    </div>
+                </header>
+                
+                <article class="book-viewer">
+                    <p>Loading chapter...</p>
+                </article>
+
+                <div class="books-site-footer">
+                    <div class="book-controls">
+                        <p><a href="/library">← Back to Library</a></p>
+                        <select id="chapter-selector-bottom">
+                            <?php foreach ($chapters as $chapter): ?>
+                                <option value="<?php echo (int)$chapter['num']; ?>"><?php echo htmlspecialchars($chapter['title']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
 
             <?php endif; ?>
         </main>
