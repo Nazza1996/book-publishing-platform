@@ -1,0 +1,21 @@
+footer {
+    background-color: var(--primary-text-color);
+    color: #ffffff;
+    text-align: center;
+    padding: 20px;
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+footer a {
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.social-icon {
+    width: 30px;
+    height: 30px;
+    margin: 0 10px;
+}
