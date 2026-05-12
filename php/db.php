@@ -2,11 +2,24 @@
 
 declare(strict_types=1);
 
-$dbHost = getenv('DB_HOST') ?: 'db';
-$dbPort = getenv('DB_PORT') ?: '3306';
-$dbName = getenv('DB_NAME') ?: 'app';
-$dbUser = getenv('DB_USER') ?: 'appuser';
-$dbPass = getenv('DB_PASS') ?: 'secret';
+$configPaths = [
+	__DIR__ . '/../config.php',      // Local: project root
+	__DIR__ . '/../../config.php',   // Hostinger: outside public_html
+];
+
+$config = [];
+foreach ($configPaths as $path) {
+	if (file_exists($path)) {
+		$config = require $path;
+		break;
+	}
+}
+
+$dbHost = $config['DB_HOST'];
+$dbPort = $config['DB_PORT'];
+$dbName = $config['DB_NAME'];
+$dbUser = $config['DB_USER'];
+$dbPass = $config['DB_PASS'];
 
 $dsn = "mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4";
 
