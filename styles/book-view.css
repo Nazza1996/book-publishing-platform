@@ -411,14 +411,6 @@
     margin-top: 0;
 }
 
-#chapter-selector,
-#chapter-selector-bottom {
-    padding: 10px 20px;
-    border: 1px solid #c0c0c0;
-    border-radius: 14px;
-    background: #fafafa;
-}
-
 .books-site-footer {
     margin-top: 3rem;
     border-top: 2px solid #e0e0e0;

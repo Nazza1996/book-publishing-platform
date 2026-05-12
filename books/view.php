@@ -23,6 +23,7 @@
         <link rel="stylesheet" href="/styles/index.css">
         <link rel="stylesheet" href="/styles/books.css">
         <link rel="stylesheet" href="/styles/book-view.css">
+        <link rel="stylesheet" href="/styles/custom-select.css">
         <link rel="stylesheet" href="/styles/admin-manage-books.css">
         <script type="module" src="../js/index.js?v=1.0"></script>
         <script type="module" src="/books/book_viewer.js"></script>
@@ -45,11 +46,21 @@
                     </div>
                     <div class="book-controls">
                         <p><a href="/library">← Back to Library</a></p>
-                        <select id="chapter-selector">
-                            <?php foreach ($chapters as $chapter): ?>
-                                <option value="<?php echo (int)$chapter['num']; ?>"><?php echo htmlspecialchars($chapter['title']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="custom-select-wrapper" id="chapter-selector-wrapper">
+                            <button class="custom-select-button" id="chapter-selector-button">
+                                <span id="chapter-selector-display">Select Chapter</span>
+                                <svg class="custom-select-arrow" viewBox="0 0 12 8" width="12" height="8">
+                                    <path fill="currentColor" d="M1 1l5 5 5-5"/>
+                                </svg>
+                            </button>
+                            <ul class="custom-select-menu" id="chapter-selector-menu">
+                                <?php foreach ($chapters as $chapter): ?>
+                                    <li class="custom-select-option" data-value="<?php echo (int)$chapter['num']; ?>">
+                                        <?php echo htmlspecialchars($chapter['title']); ?>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
                     </div>
                 </header>
                 
@@ -60,11 +71,21 @@
                 <div class="books-site-footer">
                     <div class="book-controls">
                         <p><a href="/library">← Back to Library</a></p>
-                        <select id="chapter-selector-bottom">
-                            <?php foreach ($chapters as $chapter): ?>
-                                <option value="<?php echo (int)$chapter['num']; ?>"><?php echo htmlspecialchars($chapter['title']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="custom-select-wrapper" id="chapter-selector-bottom-wrapper">
+                            <button class="custom-select-button" id="chapter-selector-bottom-button">
+                                <span id="chapter-selector-bottom-display">Select Chapter</span>
+                                <svg class="custom-select-arrow" viewBox="0 0 12 8" width="12" height="8">
+                                    <path fill="currentColor" d="M1 1l5 5 5-5"/>
+                                </svg>
+                            </button>
+                            <ul class="custom-select-menu" id="chapter-selector-bottom-menu">
+                                <?php foreach ($chapters as $chapter): ?>
+                                    <li class="custom-select-option" data-value="<?php echo (int)$chapter['num']; ?>">
+                                        <?php echo htmlspecialchars($chapter['title']); ?>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 

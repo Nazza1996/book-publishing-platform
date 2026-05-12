@@ -2,40 +2,49 @@ class BookViewer {
     constructor() {
         this.chapters = window.initialChapters || [];
         this.currentChapter = null;
+        this.chapterSelectors = [];
         this.init();
     }
 
-    init() {
+    async init() {
+        // Import CustomSelect component
+        const { default: CustomSelect } = await import('../components/CustomSelect.js');
+        
         // Get slug from URL
         const slug = new URLSearchParams(window.location.search).get('slug');
         if (!slug) return;
 
         this.slug = slug;
-        this.setupChapterSelector();
+        this.setupChapterSelectors(CustomSelect);
         this.loadInitialChapter();
         this.setupHashNavigation();
     }
 
-    setupChapterSelector() {
-        const selectorTop = document.getElementById('chapter-selector');
-        const selectorBottom = document.getElementById('chapter-selector-bottom');
+    setupChapterSelectors(CustomSelect) {
+        const wrapperTop = document.getElementById('chapter-selector-wrapper');
+        const wrapperBottom = document.getElementById('chapter-selector-bottom-wrapper');
 
-        if (!selectorTop && !selectorBottom) return;
-
-        const handleChapterChange = (e, scrollToTop = false) => {
-            const chapterNum = parseInt(e.target.value, 10);
-            if (chapterNum > 0) {
-                this.loadChapter(chapterNum, scrollToTop);
-                window.history.pushState(null, '', `?slug=${encodeURIComponent(this.slug)}#${chapterNum}`);
-            }
-        };
-
-        if (selectorTop) {
-            selectorTop.addEventListener('change', handleChapterChange);
+        if (wrapperTop) {
+            const selector = new CustomSelect('chapter-selector-wrapper');
+            this.chapterSelectors.push(selector);
+            wrapperTop.addEventListener('customSelectChange', (e) => {
+                this.handleChapterChange(e.detail.value);
+            });
         }
 
-        if (selectorBottom) {
-            selectorBottom.addEventListener('change', (e) => handleChapterChange(e, true));
+        if (wrapperBottom) {
+            const selector = new CustomSelect('chapter-selector-bottom-wrapper');
+            this.chapterSelectors.push(selector);
+            wrapperBottom.addEventListener('customSelectChange', (e) => {
+                this.handleChapterChange(e.detail.value, true);
+            });
+        }
+    }
+
+    handleChapterChange(chapterNum, scrollToTop = false) {
+        if (chapterNum > 0) {
+            this.loadChapter(chapterNum, scrollToTop);
+            window.history.pushState(null, '', `?slug=${encodeURIComponent(this.slug)}#${chapterNum}`);
         }
     }
 
@@ -98,14 +107,11 @@ class BookViewer {
         `;
 
         // Update chapter selectors
-        const selector = document.getElementById('chapter-selector');
-        if (selector) {
-            selector.value = chapter.num;
-        }
-        
-        const selectorBottom = document.getElementById('chapter-selector-bottom');
-        if (selectorBottom) {
-            selectorBottom.value = chapter.num;
+        const selectedChapter = this.chapters.find(ch => ch.num === chapter.num);
+        if (selectedChapter) {
+            this.chapterSelectors.forEach(selector => {
+                selector.setValue(chapter.num);
+            });
         }
     }
 }
