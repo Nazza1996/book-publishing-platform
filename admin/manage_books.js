@@ -295,8 +295,8 @@ const renderChapters = () => {
 
         // Make the entire item clickable to select
         li.addEventListener('click', (e) => {
-            if (e.target.closest('.chapter-btn.delete')) {
-                return; // Don't select if delete button was clicked
+            if (e.target.closest('.chapter-btn.delete') || e.target.closest('.chapter-btn.edit') || e.target.closest('.chapter-title-input')) {
+                return;
             }
             selectChapter(index);
         });
