@@ -33,7 +33,7 @@ export default function Home() {
                 <h2>Featured Stories</h2>
                 <p>Step into the worlds I build, one chapter at a time. A collection of sci-fi and fantasy shorts for the curious traveller.</p>
                 <ul className="story-list">
-                    {featuredBooks.map((book, index) => (
+                    {Array.isArray(featuredBooks) && featuredBooks.map((book, index) => (
                         book.title == "Placeholder" ? <ComingSoon key={index} /> : <FeaturedBookCard key={index} book={book} />
                     ))}
                 </ul>
@@ -60,7 +60,7 @@ const ComingSoon = () => (
 
 const FeaturedBookCard = ({ book }: { book: any }) => (
     <li>
-        <a href={`/books/view.php?slug=${book.slug}`}>
+        <a href={`/book/${book.slug}`}>
             <span className="story-title">{book.title}</span>
             <p className="story-description">
                 {book.description}

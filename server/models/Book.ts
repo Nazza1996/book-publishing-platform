@@ -1,3 +1,5 @@
+import { Chapter } from "./Chapter";
+
 export interface IBook {
   slug: string;
   title: string;
@@ -7,6 +9,7 @@ export interface IBook {
   publishedExists: boolean;
   featured: boolean;
   description: string;
+  chapters?: Chapter[];
 }
 
 export class Book implements IBook {
@@ -18,6 +21,7 @@ export class Book implements IBook {
   publishedExists: boolean;
   featured: boolean;
   description: string;
+  chapters?: Chapter[];
 
   constructor(
     slug: string,
@@ -27,7 +31,8 @@ export class Book implements IBook {
     draftExists: boolean = false,
     publishedExists: boolean = false,
     featured: boolean = false,
-    description: string = ''
+    description: string = '',
+    chapters?: Chapter[]
   ) {
     this.slug = slug;
     this.title = title;
@@ -37,6 +42,7 @@ export class Book implements IBook {
     this.publishedExists = publishedExists;
     this.featured = featured;
     this.description = description;
+    this.chapters = chapters;
   }
 
   static placeholder(): Book {
@@ -61,6 +67,7 @@ export class Book implements IBook {
       publishedExists: this.publishedExists,
       featured: this.featured,
       description: this.description,
+      chapters: this.chapters,
     };
   }
 }

@@ -188,6 +188,7 @@ export class BookController {
     }
 
     const metadata = await this.loadMetadata();
+    const chapters = await this.listChapters(slug, published !== null);
 
     return new Book(
       slug,
@@ -197,7 +198,8 @@ export class BookController {
       draft !== null,
       published !== null,
       metadata[slug]?.featured || false,
-      metadata[slug]?.description || ''
+      metadata[slug]?.description || '',
+      chapters
     );
   }
 

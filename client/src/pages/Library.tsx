@@ -38,7 +38,7 @@ export default function Library() {
                                         {book.description}
                                     </p>
                                 </div>
-                                <a href={`/books/view.php?slug=${book.slug}`} className="book-card-link">Read Story</a>
+                                <a href={`/book/${book.slug}`} className="book-card-link">Read Story</a>
                             </article>
                         ))}
                     </div>
