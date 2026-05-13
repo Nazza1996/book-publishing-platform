@@ -1,0 +1,26 @@
+#adminDashboard {
+    width: 800px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    flex: 1;
+}
+
+.admin-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.admin-actions .btn {
+    display: inline-block;
+    padding: 0.6rem 1rem;
+    background: transparent;
+    color: #222;
+    text-decoration: none;
+    border-radius: 6px;
+    border: 2px solid #222;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 16px;
+}
