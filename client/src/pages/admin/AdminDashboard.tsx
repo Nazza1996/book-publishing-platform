@@ -1,5 +1,5 @@
-import { useAuth } from "../contexts/AuthContext";
-import '../styles/admin-dashboard.css';
+import { useAuth } from "../../contexts/AuthContext";
+import '../../styles/admin-dashboard.css';
 
 export default function AdminDashboard() {
     const { logout } = useAuth();

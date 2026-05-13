@@ -67,4 +67,13 @@ router.get("/currentUser", async (req: Request, res: Response) => {
     }
 });
 
+router.get("/", async (req: Request, res: Response) => {
+    try {
+        const users = await User.findAll({ attributes: ["id", "username"] });
+        res.json({ users });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch users" });
+    }
+});
+
 export default router;

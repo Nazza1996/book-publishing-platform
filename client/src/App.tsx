@@ -7,9 +7,10 @@ import Library from './pages/Library';
 import NotFound from './pages/404';
 import Book from './pages/Book';
 import { AuthProvider } from './contexts/AuthContext';
-import AdminDashboard from './pages/AdminDashboard';
+import AdminDashboard from './pages/admin/AdminDashboard';
 import { PrivateRoute } from './components/PrivateRoute';
 import Login from './pages/Login';
+import Users from './pages/admin/Users';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path='/book/:id' element={<Book />} />
           <Route path='/login' element={<Login />} />
           <Route path='/admin' element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
+          <Route path='/admin/users' element={<PrivateRoute><Users /></PrivateRoute>} />
         </Routes>
         <Footer />
       </Router>

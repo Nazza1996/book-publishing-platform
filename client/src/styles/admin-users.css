@@ -10,8 +10,9 @@ main {
 
 .users-toolbar {
     display: flex;
-    justify-content: flex-end;
-    margin-top: 1rem;
+    justify-content: space-between;
+    margin: 1rem 0;
+    align-items: center;;
 }
 
 .toolbar-button {
@@ -200,4 +201,57 @@ main {
     margin: 0;
     color: #666;
     font-size: 0.95rem;
+}
+
+.back-link {
+    margin-top: 1.5rem;
+}
+
+.back-dashboard-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.1rem;
+    border-radius: 999px;
+    border: 1px solid #d8d8d8;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f4f4 100%);
+    color: #1f1f1f;
+    text-decoration: none;
+    font-weight: 600;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.back-dashboard-button:hover,
+.back-dashboard-button:focus-visible {
+    transform: translateY(-1px);
+    border-color: #bcbcbc;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+    outline: none;
+}
+
+.back-dashboard-button::before {
+    content: "←";
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-buttons button {
+    all: unset;
+    cursor: pointer;
+}
+
+.action-buttons button svg {
+    width: 16px;
+    height: 16px;
+    color: #555;
+}
+
+.action-buttons button svg:hover {
+    color: #000;
 }
