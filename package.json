@@ -3,18 +3,20 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "server": "nodemon server/index.js",
+    "server": "nodemon --exec tsx server/index.ts",
     "client": "npm --prefix client run dev",
     "build": "npm --prefix client run build",
-    "start": "node server/index.js"
+    "build:server": "tsc --project server/tsconfig.json",
+    "start": "tsx server/index.ts"
   },
   "devDependencies": {
     "concurrently": "^8.2.0",
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "tsx": "^4.21.0"
   },
   "dependencies": {
-    "express": "^4.18.2",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
   }
 }

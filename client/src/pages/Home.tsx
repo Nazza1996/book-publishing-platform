@@ -1,6 +1,19 @@
+import { useEffect, useState } from "react";
 import profilePic from "../assets/Pfp.jpg";
 
 export default function Home() {
+    const [featuredBooks, setFeaturedBooks] = useState<any[]>([]);
+
+    useEffect(() => {
+        async function fetchFeaturedBooks() {
+            const response = await fetch('/api/books/featured');
+            const data = await response.json();
+            setFeaturedBooks(data);
+        }
+
+        fetchFeaturedBooks();
+    }, []);
+
     return (
         <>
             <section className="hero-section">
@@ -20,27 +33,9 @@ export default function Home() {
                 <h2>Featured Stories</h2>
                 <p>Step into the worlds I build, one chapter at a time. A collection of sci-fi and fantasy shorts for the curious traveller.</p>
                 <ul className="story-list">
-                    <li>
-                        <div>
-                            <span className="story-title">Coming Soon</span>
-                            <p className="story-description">Check back soon for more stories!</p>
-                            <span className="read-story">Coming Soon</span>
-                        </div>
-                    </li>
-                    <li>
-                        <div>
-                            <span className="story-title">Coming Soon</span>
-                            <p className="story-description">Check back soon for more stories!</p>
-                            <span className="read-story">Coming Soon</span>
-                        </div>
-                    </li>
-                    <li>
-                        <div>
-                            <span className="story-title">Coming Soon</span>
-                            <p className="story-description">Check back soon for more stories!</p>
-                            <span className="read-story">Coming Soon</span>
-                        </div>
-                    </li>
+                    {featuredBooks.map((book, index) => (
+                        book.title == "Placeholder" ? <ComingSoon key={index} /> : <FeaturedBookCard key={index} book={book} />
+                    ))}
                 </ul>
             </section>
 
@@ -52,3 +47,25 @@ export default function Home() {
         </>
     );
 }
+
+const ComingSoon = () => (
+    <li>
+        <div>
+            <span className="story-title">Coming Soon</span>
+            <p className="story-description">Check back soon for more stories!</p>
+            <span className="read-story">Coming Soon</span>
+        </div>
+    </li>
+)
+
+const FeaturedBookCard = ({ book }: { book: any }) => (
+    <li>
+        <a href={`/books/view.php?slug=${book.slug}`}>
+            <span className="story-title">{book.title}</span>
+            <p className="story-description">
+                {book.description}
+            </p>
+            <span className="read-story">Read Story</span>
+        </a>
+    </li>
+)

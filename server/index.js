@@ -1,10 +1,18 @@
-const express = require('express');
-const path = require('path');
-const cors = require('cors');
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+import express from 'express';
+import path from 'path';
+import cors from 'cors';
+import { Sequelize } from 'sequelize';
+import { fileURLToPath } from 'url';
+import { config } from 'dotenv';
 
-const { Sequelize } = require('sequelize');
-const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
+import bookRoutes from './routes/bookRoutes.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+config({ path: path.join(__dirname, '../.env') });
+
+export const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
   host: process.env.DB_HOST,
   dialect: 'mysql'
 });
@@ -17,14 +25,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Example API route
-app.get('/api/hello', (req, res) => {
-  res.json({ message: 'Hello from Express!' });
-});
+app.use('/api/books', bookRoutes);
 
 // Serve React static files
 app.use(express.static(path.join(__dirname, '../client/dist')));
-app.get('/{*splat}', (req, res) => {
+app.get('/*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
 });
 
