@@ -3,6 +3,8 @@ import Select from 'react-select';
 import '../styles/books.css';
 import '../styles/book-view.css';
 import '../styles/custom-select.css'
+import { setPageTitle } from "../helpers";
+import { useNavigate } from "react-router";
 
 export default function Book() {
     const bookId = window.location.pathname.split('/').pop();
@@ -10,18 +12,29 @@ export default function Book() {
     const [book, setBook] = useState<any>(null);
     const [currentChapter, setCurrentChapter] = useState<number>(1);
 
+    const navigate = useNavigate();
+
     useEffect(() => {
         async function fetchBook() {
-            await fetch(`/api/books/${bookId}`, { credentials: 'include' })
-                .then(res => res.json())
-                .then(data => {
-                    setBook(data);
-                })
-                .catch(err => console.error('Error fetching book data:', err));
-        }
+            try {
+                const res = await fetch(`/api/books/${bookId}`, { credentials: 'include' });
 
+                if (res.status === 404) {
+                    navigate('/notFound');
+                    return;
+                }
+
+                const data = await res.json();
+                setBook(data);
+            } catch (err) {
+                console.error("Error fetching book:", err);
+                navigate('/notFound');
+            }
+        }
+        
         fetchBook();
         setBookLoading(false);
+        setPageTitle(book ? book.title : "Book");
     }, [bookId]);
 
     const selectChapter = (num: number, scrollIntoView: boolean = false) => {

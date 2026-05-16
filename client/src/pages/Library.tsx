@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import '../styles/library.css';
+import { setPageTitle } from '../helpers';
 
 export default function Library() {
     const [books, setBooks] = useState<any[]>([]);
+
+    setPageTitle("Library");
 
     useEffect(() => {
         async function fetchBooks() {

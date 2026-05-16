@@ -1,8 +1,10 @@
 import { useAuth } from "../../contexts/AuthContext";
+import { setPageTitle } from "../../helpers";
 import '../../styles/admin-dashboard.css';
 
 export default function AdminDashboard() {
     const { logout } = useAuth();
+    setPageTitle("Dashboard");
 
     return (
         <section id="adminDashboard">

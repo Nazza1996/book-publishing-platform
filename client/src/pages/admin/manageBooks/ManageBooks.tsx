@@ -5,6 +5,7 @@ import BookSidebar from './components/BookSidebar';
 import BookDetails from './components/BookDetails';
 import EditorPane from './components/EditorPane';
 import { useBookEditor } from './hooks/useBookEditor';
+import { setPageTitle } from '../../../helpers';
 
 
 interface Chapter {
@@ -26,6 +27,8 @@ export default function ManageBooks() {
 
     const { selectedBook, selectedChapterIndex } = editor;
     const { setSelectedBook, setSelectedChapterIndex, handleNewChapter, handleDeleteChapter } = editor;
+
+    setPageTitle("Manage Books");
 
     const handleSelectChapter = (index: number) => {
         setSelectedChapterIndex(index);

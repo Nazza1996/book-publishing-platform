@@ -9,6 +9,7 @@ import UserCreateModal from './modals/UserCreate';
 import UserDeleteModal from './modals/UserDelete';
 import UserEditModal from './modals/UserEdit';
 import { useAuth } from '../../contexts/AuthContext';
+import { setPageTitle } from '../../helpers';
 
 const modules = [
     AllCommunityModule
@@ -17,7 +18,6 @@ const modules = [
 const COLUMN_STATE_KEY = 'users-grid-column-state';
 
 export default function Users() {
-    
     const gridRef = useRef<AgGridReact>(null);
     const [rowData, setRowData] = useState([]);
 
@@ -29,6 +29,8 @@ export default function Users() {
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
+    setPageTitle("Users");
 
     const actionCellRenderer = (params: any) => {
         const { user } = useAuth();

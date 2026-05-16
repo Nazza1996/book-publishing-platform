@@ -1,6 +1,9 @@
+import { setPageTitle } from '../helpers';
 import '../styles/error-page.css';
 
 export default function NotFound() {
+    setPageTitle("404");
+
     return (
         <section id="error404">
             <h1>404</h1>
