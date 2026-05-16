@@ -3,7 +3,7 @@ import Select from 'react-select';
 import '../styles/books.css';
 import '../styles/book-view.css';
 import '../styles/custom-select.css'
-import { setPageTitle } from "../helpers";
+import { markdownToHtml, setPageTitle } from "../helpers";
 import { useNavigate } from "react-router";
 
 export default function Book() {
@@ -117,7 +117,7 @@ const ChapterContent = ({ isLoading, book, currentChapter }: { book: any, isLoad
                 <div>
                     <h1 style={{ textAlign: "center" }}>{book?.chapters?.find((ch: any) => ch.chapterNumber === currentChapter)?.title}</h1>
                     <div className="chapter-content">
-                        <p>{book?.chapters?.find((ch: any) => ch.chapterNumber === currentChapter)?.content}</p>
+                        <span dangerouslySetInnerHTML={{ __html: markdownToHtml(book?.chapters?.find((ch: any) => ch.chapterNumber === currentChapter)?.content) }} />
                     </div>
                 </div>
             )}

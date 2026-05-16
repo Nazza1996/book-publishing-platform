@@ -21,7 +21,48 @@ export function useEasyMDE(onChange?: (content: string) => void) {
                     (segment) => (this as any).parent.markdown(segment)
                 );
                 return applyCustomInlineFormatting(rendered);
-            }
+            },
+            toolbar: [
+                "bold",
+                "italic",
+                {
+                    name: "underline",
+                    action: (editorInstance) => wrapSelectionWithUnderline(editorInstance),
+                    className: "fa fa-underline",
+                    title: "Underline text"
+                },
+                "strikethrough",
+                "heading",
+                "|",
+                "unordered-list",
+                "ordered-list",
+                "|",
+                "link",
+                "image",
+                "table",
+                "|",
+                {
+                    name: "left",
+                    action: (editorInstance) => wrapSelectionInAlignmentBlock(editorInstance, 'left'),
+                    className: "fa fa-align-left",
+                    title: "Left align text"
+                },
+                {
+                    name: "center",
+                    action: (editorInstance) => wrapSelectionInAlignmentBlock(editorInstance, 'center'),
+                    className: "fa fa-align-center",
+                    title: "Center text"
+                },
+                {
+                    name: "right",
+                    action: (editorInstance) => wrapSelectionInAlignmentBlock(editorInstance, 'right'),
+                    className: "fa fa-align-right",
+                    title: "Right align text"
+                },
+                "|",
+                "preview",
+                "guide",
+            ]
         });
 
         const handler = () => {
@@ -55,3 +96,52 @@ export function useEasyMDE(onChange?: (content: string) => void) {
         setValue
     };
 }
+
+const wrapSelectionWithUnderline = (editorInstance: any) => {
+    const cm = editorInstance.codemirror;
+    const selection = cm.getSelection() || 'underlined text';
+    const wrapped = `==${selection}==`;
+
+    cm.replaceSelection(wrapped);
+    cm.focus();
+};
+
+const wrapSelectionInAlignmentBlock = (editorInstance: any, align: string) => {
+    const cm = editorInstance.codemirror;
+    const selection = cm.getSelection() || 'Aligned text';
+    const wrapped = `:::${align}\n${selection}\n:::\n`;
+
+    cm.replaceSelection(wrapped);
+    cm.focus();
+    syncAlignmentLineClasses(cm);
+};
+
+const syncAlignmentLineClasses = (codemirror: any) => {
+    const doc = codemirror.getDoc();
+    let currentAlign: any = null;
+
+    doc.eachLine((lineHandle: any) => {
+        const text = lineHandle.text.trim();
+
+        codemirror.removeLineClass(lineHandle, 'text', 'mde-align-center');
+        codemirror.removeLineClass(lineHandle, 'text', 'mde-align-right');
+        codemirror.removeLineClass(lineHandle, 'text', 'mde-align-left');
+
+        const openMatch = text.match(/^:::(center|right|left)\s*$/i);
+        if (openMatch) {
+            currentAlign = openMatch[1].toLowerCase();
+            return;
+        }
+
+        if (text === ':::') {
+            currentAlign = null;
+            return;
+        }
+
+        if (!currentAlign || text === '') {
+            return;
+        }
+
+        codemirror.addLineClass(lineHandle, 'text', `mde-align-${currentAlign}`);
+    });
+};
