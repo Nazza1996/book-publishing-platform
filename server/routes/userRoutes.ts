@@ -33,7 +33,7 @@ router.post("/login", async (req: Request, res: Response) => {
 router.post("/register", async (req: Request, res: Response) => {
     try {
         const { username, password } = req.body;
-        const password_hash = await hash(password, 16);
+        const password_hash = await hash(password, 12);
         const newUser = await User.create({ username, password_hash });
         res.status(201).json(newUser);
     } catch (error) {

@@ -24,8 +24,8 @@ export default function Login() {
             <h1>Login</h1>
             
             <form method="POST" id="loginForm" onSubmit={handleLogin}>
-                <input name="username" placeholder="Username" required />
-                <input type="password" name="password" placeholder="Password" required />
+                <input type="text" name="username" autoComplete="username" placeholder="Username" required />
+                <input type="password" name="password" autoComplete="current-password" placeholder="Password" required />
 
                 <button type="submit">Login</button>
             </form>
