@@ -255,3 +255,13 @@ main {
 .action-buttons button svg:hover {
     color: #000;
 }
+
+.action-buttons button:disabled svg {
+    cursor: default;
+    opacity: 0.5;
+}
+
+
+.action-buttons button svg.red {
+    color: #a11;
+}

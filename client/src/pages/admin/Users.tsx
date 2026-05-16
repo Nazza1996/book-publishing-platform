@@ -5,6 +5,10 @@ import { AgGridProvider, AgGridReact } from 'ag-grid-react';
 import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPencil, faTrash } from '@fortawesome/free-solid-svg-icons';
+import UserCreateModal from './modals/UserCreate';
+import UserDeleteModal from './modals/UserDelete';
+import UserEditModal from './modals/UserEdit';
+import { useAuth } from '../../contexts/AuthContext';
 
 const modules = [
     AllCommunityModule
@@ -17,11 +21,37 @@ export default function Users() {
     const gridRef = useRef<AgGridReact>(null);
     const [rowData, setRowData] = useState([]);
 
+    const [password, setPassword] = useState('');
+
+    const [selectedUserId, setSelectedUserId] = useState<string>('');
+    const [selectedUsername, setSelectedUsername] = useState<string>('');
+
+    const [createModalOpen, setCreateModalOpen] = useState(false);
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
     const actionCellRenderer = (params: any) => {
+        const { user } = useAuth();
+        const userId = params.data.id;
+        const username = params.data.username;
+
         return (
             <div className="action-buttons">
-                <button onClick={() => {}}><FontAwesomeIcon icon={faPencil} /></button>
-                <button onClick={() => {}}><FontAwesomeIcon icon={faTrash} /></button>
+                <button onClick={() => {
+                    setSelectedUserId(userId);
+                    setSelectedUsername(username);
+                    setEditModalOpen(true);
+                }}><FontAwesomeIcon icon={faPencil} /></button>
+
+                {user?.id === userId ? (
+                    <button disabled><FontAwesomeIcon icon={faTrash} className='red' /></button>
+                ) : (
+                    <button onClick={() => {
+                        setSelectedUserId(userId);
+                        setSelectedUsername(username);
+                        setDeleteModalOpen(true);
+                    }}><FontAwesomeIcon icon={faTrash} className='red' /></button>
+                )}
             </div>
         )
     }
@@ -32,11 +62,15 @@ export default function Users() {
         { cellRenderer: actionCellRenderer, width: 40, sortable: false, filter: false }
     ]);
 
-    useEffect(() => {
+    const loadUsers = () => {
         fetch('/api/users')
             .then(res => res.json())
             .then(data => setRowData(data.users))
             .catch(err => console.error('Error fetching users:', err));
+    }
+
+    useEffect(() => {
+        loadUsers();
     }, []);
 
     const handleGridReady = (params: any) => {
@@ -58,12 +92,63 @@ export default function Users() {
         }
     };
 
+    const handleCreateUser = async () => {
+        await fetch('/api/users/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                username: selectedUsername,
+                password: password
+            })
+        });
+
+        resetModals();
+        loadUsers();
+    }
+
+    const handleEditUser = async () => {
+        if (!selectedUserId) return;
+
+        await fetch(`/api/users/${selectedUserId}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                username: selectedUsername
+            })
+        });
+
+        resetModals();
+        loadUsers();
+    }
+
+    const handleDeleteUser = async () => {
+        if (!selectedUserId) return;
+
+        await fetch(`/api/users/${selectedUserId}`, {
+            method: 'DELETE'
+        });
+
+        resetModals();
+        loadUsers();
+    }
+
+    const resetModals = () => {
+        setCreateModalOpen(false);
+        setEditModalOpen(false);
+        setDeleteModalOpen(false);
+        setSelectedUserId('');
+        setSelectedUsername('');
+        setPassword('');
+    }
+
     return (
         <main className="users-container">
 
             <div className="users-toolbar">
                 <h1>Users</h1>
-                <button type="button" className="toolbar-button primary" onClick={() => {}}>Create User</button>
+                <button type="button" className="toolbar-button primary" onClick={() => setCreateModalOpen(true)}>
+                    Create User
+                </button>
             </div>
 
             <div className="ag-theme-quartz" style={{ height: '400px' }}>
@@ -81,6 +166,33 @@ export default function Users() {
             </div>
 
             <p className="back-link"><a className="back-dashboard-button" href="/admin">Back to Dashboard</a></p>
+
+            {/* Modals */}
+            {createModalOpen && (
+                <UserCreateModal
+                    closeFunction={resetModals}
+                    submitFunction={handleCreateUser}
+                    username={selectedUsername}
+                    password={password}
+                    setUsername={setSelectedUsername}
+                    setPassword={setPassword}
+                />
+            )}
+            {editModalOpen && (
+                <UserEditModal
+                    closeFunction={resetModals}
+                    submitFunction={handleEditUser}
+                    username={selectedUsername}
+                    setUsername={setSelectedUsername}
+                />
+            )}
+            {deleteModalOpen && (
+                <UserDeleteModal
+                    closeFunction={resetModals}
+                    submitFunction={() => handleDeleteUser()}
+                    username={selectedUsername}
+                />
+            )}
         </main>
     )
 }

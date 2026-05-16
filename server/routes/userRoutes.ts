@@ -33,6 +33,11 @@ router.post("/login", async (req: Request, res: Response) => {
 router.post("/register", async (req: Request, res: Response) => {
     try {
         const { username, password } = req.body;
+
+        if (!username || !password) {
+            return res.status(400).json({ error: "Username and password are required" });
+        }
+
         const password_hash = await hash(password, 12);
         const newUser = await User.create({ username, password_hash });
         res.status(201).json(newUser);
@@ -78,6 +83,49 @@ router.get("/", async (req: Request, res: Response) => {
         res.json({ users });
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch users" });
+    }
+});
+
+router.put("/:id", async (req: Request, res: Response) => {
+    const token = req.cookies?.token;
+    if (!token) {
+        return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const { id } = req.params;
+    const { username } = req.body;
+
+    try {
+        const user = await User.findByPk(id as string);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        user.username = username || user.username;
+        await user.save();
+        res.json({ message: "User updated successfully" });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to update user" });
+    }
+});
+
+router.delete("/:id", async (req: Request, res: Response) => {
+    const token = req.cookies?.token;
+    if (!token) {
+        return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const { id } = req.params;
+
+    try {
+        const user = await User.findByPk(id as string);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        await user.destroy();
+        res.json({ message: "User deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to delete user" });
     }
 });
 
