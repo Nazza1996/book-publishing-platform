@@ -1,25 +1,43 @@
-export interface IChapter {
-  num: number;
-  title: string;
-  content: string;
+import { DataTypes, Model } from "sequelize"
+import { sequelize } from "../utils/database";
+
+class Chapter extends Model {
+    public id!: number;
+    public bookId!: number;
+	public chapterNumber!: number;
+	public title!: string
+	public content!: string;
 }
 
-export class Chapter implements IChapter {
-  num: number;
-  title: string;
-  content: string;
+Chapter.init(
+    {
+        id: {
+            type: DataTypes.INTEGER,
+            autoIncrement: true,
+            primaryKey: true,
+        },
+		bookId: {
+			type: DataTypes.INTEGER,
+		 	allowNull: false,
+		},
+		chapterNumber: {
+			type: DataTypes.INTEGER,
+			allowNull: false,
+		},
+		title: {
+			type: DataTypes.STRING,
+			allowNull: false,
+		},
+		content: {
+			type: DataTypes.TEXT("medium"),
+			allowNull: true,
+		},
+    },
+    {
+        sequelize,
+        tableName: "chapters",
+        timestamps: true,
+    }
+);
 
-  constructor(num: number, title: string, content: string = '') {
-    this.num = num;
-    this.title = title;
-    this.content = content;
-  }
-
-  toJSON() {
-    return {
-      num: this.num,
-      title: this.title,
-      content: this.content,
-    };
-  }
-}
+export default Chapter;

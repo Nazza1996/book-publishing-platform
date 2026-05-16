@@ -8,6 +8,13 @@ export default function Home() {
         async function fetchFeaturedBooks() {
             const response = await fetch('/api/books/featured');
             const data = await response.json();
+
+            for (let i = data.length; i < 3; i++) {
+                if (data[i] == null) {
+                    data.push({ title: "Placeholder" });
+                }
+            }
+
             setFeaturedBooks(data);
         }
 

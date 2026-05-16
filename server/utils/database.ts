@@ -6,7 +6,7 @@ import { config } from 'dotenv';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-config({ path: path.join(__dirname, '../../.env') });
+config({ path: path.join(__dirname, '../../.env'), quiet: true });
 
 export const sequelize = new Sequelize(
   process.env.DB_NAME!,

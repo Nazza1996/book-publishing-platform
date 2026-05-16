@@ -5,14 +5,14 @@ import '../styles/book-view.css';
 import '../styles/custom-select.css'
 
 export default function Book() {
-    const bookSlug = window.location.pathname.split('/').pop();
+    const bookId = window.location.pathname.split('/').pop();
     const [bookLoading, setBookLoading] = useState(true);
     const [book, setBook] = useState<any>(null);
     const [currentChapter, setCurrentChapter] = useState<number>(1);
 
     useEffect(() => {
         async function fetchBook() {
-            await fetch(`/api/books/${bookSlug}`)
+            await fetch(`/api/books/${bookId}`, { credentials: 'include' })
                 .then(res => res.json())
                 .then(data => {
                     setBook(data);
@@ -22,7 +22,7 @@ export default function Book() {
 
         fetchBook();
         setBookLoading(false);
-    }, [bookSlug]);
+    }, [bookId]);
 
     const selectChapter = (num: number, scrollIntoView: boolean = false) => {
         setCurrentChapter(num);
@@ -79,9 +79,9 @@ const ChapterSelector = ({ chapters, currentChapter, onSelect }: { chapters: any
     return (
         <div style={{ width: 200 }}>
             <Select
-                options={chapters.map(chapter => ({ value: chapter.num, label: chapter.title }))}
+                options={chapters.map(chapter => ({ value: chapter.chapterNumber, label: chapter.title }))}
                 onChange={(selectedOption) => onSelect(selectedOption?.value!)}
-                value={chapters.find(ch => ch.num === currentChapter) ? { value: currentChapter, label: chapters.find(chapter => chapter.num === currentChapter)?.title } : null}
+                value={chapters.find(ch => ch.chapterNumber === currentChapter) ? { value: currentChapter, label: chapters.find(chapter => chapter.chapterNumber === currentChapter)?.title } : null}
                 menuPlacement="auto"
                 theme={(theme) => ({
                     ...theme,
@@ -102,9 +102,9 @@ const ChapterContent = ({ isLoading, book, currentChapter }: { book: any, isLoad
                 <p>Loading...</p>
             ) : (
                 <div>
-                    <h1 style={{ textAlign: "center" }}>{book?.chapters?.find((ch: any) => ch.num === currentChapter)?.title}</h1>
+                    <h1 style={{ textAlign: "center" }}>{book?.chapters?.find((ch: any) => ch.chapterNumber === currentChapter)?.title}</h1>
                     <div className="chapter-content">
-                        <p>{book?.chapters?.find((ch: any) => ch.num === currentChapter)?.content}</p>
+                        <p>{book?.chapters?.find((ch: any) => ch.chapterNumber === currentChapter)?.content}</p>
                     </div>
                 </div>
             )}

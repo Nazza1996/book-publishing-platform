@@ -8,8 +8,6 @@ import { initializeDatabase } from './utils/database';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-await initializeDatabase();
-
 // Import routes after sequelize is exported
 import userRoutes from './routes/userRoutes';
 import bookRoutes from './routes/bookRoutes';
@@ -28,5 +26,16 @@ app.get('/{*splat}', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+async function start() {
+  try {
+    await initializeDatabase();
+    
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  } catch (err) {
+    console.error('Failed to start server', err);
+    process.exit(1);
+  }
+}
+
+start();

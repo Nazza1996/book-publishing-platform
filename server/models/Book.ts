@@ -1,73 +1,46 @@
-import { Chapter } from "./Chapter";
+import { DataTypes, Model } from "sequelize"
+import { sequelize } from "../utils/database";
 
-export interface IBook {
-  slug: string;
-  title: string;
-  content: string;
-  status: 'draft' | 'published';
-  draftExists: boolean;
-  publishedExists: boolean;
-  featured: boolean;
-  description: string;
-  chapters?: Chapter[];
+class Book extends Model {
+    public id!: number;
+    public title!: string;
+    public description!: string;
+    public status!: string;
+	public isFeatured!: boolean;
 }
 
-export class Book implements IBook {
-  slug: string;
-  title: string;
-  content: string;
-  status: 'draft' | 'published';
-  draftExists: boolean;
-  publishedExists: boolean;
-  featured: boolean;
-  description: string;
-  chapters?: Chapter[];
+Book.init(
+    {
+        id: {
+            type: DataTypes.INTEGER,
+            autoIncrement: true,
+            primaryKey: true,
+        },
+        title: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            unique: true,
+        },
+        description: {
+            type: DataTypes.TEXT,
+            allowNull: false,
+        },
+        status: {
+            type: DataTypes.ENUM("draft", "published"),
+            allowNull: false,
+            defaultValue: "draft",
+        },
+        isFeatured: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+        },
+    },
+    {
+        sequelize,
+        tableName: "books",
+        timestamps: true,
+    }
+);
 
-  constructor(
-    slug: string,
-    title: string,
-    content: string,
-    status: 'draft' | 'published' = 'draft',
-    draftExists: boolean = false,
-    publishedExists: boolean = false,
-    featured: boolean = false,
-    description: string = '',
-    chapters?: Chapter[]
-  ) {
-    this.slug = slug;
-    this.title = title;
-    this.content = content;
-    this.status = status;
-    this.draftExists = draftExists;
-    this.publishedExists = publishedExists;
-    this.featured = featured;
-    this.description = description;
-    this.chapters = chapters;
-  }
-
-  static placeholder(): Book {
-    return new Book(
-      'placeholder',
-      'Placeholder',
-      '',
-      'draft',
-      false,
-      false,
-      false,
-      ''
-    );
-  }
-
-  toJSON() {
-    return {
-      slug: this.slug,
-      title: this.title,
-      status: this.status,
-      draftExists: this.draftExists,
-      publishedExists: this.publishedExists,
-      featured: this.featured,
-      description: this.description,
-      chapters: this.chapters,
-    };
-  }
-}
+export default Book;

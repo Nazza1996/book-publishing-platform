@@ -48,7 +48,7 @@ router.post("/logout", (req: Request, res: Response) => {
 router.get("/currentUser", async (req: Request, res: Response) => {
     const token = req.cookies?.token;
     if (!token) {
-        return res.status(401).json({ user: null, error: "Not authenticated" });
+        return res.status(401).json({ error: "Not authenticated" });
     }
 
     try {
@@ -68,6 +68,11 @@ router.get("/currentUser", async (req: Request, res: Response) => {
 });
 
 router.get("/", async (req: Request, res: Response) => {
+    const token = req.cookies?.token;
+    if (!token) {
+        return res.status(401).json({ error: "Not authenticated" });
+    }
+
     try {
         const users = await User.findAll({ attributes: ["id", "username"] });
         res.json({ users });

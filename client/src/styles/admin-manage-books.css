@@ -229,6 +229,7 @@ main {
     color: #555;
     background: #fafafa;
     font-family: monospace;
+    overflow-wrap: anywhere;
 }
 
 .upload-row {

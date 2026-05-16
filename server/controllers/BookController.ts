@@ -90,7 +90,7 @@ export class BookController {
 
   private static async saveMetadata(book: Book): Promise<void> {
     const metadata = await this.loadMetadata();
-    metadata[book.slug] = book.toJSON();
+    metadata[book.slug] = book;
     await fs.writeFile(this.metadataPath(), JSON.stringify(metadata, null, 2));
   }
 
@@ -110,7 +110,7 @@ export class BookController {
 
   private static async writeFile(path: string, contents: string): Promise<void> {
     await fs.mkdir(dirname(path), { recursive: true });
-    await fs.writeFile(path, contents.trimEnd() + '\n');
+    await fs.writeFile(path, contents?.trimEnd() + '\n');
   }
 
   private static async moveIfExists(from: string, to: string): Promise<void> {
@@ -150,7 +150,8 @@ export class BookController {
               false,
               false,
               metadata[slug]?.featured || false,
-              metadata[slug]?.description || ''
+              metadata[slug]?.description || '',
+              await this.listChapters(slug, status === 'published')
             ));
           }
 
@@ -524,7 +525,7 @@ export class BookController {
     return text.replace(/[&<>"']/g, (char) => map[char]);
   }
 
-  static async deleteBook(slug: string): Promise<void> {
+  static async deleteBook(slug: string): Promise<boolean> {
     await this.ensureStorage();
     slug = this.normalizeSlug(slug);
 
@@ -532,6 +533,8 @@ export class BookController {
     await fs.unlink(this.publishedPath(slug)).catch(() => {});
 
     await this.deleteMetadata(slug);
+
+    return true;
   }
 
   private static chaptersMetadataPath(bookSlug: string, published: boolean): string {

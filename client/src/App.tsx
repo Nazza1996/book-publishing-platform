@@ -11,6 +11,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import { PrivateRoute } from './components/PrivateRoute';
 import Login from './pages/Login';
 import Users from './pages/admin/Users';
+import ManageBooks from './pages/admin/manageBooks/ManageBooks';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path='/login' element={<Login />} />
           <Route path='/admin' element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
           <Route path='/admin/users' element={<PrivateRoute><Users /></PrivateRoute>} />
+          <Route path='/admin/manage_books' element={<PrivateRoute><ManageBooks /></PrivateRoute>} />
         </Routes>
         <Footer />
       </Router>
