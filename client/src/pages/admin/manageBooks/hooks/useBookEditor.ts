@@ -18,14 +18,14 @@ export function useBookEditor(location: any) {
     const [selectedBook, setSelectedBook] = useState<any>(EMPTY_BOOK);
     const [selectedChapterIndex, setSelectedChapterIndex] = useState(0);
 
+    async function fetchBooks() {
+        const response = await fetch('/api/books');
+        const data = await response.json();
+        setBooks(data);
+    }
+
     // Fetch books
     useEffect(() => {
-        async function fetchBooks() {
-            const response = await fetch('/api/books');
-            const data = await response.json();
-            setBooks(data);
-        }
-
         fetchBooks();
     }, []);
 
@@ -52,12 +52,12 @@ export function useBookEditor(location: any) {
     const handleBookTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const title = e.target.value;
         setSelectedBook((prev: any) => ({ ...prev, title }));
-    }, [selectedBook]);
+    }, []);
 
     const handleBookDescriptionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const description = e.target.value;
         setSelectedBook((prev: any) => ({ ...prev, description }));
-    }, [selectedBook]);
+    }, []);
 
     // ------------- Book actions --------------
 
@@ -78,7 +78,8 @@ export function useBookEditor(location: any) {
             };
         });
 
-        setSelectedChapterIndex(prev => prev + 1);
+        const nextIndex = selectedBook.chapters.length;
+        setSelectedChapterIndex(nextIndex);
     }, []);
 
     const handleDeleteChapter = useCallback((index: number) => {
@@ -129,7 +130,10 @@ export function useBookEditor(location: any) {
         });
 
         if (res.ok) {
-            setSelectedBook((prev: any) => ({ ...prev, draftExists: true }));
+            const data = await res.json();
+            const bookId = data.id;
+            await fetchBooks();
+            window.location.hash = `#${encodeURIComponent(bookId)}`;
         }
     }, [selectedBook]);
 
@@ -179,10 +183,10 @@ export function useBookEditor(location: any) {
         });
 
         if (res.ok) {
-            setSelectedBook((prev: any) => ({ ...prev, status: 'published' }));
-            setBooks((prev: any) =>
-                prev.map((b: any) => b.id === selectedBook.id ? { ...b, status: 'published' } : b)
-            );
+            const data = await res.json();
+            const bookId = data.id;
+            await fetchBooks();
+            window.location.hash = `#${encodeURIComponent(bookId)}`;
         }
     }, [selectedBook]);
 

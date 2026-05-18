@@ -47,11 +47,11 @@ export default function Book() {
     return (
         <main className="books-site-page">
             {!bookLoading && !book ? (
-                <header className="books-site-hero book-not-found">
+                <div className="books-site-hero book-not-found">
                     <h1>Book not found</h1>
                     <p>The book you requested does not exist or has not been published yet.</p>
                     <p><a href="/library">← Back to Library</a></p>
-                </header>
+                </div>
             ) : (
 
                 <header className="books-site-hero">
@@ -60,13 +60,11 @@ export default function Book() {
                     </div>
                     <div className="book-controls">
                         <p><a href="/library">← Back to Library</a></p>
-                        <div style={{ width: 200 }}>
-                            <ChapterSelector
-                                chapters={book?.chapters || []}
-                                currentChapter={currentChapter}
-                                onSelect={(num) => selectChapter(num)}
-                            />
-                        </div>
+                        <ChapterSelector
+                            chapters={book?.chapters || []}
+                            currentChapter={currentChapter}
+                            onSelect={(num) => selectChapter(num)}
+                        />
                     </div>
                 </header>
 
@@ -90,21 +88,20 @@ export default function Book() {
 
 const ChapterSelector = ({ chapters, currentChapter, onSelect }: { chapters: any[], currentChapter: number, onSelect: (num: number) => void }) => {
     return (
-        <div style={{ width: 200 }}>
-            <Select
-                options={chapters.map(chapter => ({ value: chapter.chapterNumber, label: chapter.title }))}
-                onChange={(selectedOption) => onSelect(selectedOption?.value!)}
-                value={chapters.find(ch => ch.chapterNumber === currentChapter) ? { value: currentChapter, label: chapters.find(chapter => chapter.chapterNumber === currentChapter)?.title } : null}
-                menuPlacement="auto"
-                theme={(theme) => ({
-                    ...theme,
-                    colors: {
-                        ...theme.colors,
-                        primary: '#003366',
-                    }
-                })}
-            />
-        </div>
+        <Select
+            options={chapters.map(chapter => ({ value: chapter.chapterNumber, label: chapter.title }))}
+            onChange={(selectedOption) => onSelect(selectedOption?.value!)}
+            value={chapters.find(ch => ch.chapterNumber === currentChapter) ? { value: currentChapter, label: chapters.find(chapter => chapter.chapterNumber === currentChapter)?.title } : null}
+            menuPlacement="auto"
+            theme={(theme) => ({
+                ...theme,
+                colors: {
+                    ...theme.colors,
+                    primary: '#003366',
+                }
+            })}
+            isSearchable={false}
+        />
     );
 }
 

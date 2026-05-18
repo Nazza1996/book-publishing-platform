@@ -67,7 +67,7 @@ const ComingSoon = () => (
 
 const FeaturedBookCard = ({ book }: { book: any }) => (
     <li>
-        <a href={`/book/${book.slug}`}>
+        <a href={`/book/${book.id}`}>
             <span className="story-title">{book.title}</span>
             <p className="story-description">
                 {book.description}

@@ -1,4 +1,4 @@
-export default function BookSidebar({ books }: { books: any[] }) {
+export default function BookSidebar({ books, selectedBook }: { books: any[]; selectedBook: any }) {
     return (
         <aside className="books-sidebar">
             <div className="sidebar-head">
@@ -11,7 +11,7 @@ export default function BookSidebar({ books }: { books: any[] }) {
             ) : (
                 <div className="book-list" aria-label="Books">
                     {books.map((book) => (
-                        <a className="book-list-item" href={`/admin/manage_books#${encodeURIComponent(book.id)}`} key={book.id}>
+                        <a className={`book-list-item ${book.id === selectedBook.id ? 'is-active' : ''}`} href={`/admin/manage_books#${encodeURIComponent(book.id)}`} key={book.id}>
                             <span className="book-list-title">{book.title}</span>
                             <span className="book-list-meta">
                                 <span className={`status-pill status-${book.status}`}>{book.status.charAt(0).toUpperCase() + book.status.slice(1)}</span>
