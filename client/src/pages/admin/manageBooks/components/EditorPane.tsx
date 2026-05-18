@@ -10,6 +10,8 @@ export default function EditorPane({
     handleDeleteBook,
     selectedChapterIndex,
     setSelectedBook,
+    unsavedChanges,
+    isPublished
 }: any) {
     const currentChapterIndexRef = useRef(selectedChapterIndex);
 
@@ -44,7 +46,10 @@ export default function EditorPane({
             <div className="editor-topbar">
                 <div>
                     <p className="eyebrow">Editor</p>
-                    <h2>{selectedBook.title ? `Editing ${selectedBook.title}` : 'New Book'}</h2>
+                    <h2>
+                        {selectedBook.title ? `Editing ${selectedBook.title}` : 'New Book'}
+                        {unsavedChanges && <span className="unsaved-indicator" title="Unsaved changes"> ●</span>}
+                    </h2>
                 </div>                                
             </div>
 
@@ -59,15 +64,17 @@ export default function EditorPane({
                         Delete Book
                     </button>
                 )}
-                <button type="submit" name="action" value="save_book" className="toolbar-button secondary" onClick={handleSaveBook}>Save Draft</button>
-                {selectedBook.status === 'published' && (
+                <button type="submit" name="action" value="save_book" className={`toolbar-button secondary ${unsavedChanges ? 'has-changes' : ''}`} onClick={handleSaveBook}>
+                    {unsavedChanges ? '💾 Save Draft' : 'Save Draft'}
+                </button>
+                {isPublished && (
                     <>
-                        <button type="submit" name="action" value="convert_to_draft" className="toolbar-button secondary" onClick={handleConvertToDraft}>Convert to Draft</button>
+                        <button type="submit" name="action" value="convert_to_draft" className="toolbar-button secondary" onClick={handleConvertToDraft}>Unpublish</button>
                         <button type="submit" name="action" value="toggle_featured" className="toolbar-button secondary featured-toggle" onClick={handleToggleSpotlight}>{selectedBook.isFeatured ? '★ Remove from Spotlight' : '☆ Add to Spotlight'}</button>
                     </>
                 )}
                 <button type="submit" name="action" value="publish_book" className="toolbar-button primary" onClick={handlePublishBook}>
-                    {selectedBook.status === 'published' ? 'Republish Book' : 'Publish Book'}
+                    {isPublished ? 'Republish Book' : 'Publish Book'}
                 </button>
             </div>
         </section>

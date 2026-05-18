@@ -10,17 +10,26 @@ export default function BookSidebar({ books, selectedBook }: { books: any[]; sel
                 <p className="no-books">No books found.</p>
             ) : (
                 <div className="book-list" aria-label="Books">
-                    {books.map((book) => (
-                        <a className={`book-list-item ${book.id === selectedBook.id ? 'is-active' : ''}`} href={`/admin/manage_books#${encodeURIComponent(book.id)}`} key={book.id}>
-                            <span className="book-list-title">{book.title}</span>
-                            <span className="book-list-meta">
-                                <span className={`status-pill status-${book.status}`}>{book.status.charAt(0).toUpperCase() + book.status.slice(1)}</span>
-                                {book.isFeatured && (
-                                    <span className="status-pill status-featured">Spotlight</span>
-                                )}
-                            </span>
-                        </a>
-                    ))}
+                    {books.map((book) => {
+                        const isPublished = book.publishedVersionId !== null && book.publishedVersionId !== undefined;
+                        const statusClass = isPublished ? 'status-published' : 'status-draft';
+                        const statusText = isPublished ? 'Published' : 'Draft';
+
+                        return (
+                            <a className={`book-list-item ${book.id === selectedBook.id ? 'is-active' : ''}`} href={`/admin/manage_books#${encodeURIComponent(book.id)}`} key={book.id}>
+                                <span className="book-list-title">{book.title}</span>
+                                <span className="book-list-meta">
+                                    <span className={`status-pill ${statusClass}`}>{statusText}</span>
+                                    {book.hasUnpublishedDrafts && (
+                                        <span className="status-pill status-unsaved" title="Has unpublished draft changes">● Draft Changes</span>
+                                    )}
+                                    {book.isFeatured && (
+                                        <span className="status-pill status-featured">Spotlight</span>
+                                    )}
+                                </span>
+                            </a>
+                        );
+                    })}
                 </div>
             )}
         </aside>

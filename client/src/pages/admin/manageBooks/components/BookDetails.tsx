@@ -1,4 +1,7 @@
-export default function BookDetails({ selectedBook, handleBookTitleChange, handleBookDescriptionChange }: any) {
+export default function BookDetails({ selectedBook, handleBookTitleChange, handleBookDescriptionChange, unsavedChanges, isPublished }: any) {
+    const statusText = isPublished ? 'Published' : 'Draft';
+    const statusClass = isPublished ? 'status-published' : 'status-draft';
+
     return (
         <section className="books-editor-card">
             <div className="editor-topbar">
@@ -8,13 +11,18 @@ export default function BookDetails({ selectedBook, handleBookTitleChange, handl
                 </div>
 
                 <div className="editor-topbar-meta">
-                    <span className={`status-pill status-${selectedBook.status}`}>{selectedBook.status.charAt(0).toUpperCase() + selectedBook.status.slice(1)}</span>
+                    <span className={`status-pill ${statusClass}`}>{statusText}</span>
+                    {unsavedChanges && (
+                        <span className="status-pill status-unsaved" title="You have unsaved changes">● Unsaved Changes</span>
+                    )}
                     {selectedBook.isFeatured && (
                         <span className="status-pill status-featured">Spotlight</span>
                     )}
-                    <a className="view-book-link" href={`/book/${selectedBook.id}`} target="_blank" rel="noopener noreferrer">
-                        View {selectedBook.status === "draft" ? "Draft" : "Published"}
-                    </a>
+                    {selectedBook.id && (
+                        <a className="view-book-link" href={`/book/${selectedBook.id}`} target="_blank" rel="noopener noreferrer">
+                            View {isPublished ? "Published" : "Draft"}
+                        </a>
+                    )}
                 </div>
             </div>
 

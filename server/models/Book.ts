@@ -5,7 +5,7 @@ class Book extends Model {
     public id!: number;
     public title!: string;
     public description!: string;
-    public status!: string;
+    public publishedVersionId!: number | null;
 	public isFeatured!: boolean;
 }
 
@@ -25,10 +25,13 @@ Book.init(
             type: DataTypes.TEXT,
             allowNull: false,
         },
-        status: {
-            type: DataTypes.ENUM("draft", "published"),
-            allowNull: false,
-            defaultValue: "draft",
+        publishedVersionId: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            references: {
+                model: 'book_versions',
+                key: 'id'
+            }
         },
         isFeatured: {
             type: DataTypes.BOOLEAN,

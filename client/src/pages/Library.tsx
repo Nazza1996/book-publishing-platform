@@ -27,7 +27,7 @@ export default function Library() {
             </section>
 
             <main className="library-container">
-                {books.length === 0 ? (
+                {!Array.isArray(books) || books.length === 0 ? (
                     <div className="empty-state">
                         <p>No published stories yet. Check back soon!</p>
                     </div>

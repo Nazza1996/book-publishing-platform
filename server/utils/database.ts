@@ -20,6 +20,9 @@ export const sequelize = new Sequelize(
 
 export async function initializeDatabase() {
   try {
+    // Load models and their associations
+    await import('../models/index');
+    
     await sequelize.authenticate();
     console.log('DB connected');
   } catch (err) {

@@ -17,7 +17,8 @@ export default function Book() {
     useEffect(() => {
         async function fetchBook() {
             try {
-                const res = await fetch(`/api/books/${bookId}`, { credentials: 'include' });
+                // Fetch published version for public viewing
+                const res = await fetch(`/api/books/${bookId}?version=published`, { credentials: 'include' });
 
                 if (res.status === 404) {
                     navigate('/notFound');
@@ -25,7 +26,11 @@ export default function Book() {
                 }
 
                 const data = await res.json();
-                setBook(data);
+                // Extract chapters from version object
+                setBook({
+                    ...data,
+                    chapters: data.version?.chapters || []
+                });
             } catch (err) {
                 console.error("Error fetching book:", err);
                 navigate('/notFound');

@@ -3,7 +3,7 @@ import { sequelize } from "../utils/database";
 
 class Chapter extends Model {
     public id!: number;
-    public bookId!: number;
+    public bookVersionId!: number;
 	public chapterNumber!: number;
 	public title!: string
 	public content!: string;
@@ -16,7 +16,7 @@ Chapter.init(
             autoIncrement: true,
             primaryKey: true,
         },
-		bookId: {
+		bookVersionId: {
 			type: DataTypes.INTEGER,
 		 	allowNull: false,
 		},

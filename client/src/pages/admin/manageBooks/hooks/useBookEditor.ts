@@ -3,19 +3,46 @@ import { useCallback, useEffect, useState } from 'react';
 const EMPTY_BOOK = {
     title: '',
     description: '',
-    status: 'draft',
+    id: null,
     isFeatured: false,
+    publishedVersionId: null,
     chapters: [
         { title: 'Chapter 1', content: '', chapterNumber: 1 }
     ],
-    publishedExists: false,
-    draftExists: false
+    versionStatus: 'draft', // 'draft' or 'published'
+    version: null
 };
 
+function hasUnsavedChanges(book: any, lastSaved: any): boolean {
+    if (!lastSaved || !book.id) return false;
+    
+    // Check if metadata changed
+    if (book.title !== lastSaved.title || book.description !== lastSaved.description) {
+        return true;
+    }
+    
+    // Check if chapter count changed
+    if (book.chapters.length !== lastSaved.chapters.length) {
+        return true;
+    }
+    
+    // Check if any chapter content changed
+    for (let i = 0; i < book.chapters.length; i++) {
+        const current = book.chapters[i];
+        const saved = lastSaved.chapters[i];
+        
+        if (current.title !== saved.title || current.content !== saved.content) {
+            return true;
+        }
+    }
+    
+    return false;
+}
 
 export function useBookEditor(location: any) {
     const [books, setBooks] = useState<any[]>([]);
     const [selectedBook, setSelectedBook] = useState<any>(EMPTY_BOOK);
+    const [lastSavedBook, setLastSavedBook] = useState<any>(null);
     const [selectedChapterIndex, setSelectedChapterIndex] = useState(0);
 
     async function fetchBooks() {
@@ -34,16 +61,34 @@ export function useBookEditor(location: any) {
         const hash = decodeURIComponent(location.hash.substring(1));
         if (!hash) {
             setSelectedBook(EMPTY_BOOK);
+            setLastSavedBook(null);
             setSelectedChapterIndex(0);
             return;
         }
 
         (async () => {
-            const res = await fetch(`/api/books/${hash}`);
-            if (!res.ok) return;
-
-            const book = await res.json();
-            setSelectedBook(book);
+            // Load draft version for editing
+            const res = await fetch(`/api/books/${hash}?version=draft`);
+            if (!res.ok) {
+                // Try loading published version if no draft
+                const pubRes = await fetch(`/api/books/${hash}?version=published`);
+                if (!pubRes.ok) return;
+                const book = await pubRes.json();
+                const bookData = {
+                    ...book,
+                    chapters: book.version?.chapters || []
+                };
+                setSelectedBook(bookData);
+                setLastSavedBook(JSON.parse(JSON.stringify(bookData))); // Deep copy
+            } else {
+                const book = await res.json();
+                const bookData = {
+                    ...book,
+                    chapters: book.version?.chapters || []
+                };
+                setSelectedBook(bookData);
+                setLastSavedBook(JSON.parse(JSON.stringify(bookData))); // Deep copy
+            }
             setSelectedChapterIndex(0);
         })();
     }, [location.hash]);
@@ -80,7 +125,7 @@ export function useBookEditor(location: any) {
 
         const nextIndex = selectedBook.chapters.length;
         setSelectedChapterIndex(nextIndex);
-    }, []);
+    }, [selectedBook.chapters.length]);
 
     const handleDeleteChapter = useCallback((index: number) => {
         setSelectedBook((prev: any) => {
@@ -117,6 +162,7 @@ export function useBookEditor(location: any) {
         if (res.ok) {
             setBooks(prev => prev.filter(b => b.id !== selectedBook.id));
             setSelectedBook(EMPTY_BOOK);
+            setLastSavedBook(null);
             setSelectedChapterIndex(0);
             window.location.hash = '';
         }
@@ -132,6 +178,7 @@ export function useBookEditor(location: any) {
         if (res.ok) {
             const data = await res.json();
             const bookId = data.id;
+            setLastSavedBook(JSON.parse(JSON.stringify(selectedBook))); // Mark as saved
             await fetchBooks();
             window.location.hash = `#${encodeURIComponent(bookId)}`;
         }
@@ -147,9 +194,9 @@ export function useBookEditor(location: any) {
         });
 
         if (res.ok) {
-            setSelectedBook((prev: any) => ({ ...prev, status: 'draft', isFeatured: false }));
+            setSelectedBook((prev: any) => ({ ...prev, publishedVersionId: null, isFeatured: false }));
             setBooks((prev: any) =>
-                prev.map((b: any) => b.id === id ? { ...b, status: 'draft', isFeatured: false } : b)
+                prev.map((b: any) => b.id === id ? { ...b, publishedVersionId: null, isFeatured: false } : b)
             );
         }
     }, [selectedBook.id]);
@@ -185,10 +232,14 @@ export function useBookEditor(location: any) {
         if (res.ok) {
             const data = await res.json();
             const bookId = data.id;
+            setLastSavedBook(JSON.parse(JSON.stringify(selectedBook))); // Mark as published (no unsaved)
             await fetchBooks();
             window.location.hash = `#${encodeURIComponent(bookId)}`;
         }
     }, [selectedBook]);
+
+    const unsavedChanges = hasUnsavedChanges(selectedBook, lastSavedBook);
+    const isPublished = selectedBook.publishedVersionId !== null && selectedBook.publishedVersionId !== undefined;
 
     return {
         books,
@@ -210,6 +261,9 @@ export function useBookEditor(location: any) {
         handleSaveBook,
         handleConvertToDraft,
         handleToggleSpotlight,
-        handlePublishBook
+        handlePublishBook,
+        
+        unsavedChanges,
+        isPublished
     };
 }
