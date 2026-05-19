@@ -6,7 +6,6 @@
     "server": "nodemon --ignore client/ --exec tsx server/index.ts",
     "client": "npm --prefix client run dev",
     
-    "postinstall": "npm install --prefix client && npm install --prefix server",
     "build": "npm --prefix client run build && tsc --project server/tsconfig.json",
     "start": "node server/dist/index.js"
   },
