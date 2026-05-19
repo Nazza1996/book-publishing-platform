@@ -33,7 +33,7 @@ jobs:
       # Step 5: Zip client/dist and server/dist
       - name: Zip client and server builds
         run: |
-          zip -r app-build.zip client/dist server/dist
+          zip -r app-build.zip tsconfig.json package.json client/dist server/dist
 
       # Upload the build as artifact
       - name: Upload Build Artifact
