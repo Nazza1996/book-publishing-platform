@@ -10,3 +10,6 @@ package-lock.json
 .env
 client/.env
 server/.env
+
+client/dist/
+server/dist/

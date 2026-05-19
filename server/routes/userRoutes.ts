@@ -1,7 +1,7 @@
 import { Request, Response, Router } from "express";
-import { signToken, verifyToken } from "../utils/jwt";
+import { signToken, verifyToken } from "../utils/jwt.js";
 import bcrypt, { hash } from "bcrypt";
-import User from "../models/User";
+import User from "../models/User.js";
 
 
 const router = Router();

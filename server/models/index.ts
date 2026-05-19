@@ -1,7 +1,7 @@
-import Book from './Book';
-import BookVersion from './BookVersion';
-import Chapter from './Chapter';
-import User from './User';
+import Book from './Book.js';
+import BookVersion from './BookVersion.js';
+import Chapter from './Chapter.js';
+import User from './User.js';
 
 // Book -> BookVersion relationship
 Book.hasMany(BookVersion, { foreignKey: 'bookId', as: 'versions' });

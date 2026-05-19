@@ -1,9 +1,9 @@
 import { Request, Response, Router } from "express";
 import { Op } from "sequelize";
-import Book from "../models/Book";
-import BookVersion from "../models/BookVersion";
-import Chapter from "../models/Chapter";
-import { sequelize } from "../utils/database";
+import Book from "../models/Book.js";
+import BookVersion from "../models/BookVersion.js";
+import Chapter from "../models/Chapter.js";
+import { sequelize } from "../utils/database.js";
 
 const router = Router();
 

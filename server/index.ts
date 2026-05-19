@@ -3,14 +3,14 @@ import path from 'path';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
-import { initializeDatabase } from './utils/database';
+import { initializeDatabase } from './utils/database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Import routes after sequelize is exported
-import userRoutes from './routes/userRoutes';
-import bookRoutes from './routes/bookRoutes';
+import userRoutes from './routes/userRoutes.js';
+import bookRoutes from './routes/bookRoutes.js';
 
 const app = express();
 app.use(cors({ credentials: true, origin: true }));
