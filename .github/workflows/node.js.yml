@@ -2,20 +2,11 @@ name: Node.js CI
 
 on:
   workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to build'
-        required: true
-        default: 'master'
 
 jobs:
   build:
 
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
 
     steps:
       # Step 1: Checkout the specified branch
@@ -41,7 +32,7 @@ jobs:
 
       # Step 6: Upload the build as artifact
       - name: Upload Build Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: node-app-build
           path: |
