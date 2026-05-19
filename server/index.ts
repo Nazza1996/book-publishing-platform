@@ -8,6 +8,12 @@ import { initializeDatabase } from './utils/database.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const isProd = process.env.NODE_ENV === 'production';
+
+const clientDistPath = isProd
+  ? path.join(__dirname, '../../client/dist')
+  : path.join(__dirname, '../client/dist');
+
 // Import routes after sequelize is exported
 import userRoutes from './routes/userRoutes.js';
 import bookRoutes from './routes/bookRoutes.js';
@@ -21,9 +27,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/books', bookRoutes);
 
 // Serve React static files
-app.use(express.static(path.join(__dirname, '../client/dist')));
+app.use(express.static(clientDistPath));
 app.get('/{*splat}', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist', 'index.html'));
+  res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
 async function start() {

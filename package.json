@@ -6,7 +6,9 @@
     "server": "nodemon --ignore client/ --exec tsx server/index.ts",
     "client": "npm --prefix client run dev",
     
+    "postinstall": "npm install --prefix client && npm install --prefix server && npm run build && npm run migrate",
     "build": "npm --prefix client run build && tsc --project server/tsconfig.json",
+    "migrate": "cd server && npx sequelize-cli db:migrate --env production",
     "start": "node server/dist/index.js"
   },
   "devDependencies": {
