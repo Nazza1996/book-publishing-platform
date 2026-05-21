@@ -28,14 +28,17 @@ jobs:
       - run: npm run build
 
       # Zip build
-      - name: Zip client and server builds
+      - name: Zip client and server builds with timestamp
+        id: zip_build
         run: |
           TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
-          zip -r "app-build-$TIMESTAMP.zip" tsconfig.json package.json client/dist/* client/package.json server/dist/* server/package.json
-
+          ZIP_FILE="app-build-$TIMESTAMP.zip"
+          zip -r "$ZIP_FILE" tsconfig.json package.json client/dist/* client/package.json server/dist/* server/package.json
+          echo "ZIP_FILE=$ZIP_FILE" >> $GITHUB_ENV  # Make the filename available for next steps
+      
       # Upload the build as artifact
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v7
         with:
           name: app-build
-          path: app-build.zip
+          path: ${{ env.ZIP_FILE }}
