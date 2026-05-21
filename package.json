@@ -7,13 +7,10 @@
     "server"
   ],
   "scripts": {
-    "dev": "concurrently -p \"[{name}]\" -n \"Server,Client\" -c \"blue.bold,green.bold\" \"npm run migrate && npm run server\" \"npm run client\"",
+    "start": "concurrently -p \"[{name}]\" -n \"Server,Client\" -c \"blue.bold,green.bold\" \"npm run server\" \"npm run client\"",
     "server": "nodemon --ignore client/ --exec tsx server/index.ts",
     "client": "npm --prefix client run dev",
-    
-    "start": "npm run migrate && node server/dist/index.js",
-    "build": "npm --prefix client run build && tsc --project server/tsconfig.json",
-    "migrate": "cd server && npx sequelize-cli db:migrate --env production"
+    "build": "npm --prefix client run build && tsc --project server/tsconfig.json"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",

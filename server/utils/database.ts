@@ -1,3 +1,4 @@
+import Umzug from 'umzug';
 import { Sequelize } from 'sequelize';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -18,6 +19,20 @@ export const sequelize = new Sequelize(
   }
 );
 
+const umzug = new Umzug({
+  migrations: {
+    path: path.join(__dirname, '../migrations'),
+    params: [
+      sequelize.getQueryInterface(),
+      Sequelize
+    ],
+  },
+  storage: 'sequelize',
+  storageOptions: {
+    sequelize: sequelize,
+  },
+});
+
 export async function initializeDatabase() {
   try {
     // Load models and their associations
@@ -25,6 +40,9 @@ export async function initializeDatabase() {
     
     await sequelize.authenticate();
     console.log('DB connected');
+
+    console.log('Running migrations...');
+    await umzug.up();
   } catch (err) {
     console.error('DB error', err);
     throw err;
