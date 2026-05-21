@@ -7,7 +7,7 @@
     "server"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "dev": "concurrently -p \"[{name}]\" -n \"Server,Client\" -c \"blue.bold,green.bold\" \"npm run migrate && npm run server\" \"npm run client\"",
     "server": "nodemon --ignore client/ --exec tsx server/index.ts",
     "client": "npm --prefix client run dev",
     
