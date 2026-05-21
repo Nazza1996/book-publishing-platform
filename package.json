@@ -1,15 +1,19 @@
 {
   "name": "nate-the-plot",
   "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "nodemon --ignore client/ --exec tsx server/index.ts",
     "client": "npm --prefix client run dev",
     
-    "postinstall": "npm install --prefix client && npm install --prefix server && npm run build && npm run migrate",
+    "start": "npm run migrate && node server/dist/index.js",
     "build": "npm --prefix client run build && tsc --project server/tsconfig.json",
-    "migrate": "cd server && npx sequelize-cli db:migrate --env production",
-    "start": "node server/dist/index.js"
+    "migrate": "cd server && npx sequelize-cli db:migrate --env production"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
