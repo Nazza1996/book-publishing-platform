@@ -1,4 +1,4 @@
-name: Node.js CI
+name: Build and Zip
 
 on:
   workflow_dispatch:
@@ -23,21 +23,29 @@ jobs:
 
       # Install dependencies
       - run: npm ci
-      - run: npm --prefix client ci
-      - run: npm --prefix server ci
 
       # Build app
       - run: npm run build
 
-      # Zip build
-      - name: Zip client and server builds
+      # Zip build with timestamp
+      - name: Zip client and server builds with timestamp
+        id: zip_build
         run: |
           TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
-          zip -r "app-build-$TIMESTAMP.zip" tsconfig.json package.json client/dist/* client/package.json server/dist/* server/package.json
-
+          ZIP_FILE="nateThePlot-$TIMESTAMP.zip"
+          
+          # Remove any previous zip files just in case
+          rm -f app-build*.zip
+      
+          # Zip contents directly, excluding any zip files
+          zip -r "$ZIP_FILE" tsconfig.json package.json client/dist/* client/package.json server/dist/* server/package.json server/tsconfig.json
+      
+          # Save filename for next steps
+          echo "ZIP_FILE=$ZIP_FILE" >> $GITHUB_ENV
+      
       # Upload the build as artifact
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v7
         with:
           name: app-build
-          path: app-build.zip
+          path: ${{ env.ZIP_FILE }}
