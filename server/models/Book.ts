@@ -3,6 +3,7 @@ import { sequelize } from "../utils/database.js";
 
 class Book extends Model {
     public id!: number;
+    public slug!: string;
     public title!: string;
     public description!: string;
     public publishedVersionId!: number | null;
@@ -15,6 +16,11 @@ Book.init(
             type: DataTypes.INTEGER,
             autoIncrement: true,
             primaryKey: true,
+        },
+        slug: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            unique: true,
         },
         title: {
             type: DataTypes.STRING,

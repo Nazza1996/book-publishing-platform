@@ -2,6 +2,8 @@ export default function BookDetails({ selectedBook, handleBookTitleChange, handl
     const statusText = isPublished ? 'Published' : 'Draft';
     const statusClass = isPublished ? 'status-published' : 'status-draft';
 
+    const viewLink = isPublished ? `/book/${selectedBook.slug ?? selectedBook.id}` : `/book/${selectedBook.slug ?? selectedBook.id}?version=draft`;
+
     return (
         <section className="books-editor-card">
             <div className="editor-topbar">
@@ -19,7 +21,7 @@ export default function BookDetails({ selectedBook, handleBookTitleChange, handl
                         <span className="status-pill status-featured">Spotlight</span>
                     )}
                     {selectedBook.id && (
-                        <a className="view-book-link" href={`/book/${selectedBook.id}`} target="_blank" rel="noopener noreferrer">
+                        <a className="view-book-link" href={viewLink} target="_blank" rel="noopener noreferrer">
                             View {isPublished ? "Published" : "Draft"}
                         </a>
                     )}
@@ -30,6 +32,10 @@ export default function BookDetails({ selectedBook, handleBookTitleChange, handl
                 <label className="field">
                     <span>Book Title</span>
                     <input type="text" name="book_title" id="bookTitle" value={selectedBook.title} onChange={handleBookTitleChange} placeholder="Enter a title" required />
+                </label>
+                <label className="field">
+                    <span>Book Slug</span>
+                    <input type="text" name="book_slug" id="bookSlug" className="slug-preview" value={selectedBook.slug} placeholder="Untitled-Book" disabled />
                 </label>
             </div>
 

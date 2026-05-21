@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
+import { slugifyTitle } from '../utils/slugify';
 
 const EMPTY_BOOK = {
     title: '',
     description: '',
     id: null,
+    slug: null,
     isFeatured: false,
     publishedVersionId: null,
     chapters: [
@@ -96,7 +98,7 @@ export function useBookEditor(location: any) {
     // ------------- Book field updates --------------
     const handleBookTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const title = e.target.value;
-        setSelectedBook((prev: any) => ({ ...prev, title }));
+        setSelectedBook((prev: any) => ({ ...prev, title, slug: slugifyTitle(title) }));
     }, []);
 
     const handleBookDescriptionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,10 +179,10 @@ export function useBookEditor(location: any) {
 
         if (res.ok) {
             const data = await res.json();
-            const bookId = data.id;
+            const bookIdentifier = data.slug ?? data.id;
             setLastSavedBook(JSON.parse(JSON.stringify(selectedBook))); // Mark as saved
             await fetchBooks();
-            window.location.hash = `#${encodeURIComponent(bookId)}`;
+            window.location.hash = `#${encodeURIComponent(bookIdentifier)}`;
         }
     }, [selectedBook]);
 
@@ -231,10 +233,10 @@ export function useBookEditor(location: any) {
 
         if (res.ok) {
             const data = await res.json();
-            const bookId = data.id;
+            const bookIdentifier = data.slug ?? data.id;
             setLastSavedBook(JSON.parse(JSON.stringify(selectedBook))); // Mark as published (no unsaved)
             await fetchBooks();
-            window.location.hash = `#${encodeURIComponent(bookId)}`;
+            window.location.hash = `#${encodeURIComponent(bookIdentifier)}`;
         }
     }, [selectedBook]);
 

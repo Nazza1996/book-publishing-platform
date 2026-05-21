@@ -22,7 +22,7 @@ function App() {
           <Route path='*' element={<NotFound />} />
           <Route path='/' element={<Home />} />
           <Route path='/library' element={<Library />} />
-          <Route path='/book/:id' element={<Book />} />
+          <Route path='/book/:slug' element={<Book />} />
           <Route path='/login' element={<Login />} />
           <Route path='/admin' element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
           <Route path='/admin/users' element={<PrivateRoute><Users /></PrivateRoute>} />

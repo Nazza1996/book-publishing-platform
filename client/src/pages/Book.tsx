@@ -4,10 +4,10 @@ import '../styles/books.css';
 import '../styles/book-view.css';
 import '../styles/custom-select.css'
 import { markdownToHtml, setPageTitle } from "../helpers";
-import { useNavigate } from "react-router";
+import { useNavigate, useParams } from "react-router";
 
 export default function Book() {
-    const bookId = window.location.pathname.split('/').pop();
+    const { slug } = useParams();
     const [bookLoading, setBookLoading] = useState(true);
     const [book, setBook] = useState<any>(null);
     const [currentChapter, setCurrentChapter] = useState<number>(1);
@@ -16,9 +16,14 @@ export default function Book() {
 
     useEffect(() => {
         async function fetchBook() {
+            if (!slug) {
+                navigate('/notFound');
+                return;
+            }
+
             try {
-                // Fetch published version for public viewing
-                const res = await fetch(`/api/books/${bookId}?version=published`, { credentials: 'include' });
+                const version = document.location.search.includes('version=draft') ? 'draft' : 'published';
+                const res = await fetch(`/api/books/${slug}?version=${version}`, { credentials: 'include' });
 
                 if (res.status === 404) {
                     navigate('/notFound');
@@ -34,13 +39,17 @@ export default function Book() {
             } catch (err) {
                 console.error("Error fetching book:", err);
                 navigate('/notFound');
+            } finally {
+                setBookLoading(false);
             }
         }
         
         fetchBook();
-        setBookLoading(false);
+    }, [slug]);
+
+    useEffect(() => {
         setPageTitle(book ? book.title : "Book");
-    }, [bookId]);
+    }, [book]);
 
     const selectChapter = (num: number, scrollIntoView: boolean = false) => {
         setCurrentChapter(num);

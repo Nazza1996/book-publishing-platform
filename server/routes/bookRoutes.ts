@@ -3,9 +3,48 @@ import { Op } from "sequelize";
 import Book from "../models/Book.js";
 import BookVersion from "../models/BookVersion.js";
 import Chapter from "../models/Chapter.js";
-import { sequelize } from "../utils/database.js";
 
 const router = Router();
+
+function slugifyTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'book';
+}
+
+async function buildUniqueSlug(title: string, excludeBookId?: number) {
+    const baseSlug = slugifyTitle(title);
+    let slug = baseSlug;
+    let suffix = 2;
+
+    while (true) {
+        const existingBook = await Book.findOne({ where: { slug } });
+
+        if (!existingBook || (excludeBookId && existingBook.id === excludeBookId)) {
+            return slug;
+        }
+
+        slug = `${baseSlug}-${suffix}`;
+        suffix += 1;
+    }
+}
+
+async function getBookByIdentifier(identifier: string) {
+    const bookBySlug = await Book.findOne({ where: { slug: identifier } });
+
+    if (bookBySlug) {
+        return bookBySlug;
+    }
+
+    const numericId = Number(identifier);
+    if (!Number.isNaN(numericId)) {
+        return Book.findOne({ where: { id: numericId } });
+    }
+
+    return null;
+}
 
 router.get("/", async (req: Request, res: Response) => {
     const token = req.cookies?.token;
@@ -95,12 +134,12 @@ router.get("/featured", async (req: Request, res: Response) => {
     }
 });
 
-router.get("/:id", async (req: Request, res: Response) => {
-    const { id } = req.params;
+router.get("/:slug", async (req: Request, res: Response) => {
+    const { slug } = req.params;
     const { version = 'draft' } = req.query;
 
     try {
-        const book = await Book.findOne({ where: { id } });
+        const book = await getBookByIdentifier(slug as string);
         if (!book) {
             return res.status(404).json({ error: "Book not found" });
         }
@@ -109,7 +148,7 @@ router.get("/:id", async (req: Request, res: Response) => {
         if (version === 'draft') {
             const token = req.cookies?.token;
             if (!token) {
-                return res.status(401).json({ error: "Not authenticated" });
+                return res.status(404).json({ error: "Book not found" });
             }
             
             // Get working draft version
@@ -133,7 +172,7 @@ router.get("/:id", async (req: Request, res: Response) => {
         } else {
             // Get published version
             if (!book.publishedVersionId) {
-                return res.status(404).json({ error: "No published version available" });
+                return res.status(404).json({ error: "Book not found" });
             }
 
             const publishedVersion = await BookVersion.findOne({
@@ -141,7 +180,7 @@ router.get("/:id", async (req: Request, res: Response) => {
             });
 
             if (!publishedVersion) {
-                return res.status(404).json({ error: "Published version not found" });
+                return res.status(404).json({ error: "Book not found" });
             }
 
             const chapters = await Chapter.findAll({ 
@@ -155,7 +194,7 @@ router.get("/:id", async (req: Request, res: Response) => {
             });
         }
     } catch (error) {
-        res.status(500).json({ error });
+        res.status(500).json({ error: "Failed to fetch book" });
     }
 });
 
@@ -173,7 +212,9 @@ router.post("/saveDraft", async (req: Request, res: Response) => {
             const existingBook = await Book.findOne({ where: { id: book.id } });
             
             if (existingBook) {
+                const slug = await buildUniqueSlug(book.title, existingBook.id);
                 await existingBook.update({
+                    slug,
                     title: book.title,
                     description: book.description,
                 });
@@ -204,12 +245,14 @@ router.post("/saveDraft", async (req: Request, res: Response) => {
         
                 await Chapter.bulkCreate(chaptersToCreate);
         
-                return res.json({ id: existingBook.id, versionId: draftVersion.id });
+                return res.json({ id: existingBook.id, slug: existingBook.slug, versionId: draftVersion.id });
             }
         }
 
         // Create new book
+        const slug = await buildUniqueSlug(book.title);
         const newBook = await Book.create({
+            slug,
             title: book.title,
             description: book.description,
         });
@@ -230,7 +273,7 @@ router.post("/saveDraft", async (req: Request, res: Response) => {
 
         await Chapter.bulkCreate(chaptersToCreate);
 
-        return res.json({ id: newBook.id, versionId: draftVersion.id });
+        return res.json({ id: newBook.id, slug: newBook.slug, versionId: draftVersion.id });
     } catch (error) {
         return res.status(500).json({ error });
     }
@@ -255,8 +298,11 @@ router.post("/publish", async (req: Request, res: Response) => {
             return res.status(404).json({ error: "Book not found" });
         }
 
+        const slug = await buildUniqueSlug(book.title, existingBook.id);
+
         // Update book metadata
         await existingBook.update({
+            slug,
             title: book.title,
             description: book.description,
         });
@@ -280,6 +326,7 @@ router.post("/publish", async (req: Request, res: Response) => {
 
         // Update book to point to published version
         await existingBook.update({
+            slug,
             publishedVersionId: publishedVersion.id
         });
 
@@ -292,7 +339,7 @@ router.post("/publish", async (req: Request, res: Response) => {
             }
         });
 
-        return res.json({ id: existingBook.id, versionId: publishedVersion.id });
+        return res.json({ id: existingBook.id, slug: existingBook.slug, versionId: publishedVersion.id });
     } catch (error) {
         return res.status(500).json({ error });
     }

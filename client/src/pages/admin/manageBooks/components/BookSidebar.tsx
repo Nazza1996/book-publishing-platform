@@ -1,4 +1,6 @@
 export default function BookSidebar({ books, selectedBook }: { books: any[]; selectedBook: any }) {
+    const selectedIdentifier = selectedBook.slug ?? selectedBook.id;
+
     return (
         <aside className="books-sidebar">
             <div className="sidebar-head">
@@ -14,9 +16,10 @@ export default function BookSidebar({ books, selectedBook }: { books: any[]; sel
                         const isPublished = book.publishedVersionId !== null && book.publishedVersionId !== undefined;
                         const statusClass = isPublished ? 'status-published' : 'status-draft';
                         const statusText = isPublished ? 'Published' : 'Draft';
+                        const bookIdentifier = book.slug ?? book.id;
 
                         return (
-                            <a className={`book-list-item ${book.id === selectedBook.id ? 'is-active' : ''}`} href={`/admin/manage_books#${encodeURIComponent(book.id)}`} key={book.id}>
+                            <a className={`book-list-item ${bookIdentifier === selectedIdentifier ? 'is-active' : ''}`} href={`/admin/manage_books#${encodeURIComponent(bookIdentifier)}`} key={book.id}>
                                 <span className="book-list-title">{book.title}</span>
                                 <span className="book-list-meta">
                                     <span className={`status-pill ${statusClass}`}>{statusText}</span>
