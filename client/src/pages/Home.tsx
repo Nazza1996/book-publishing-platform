@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import profilePic from "../assets/Pfp.jpg";
-import { apiFetch } from "../helpers";
+import { apiFetch, setPageTitle } from "../helpers";
 
 export default function Home() {
     const [featuredBooks, setFeaturedBooks] = useState<any[]>([]);
+
+    setPageTitle("");
 
     useEffect(() => {
         async function fetchFeaturedBooks() {
@@ -56,7 +59,7 @@ export default function Home() {
             <section id="stories" style={{ justifyItems: "center", textAlign: "center", display: "grid" }}>
                 <h2>All Stories</h2>
                 <p>Explore the complete collection of my published works or start reading from the featured selection above.</p>
-                <a href="/library" className="library-link">Browse Full Library</a>
+                <Link to="/library" className="library-link">Browse Full Library</Link>
             </section>
         </>
     );
@@ -74,12 +77,12 @@ const ComingSoon = () => (
 
 const FeaturedBookCard = ({ book }: { book: any }) => (
     <li>
-        <a href={`/book/${book.slug ?? book.id}`}>
+        <Link to={`/book/${book.slug ?? book.id}`}>
             <span className="story-title">{book.title}</span>
             <p className="story-description">
                 {book.description}
             </p>
             <span className="read-story">Read Story</span>
-        </a>
+        </Link>
     </li>
 )

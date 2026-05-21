@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import '../../../styles/admin-manage-books.css';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import BookSidebar from './components/BookSidebar';
 import BookDetails from './components/BookDetails';
 import EditorPane from './components/EditorPane';
@@ -101,7 +101,7 @@ export default function ManageBooks() {
                     <a className="toolbar-button secondary" href="#">
                         New Book
                     </a>
-                    <a className="toolbar-button secondary" href="/admin">Dashboard</a>
+                    <Link className="toolbar-button secondary" to="/admin">Dashboard</Link>
                 </div>
             </section>
 

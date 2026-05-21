@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function BookSidebar({ books, selectedBook }: { books: any[]; selectedBook: any }) {
     const selectedIdentifier = selectedBook.slug ?? selectedBook.id;
 
@@ -19,7 +21,7 @@ export default function BookSidebar({ books, selectedBook }: { books: any[]; sel
                         const bookIdentifier = book.slug ?? book.id;
 
                         return (
-                            <a className={`book-list-item ${bookIdentifier === selectedIdentifier ? 'is-active' : ''}`} href={`/admin/manage_books#${encodeURIComponent(bookIdentifier)}`} key={book.id}>
+                            <Link className={`book-list-item ${bookIdentifier === selectedIdentifier ? 'is-active' : ''}`} to={`/admin/manage_books#${encodeURIComponent(bookIdentifier)}`} key={book.id}>
                                 <span className="book-list-title">{book.title}</span>
                                 <span className="book-list-meta">
                                     <span className={`status-pill ${statusClass}`}>{statusText}</span>
@@ -30,7 +32,7 @@ export default function BookSidebar({ books, selectedBook }: { books: any[]; sel
                                         <span className="status-pill status-featured">Spotlight</span>
                                     )}
                                 </span>
-                            </a>
+                            </Link>
                         );
                     })}
                 </div>

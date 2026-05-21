@@ -1,4 +1,5 @@
 import { useAuth } from "../../contexts/AuthContext";
+import { Link } from "react-router-dom";
 import { setPageTitle } from "../../helpers";
 import '../../styles/admin-dashboard.css';
 
@@ -12,8 +13,8 @@ export default function AdminDashboard() {
             <p>Welcome back{`, ${user?.username}`}!</p>
 
             <div className="admin-actions">
-                <a className="btn" href="/admin/users/">View Users</a>
-                <a className="btn" href="/admin/manage_books">Manage Books</a>
+                <Link className="btn" to="/admin/users">View Users</Link>
+                <Link className="btn" to="/admin/manage_books">Manage Books</Link>
                 <button className="btn" onClick={logout}>
                     Logout
                 </button>

@@ -1,5 +1,9 @@
 export function setPageTitle(title: string) {
-    document.title = "NateThePlot - " + title;
+  if (!title) {
+    document.title = "NateThePlot";
+    return;
+  }
+  document.title = "NateThePlot - " + title;
 }
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';

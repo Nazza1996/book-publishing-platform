@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import Select from 'react-select';
+import { Link, useNavigate, useParams } from "react-router-dom";
 import '../styles/books.css';
 import '../styles/book-view.css';
 import '../styles/custom-select.css'
 import { apiFetch, markdownToHtml, setPageTitle } from "../helpers";
-import { useNavigate, useParams } from "react-router";
 
 export default function Book() {
     const { slug } = useParams();
@@ -70,7 +70,7 @@ export default function Book() {
                         {isDraft && <div className="book-badges"><span className="book-draft-badge">DRAFT</span></div>}
                     </div>
                     <div className="book-controls">
-                        <p><a href="/library">← Back to Library</a></p>
+                        <p><Link to="/library">← Back to Library</Link></p>
                         <ChapterSelector
                             chapters={book?.chapters || []}
                             currentChapter={currentChapter}
@@ -83,7 +83,7 @@ export default function Book() {
 
             <div className="books-site-footer">
                 <div className="book-controls">
-                    <p><a href="/library">← Back to Library</a></p>
+                    <p><Link to="/library">← Back to Library</Link></p>
                     <ChapterSelector
                         chapters={book?.chapters || []}
                         currentChapter={currentChapter}

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext"
 import { setPageTitle } from "../helpers";
 
 export default function Login() {
     const [loginLoading, setLoginLoading] = useState(false);
     const { login, user } = useAuth();
+    const navigate = useNavigate();
 
     setPageTitle("Login");
 
@@ -21,9 +23,9 @@ export default function Login() {
 
     useEffect(() => {
         if (user) {
-            window.location.href = "/admin";
+            navigate("/admin", { replace: true });
         }
-    }, [user]);
+    }, [navigate, user]);
 
     return (
         <section id="loginContent">

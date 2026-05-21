@@ -1,19 +1,20 @@
 import { useAuth } from "../contexts/AuthContext";
+import { Link } from "react-router-dom";
 
 export default function Navbar() {
     const { user } = useAuth();
 
     return (
         <nav>
-            <a href="/" className="branding">
+            <Link to="/" className="branding">
                 <img src="/favicon.ico" alt="NateThePlot Logo" />
                 <span>NateThePlot</span>
-            </a>
+            </Link>
             <ul className="nav-list">
-                <li><a href="/">Home</a></li>
-                <li><a href="/library">Library</a></li>
+                <li><Link to="/">Home</Link></li>
+                <li><Link to="/library">Library</Link></li>
                 {user && (
-                    <li><a href="/admin">Admin</a></li>
+                    <li><Link to="/admin">Admin</Link></li>
                 )}
             </ul>
         </nav>

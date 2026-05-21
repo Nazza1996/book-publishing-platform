@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import '../styles/library.css';
 import { apiFetch, setPageTitle } from '../helpers';
 
@@ -41,7 +42,7 @@ export default function Library() {
                                         {book.description}
                                     </p>
                                 </div>
-                                <a href={`/book/${book.slug ?? book.id}`} className="book-card-link">Read Story</a>
+                                <Link to={`/book/${book.slug ?? book.id}`} className="book-card-link">Read Story</Link>
                             </article>
                         ))}
                     </div>

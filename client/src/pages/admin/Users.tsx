@@ -9,6 +9,7 @@ import UserCreateModal from './modals/UserCreate';
 import UserDeleteModal from './modals/UserDelete';
 import UserEditModal from './modals/UserEdit';
 import { useAuth } from '../../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 import { apiFetch, setPageTitle, toast } from '../../helpers';
 
 const modules = [
@@ -175,7 +176,7 @@ export default function Users() {
                 </AgGridProvider>
             </div>
 
-            <p className="back-link"><a className="back-dashboard-button" href="/admin">Back to Dashboard</a></p>
+            <p className="back-link"><Link className="back-dashboard-button" to="/admin">Back to Dashboard</Link></p>
 
             {/* Modals */}
             {createModalOpen && (
