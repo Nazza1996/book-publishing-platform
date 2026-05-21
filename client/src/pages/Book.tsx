@@ -13,6 +13,7 @@ export default function Book() {
     const [currentChapter, setCurrentChapter] = useState<number>(1);
 
     const navigate = useNavigate();
+    const isDraft = document.location.search.includes('version=draft');
 
     useEffect(() => {
         async function fetchBook() {
@@ -22,7 +23,7 @@ export default function Book() {
             }
 
             try {
-                const version = document.location.search.includes('version=draft') ? 'draft' : 'published';
+                const version = isDraft ? 'draft' : 'published';
                 const res = await apiFetch(`/api/books/${slug}?version=${version}`, {
                     credentials: 'include',
                     toast: false,
@@ -63,17 +64,10 @@ export default function Book() {
 
     return (
         <main className="books-site-page">
-            {!bookLoading && !book ? (
-                <div className="books-site-hero book-not-found">
-                    <h1>Book not found</h1>
-                    <p>The book you requested does not exist or has not been published yet.</p>
-                    <p><a href="/library">← Back to Library</a></p>
-                </div>
-            ) : (
-
                 <header className="books-site-hero">
                     <div>
                         <h1>{book?.title}</h1>
+                        {isDraft && <div className="book-badges"><span className="book-draft-badge">DRAFT</span></div>}
                     </div>
                     <div className="book-controls">
                         <p><a href="/library">← Back to Library</a></p>
@@ -84,8 +78,6 @@ export default function Book() {
                         />
                     </div>
                 </header>
-
-            )}
             
             <ChapterContent book={book} isLoading={bookLoading} currentChapter={currentChapter} />
 

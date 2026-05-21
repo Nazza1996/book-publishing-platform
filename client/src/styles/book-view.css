@@ -416,3 +416,22 @@
     border-top: 2px solid #e0e0e0;
     padding-top: 1.5rem;
 }
+
+.book-badges {
+    display: grid;
+    width: 100%;
+    margin: 0 auto 1.5rem;
+    justify-content: center;
+}
+
+.book-draft-badge {
+    display: inline-block;
+    background: #df3535;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    width: 60px;
+    text-align: center;
+}
