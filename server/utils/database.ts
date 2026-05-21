@@ -19,9 +19,14 @@ export const sequelize = new Sequelize(
   }
 );
 
+const isProd = process.env.NODE_ENV === 'production';
+const migrationsPath = isProd
+  ? path.join(__dirname, '../../migrations')
+  : path.join(__dirname, '../migrations');
+
 const umzug = new Umzug({
   migrations: {
-    path: path.join(__dirname, '../migrations'),
+    path: migrationsPath,
     params: [
       sequelize.getQueryInterface(),
       Sequelize
