@@ -3,13 +3,13 @@ import { setPageTitle } from "../../helpers";
 import '../../styles/admin-dashboard.css';
 
 export default function AdminDashboard() {
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
     setPageTitle("Dashboard");
 
     return (
         <section id="adminDashboard">
             <h1>Dashboard</h1>
-            <p>Welcome back, admin.</p>
+            <p>Welcome back{`, ${user?.username}`}!</p>
 
             <div className="admin-actions">
                 <a className="btn" href="/admin/users/">View Users</a>
