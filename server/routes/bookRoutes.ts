@@ -204,7 +204,7 @@ router.post("/saveDraft", async (req: Request, res: Response) => {
         return res.status(401).json({ error: "Not authenticated" });
     }
     
-    const { book } = req.body;
+    const { book, scope = 'all', currentChapter, currentChapterNumber } = req.body;
 
     try {
         if (book.id) {
@@ -230,6 +230,32 @@ router.post("/saveDraft", async (req: Request, res: Response) => {
                         status: 'draft',
                         isWorkingDraft: true
                     });
+                }
+
+                if (scope === 'current' && currentChapter) {
+                    const chapterNumber = currentChapterNumber ?? currentChapter.chapterNumber;
+                    const existingChapter = await Chapter.findOne({
+                        where: {
+                            bookVersionId: draftVersion.id,
+                            chapterNumber
+                        }
+                    });
+
+                    if (existingChapter) {
+                        await existingChapter.update({
+                            title: currentChapter.title,
+                            content: currentChapter.content,
+                        });
+                    } else {
+                        await Chapter.create({
+                            bookVersionId: draftVersion.id,
+                            chapterNumber,
+                            title: currentChapter.title,
+                            content: currentChapter.content,
+                        });
+                    }
+
+                    return res.json({ id: existingBook.id, slug: existingBook.slug, versionId: draftVersion.id });
                 }
 
                 // Delete existing chapters in this version
@@ -264,6 +290,17 @@ router.post("/saveDraft", async (req: Request, res: Response) => {
             isWorkingDraft: true
         });
 
+        if (scope === 'current' && currentChapter) {
+            await Chapter.create({
+                bookVersionId: draftVersion.id,
+                chapterNumber: currentChapterNumber ?? currentChapter.chapterNumber,
+                title: currentChapter.title,
+                content: currentChapter.content,
+            });
+
+            return res.json({ id: newBook.id, slug: newBook.slug, versionId: draftVersion.id });
+        }
+
         const chaptersToCreate = book.chapters.map((chapter: any) => ({
             bookVersionId: draftVersion.id,
             chapterNumber: chapter.chapterNumber,
@@ -285,7 +322,7 @@ router.post("/publish", async (req: Request, res: Response) => {
         return res.status(401).json({ error: "Not authenticated" });
     }
 
-    const { book } = req.body;
+    const { book, scope = 'all', currentChapter, currentChapterNumber } = req.body;
 
     try {
         if (!book.id) {
@@ -314,29 +351,47 @@ router.post("/publish", async (req: Request, res: Response) => {
             isWorkingDraft: false
         });
 
-        // Copy chapters from draft to published version
-        const chaptersToCreate = book.chapters.map((chapter: any) => ({
-            bookVersionId: publishedVersion.id,
-            chapterNumber: chapter.chapterNumber,
-            title: chapter.title,
-            content: chapter.content,
-        }));
+        const chaptersToCreate = scope === 'current' && currentChapter
+            ? [{
+                bookVersionId: publishedVersion.id,
+                chapterNumber: currentChapterNumber ?? currentChapter.chapterNumber,
+                title: currentChapter.title,
+                content: currentChapter.content,
+            }]
+            : book.chapters.map((chapter: any) => ({
+                bookVersionId: publishedVersion.id,
+                chapterNumber: chapter.chapterNumber,
+                title: chapter.title,
+                content: chapter.content,
+            }));
 
         await Chapter.bulkCreate(chaptersToCreate);
+
+        if (scope !== 'current') {
+            // Keep the working draft aligned with the just-published content so
+            // republishing does not leave stale draft-change indicators behind.
+            const workingDraft = await BookVersion.findOne({
+                where: {
+                    bookId: existingBook.id,
+                    isWorkingDraft: true
+                }
+            });
+
+            if (workingDraft) {
+                await Chapter.destroy({ where: { bookVersionId: workingDraft.id } });
+                await Chapter.bulkCreate(
+                    chaptersToCreate.map((chapter: any) => ({
+                        ...chapter,
+                        bookVersionId: workingDraft.id
+                    }))
+                );
+            }
+        }
 
         // Update book to point to published version
         await existingBook.update({
             slug,
             publishedVersionId: publishedVersion.id
-        });
-
-        // Mark old published version as not working draft if this is a republish
-        const oldPublishedVersions = await BookVersion.findAll({
-            where: {
-                bookId: existingBook.id,
-                id: { [Op.ne]: publishedVersion.id },
-                status: 'published'
-            }
         });
 
         return res.json({ id: existingBook.id, slug: existingBook.slug, versionId: publishedVersion.id });

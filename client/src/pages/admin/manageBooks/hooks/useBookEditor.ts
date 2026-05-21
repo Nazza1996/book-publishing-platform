@@ -2,6 +2,53 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiFetch, toast } from '../../../../helpers';
 import { slugifyTitle } from '../utils/slugify';
 
+type ActionScope = 'all' | 'current';
+
+function cloneBook<T>(book: T): T {
+    return JSON.parse(JSON.stringify(book));
+}
+
+function buildBookActionPayload(book: any, selectedChapterIndex: number, scope: ActionScope) {
+    const currentChapter = book.chapters?.[selectedChapterIndex] ?? null;
+
+    return {
+        book: cloneBook(book),
+        scope,
+        currentChapter: currentChapter ? cloneBook(currentChapter) : null,
+        currentChapterNumber: currentChapter?.chapterNumber ?? null
+    };
+}
+
+function mergeSavedBookChapter(baseBook: any, selectedBook: any, selectedChapterIndex: number) {
+    const currentChapter = selectedBook.chapters?.[selectedChapterIndex];
+
+    if (!currentChapter) {
+        return cloneBook(baseBook ?? selectedBook);
+    }
+
+    if (!baseBook) {
+        const nextBook = cloneBook(selectedBook);
+        nextBook.chapters = [cloneBook(currentChapter)];
+        return nextBook;
+    }
+
+    const mergedBook = cloneBook(baseBook);
+    const mergedChapters = Array.isArray(mergedBook.chapters) ? [...mergedBook.chapters] : [];
+
+    mergedChapters[selectedChapterIndex] = cloneBook(currentChapter);
+
+    return {
+        ...mergedBook,
+        title: selectedBook.title,
+        description: selectedBook.description,
+        slug: selectedBook.slug,
+        isFeatured: selectedBook.isFeatured,
+        publishedVersionId: selectedBook.publishedVersionId,
+        versionStatus: selectedBook.versionStatus,
+        chapters: mergedChapters
+    };
+}
+
 const EMPTY_BOOK = {
     title: '',
     description: '',
@@ -172,22 +219,28 @@ export function useBookEditor(location: any) {
         }
     }, [selectedBook.id]);
 
-    const handleSaveBook = useCallback(async () => {
+    const handleSaveBook = useCallback(async (scope: ActionScope = 'all') => {
+        const payload = buildBookActionPayload(selectedBook, selectedChapterIndex, scope);
+
         const res = await apiFetch('/api/books/saveDraft', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ book: selectedBook })
+            body: JSON.stringify(payload)
         });
 
         if (res.ok) {
             const data = await res.json();
             const bookIdentifier = data.slug ?? data.id;
-            setLastSavedBook(JSON.parse(JSON.stringify(selectedBook))); // Mark as saved
+            setLastSavedBook(
+                scope === 'all'
+                    ? cloneBook(selectedBook)
+                    : mergeSavedBookChapter(lastSavedBook, selectedBook, selectedChapterIndex)
+            );
             await fetchBooks();
             window.location.hash = `#${encodeURIComponent(bookIdentifier)}`;
             toast.success('Book saved successfully');
         }
-    }, [selectedBook]);
+    }, [selectedBook, lastSavedBook, selectedChapterIndex]);
 
     const handleConvertToDraft = useCallback(async () => {
         const id = selectedBook.id;
@@ -229,23 +282,29 @@ export function useBookEditor(location: any) {
         }
     }, [selectedBook.id]);
 
-    const handlePublishBook = useCallback(async () => {
+    const handlePublishBook = useCallback(async (scope: ActionScope = 'all') => {
+        const payload = buildBookActionPayload(selectedBook, selectedChapterIndex, scope);
+
         const res = await apiFetch('/api/books/publish', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ book: selectedBook })
+            body: JSON.stringify(payload)
         });
 
         if (res.ok) {
             const data = await res.json();
             const bookIdentifier = data.slug ?? data.id;
-            setLastSavedBook(JSON.parse(JSON.stringify(selectedBook)));
+            setLastSavedBook(
+                scope === 'all'
+                    ? cloneBook(selectedBook)
+                    : mergeSavedBookChapter(lastSavedBook, selectedBook, selectedChapterIndex)
+            );
             setSelectedBook((prev: any) => ({ ...prev, publishedVersionId: data.versionId }));
             await fetchBooks();
             window.location.hash = `#${encodeURIComponent(bookIdentifier)}`;
             toast.success('Book published successfully');
         }
-    }, [selectedBook]);
+    }, [selectedBook, lastSavedBook, selectedChapterIndex]);
 
     const unsavedChanges = hasUnsavedChanges(selectedBook, lastSavedBook);
     const isPublished = selectedBook.publishedVersionId !== null && selectedBook.publishedVersionId !== undefined;
