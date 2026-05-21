@@ -1,0 +1,43 @@
+name: Node.js CI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the branch
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      # Setup Node.js with caching
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # Install dependencies
+      - run: npm ci
+      - run: npm --prefix client ci
+      - run: npm --prefix server ci
+
+      # Build app
+      - run: npm run build
+
+      # Zip build
+      - name: Zip client and server builds
+        run: |
+          TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+          zip -r "app-build-$TIMESTAMP.zip" tsconfig.json package.json client/dist/* client/package.json server/dist/* server/package.json
+
+      # Upload the build as artifact
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-build
+          path: app-build.zip
