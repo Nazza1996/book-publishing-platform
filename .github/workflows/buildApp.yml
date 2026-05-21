@@ -23,8 +23,6 @@ jobs:
 
       # Install dependencies
       - run: npm ci
-      - run: npm --prefix client ci
-      - run: npm --prefix server ci
 
       # Build app
       - run: npm run build
