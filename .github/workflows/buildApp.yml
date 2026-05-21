@@ -38,7 +38,7 @@ jobs:
           rm -f app-build*.zip
       
           # Zip contents directly, excluding any zip files
-          zip -r "$ZIP_FILE" tsconfig.json package.json client/dist/* client/package.json server/dist/* server/package.json server/tsconfig.json
+          zip -r "$ZIP_FILE" tsconfig.json package.json client/dist/* client/package.json server/dist/* server/package.json server/tsconfig.json server/migrations
       
           # Save filename for next steps
           echo "ZIP_FILE=$ZIP_FILE" >> $GITHUB_ENV
