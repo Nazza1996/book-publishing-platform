@@ -36,11 +36,6 @@
     margin-bottom: 60px;
 }
 
-/* Utility text alignment classes used by markdown content */
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-.text-left { text-align: left; }
-
 .book-card {
     background: white;
     border-radius: 12px;

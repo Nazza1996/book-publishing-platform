@@ -4,11 +4,6 @@
     padding: 2rem 1rem 3rem;
 }
 
-.books-site-hero {
-    margin-bottom: 2rem;
-}
-
-.book-card h2,
 .book-viewer h1 {
     margin: 0;
 }
@@ -36,20 +31,4 @@
     padding: 1rem;
     background: #f7f7f7;
     border-radius: 12px;
-}
-
-.book-viewer code {
-    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-}
-
-.empty-state {
-    color: #666;
-}
-
-.eyebrow {
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-size: 0.75rem;
-    color: #666;
-    margin: 0 0 0.5rem;
 }

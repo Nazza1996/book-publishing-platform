@@ -1,31 +1,5 @@
 /* Book View Page Styles */
 
-/* Not Found State */
-.books-site-hero.book-not-found {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 20rem;
-    text-align: center;
-    border-bottom: none;
-    padding: 3rem 1rem;
-}
-
-.books-site-hero.book-not-found h1 {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-}
-
-.books-site-hero.book-not-found p {
-    margin: 0.75rem 0;
-    color: #666;
-}
-
-.books-site-hero.book-not-found p:last-child {
-    margin-top: 1.5rem;
-}
-
 /* Hero/Header Section */
 .books-site-hero {
     padding: 3rem 0 1.5rem;
@@ -172,7 +146,6 @@
 
 .book-viewer pre code {
     color: #abb2bf;
-    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
     font-size: 0.95rem;
 }
 
@@ -182,7 +155,6 @@
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     color: #d73a49;
-    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
     font-size: 0.95em;
 }
 
@@ -195,10 +167,6 @@
 .book-viewer em {
     font-style: italic;
     color: #555;
-}
-
-.book-viewer .text-underline {
-    text-decoration: underline;
 }
 
 /* Links */
@@ -254,11 +222,6 @@
 .book-viewer tr:nth-child(even) {
     background: #fafafa;
 }
-
-/* Utility text alignment classes for rendered markdown */
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-.text-left { text-align: left; }
 
 /* Responsive Design */
 @media (max-width: 768px) {

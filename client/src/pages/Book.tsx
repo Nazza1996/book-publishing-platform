@@ -3,7 +3,6 @@ import Select from 'react-select';
 import { Link, useNavigate, useParams } from "react-router-dom";
 import '../styles/books.css';
 import '../styles/book-view.css';
-import '../styles/custom-select.css'
 import { apiFetch, markdownToHtml, setPageTitle } from "../helpers";
 
 export default function Book() {

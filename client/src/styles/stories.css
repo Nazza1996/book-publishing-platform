@@ -86,10 +86,6 @@
     transition: background-color 0.3s ease;
 }
 
-a.read-story {
-    cursor: pointer;
-}
-
 .read-story:hover {
     background-color: #ff5722;
 }
@@ -111,10 +107,6 @@ a.read-story {
 }
 
 @media (max-width: 768px) {
-    #spotlight {
-        padding: 30px 15px 20px 15px;
-    }
-
     #stories {
         padding: 0px 15px 50px 15px;
     }
