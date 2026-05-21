@@ -2,6 +2,116 @@ export function setPageTitle(title: string) {
     document.title = "NateThePlot - " + title;
 }
 
+export type ToastType = 'success' | 'error' | 'info' | 'warning';
+
+export interface ToastItem {
+  id: number;
+  message: string;
+  type: ToastType;
+}
+
+type ToastListener = (toast: ToastItem) => void;
+
+const toastListeners = new Set<ToastListener>();
+let nextToastId = 1;
+
+function emitToast(message: string, type: ToastType) {
+  const toast: ToastItem = {
+    id: nextToastId++,
+    message,
+    type,
+  };
+
+  for (const listener of toastListeners) {
+    listener(toast);
+  }
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  return 'Something went wrong.';
+}
+
+function getResponseErrorMessage(response: Response, fallback: string) {
+  return response.clone().text().then((text) => {
+    if (!text) {
+      return fallback;
+    }
+
+    try {
+      const data = JSON.parse(text);
+      if (typeof data === 'string') {
+        return data;
+      }
+
+      if (data?.error) {
+        return typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+      }
+
+      if (data?.message) {
+        return typeof data.message === 'string' ? data.message : JSON.stringify(data.message);
+      }
+    } catch {
+      return text.trim() || fallback;
+    }
+
+    return text.trim() || fallback;
+  });
+}
+
+export const toast = {
+  success(message: string) {
+    emitToast(message, 'success');
+  },
+  error(message: string) {
+    emitToast(message, 'error');
+  },
+  info(message: string) {
+    emitToast(message, 'info');
+  },
+  warning(message: string) {
+    emitToast(message, 'warning');
+  },
+};
+
+export function subscribeToasts(listener: ToastListener) {
+  toastListeners.add(listener);
+  return () => toastListeners.delete(listener);
+}
+
+export interface ApiFetchInit extends RequestInit {
+  toast?: boolean;
+}
+
+export async function apiFetch(input: RequestInfo | URL, init: ApiFetchInit = {}) {
+  const { toast: shouldToast = true, ...fetchInit } = init;
+
+  try {
+    const response = await fetch(input, fetchInit);
+
+    if (!response.ok && shouldToast) {
+      const fallbackMessage = `Request failed (${response.status})`;
+      const message = await getResponseErrorMessage(response, fallbackMessage);
+      toast.error(message);
+    }
+
+    return response;
+  } catch (error) {
+    if (shouldToast) {
+      toast.error(getErrorMessage(error));
+    }
+
+    throw error;
+  }
+}
+
 export function markdownToHtml(markdown: string): string {
     if (!markdown) return '';
     markdown = normalizeFormattingMarkup(markdown);

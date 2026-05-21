@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { apiFetch, toast } from '../../../../helpers';
 import { slugifyTitle } from '../utils/slugify';
 
 const EMPTY_BOOK = {
@@ -48,7 +49,7 @@ export function useBookEditor(location: any) {
     const [selectedChapterIndex, setSelectedChapterIndex] = useState(0);
 
     async function fetchBooks() {
-        const response = await fetch('/api/books');
+        const response = await apiFetch('/api/books');
         const data = await response.json();
         setBooks(data);
     }
@@ -70,10 +71,10 @@ export function useBookEditor(location: any) {
 
         (async () => {
             // Load draft version for editing
-            const res = await fetch(`/api/books/${hash}?version=draft`);
+            const res = await apiFetch(`/api/books/${hash}?version=draft`, { toast: false });
             if (!res.ok) {
                 // Try loading published version if no draft
-                const pubRes = await fetch(`/api/books/${hash}?version=published`);
+                const pubRes = await apiFetch(`/api/books/${hash}?version=published`);
                 if (!pubRes.ok) return;
                 const book = await pubRes.json();
                 const bookData = {
@@ -157,7 +158,7 @@ export function useBookEditor(location: any) {
             return;
         }
 
-        const res = await fetch(`/api/books/${selectedBook.id}`, {
+        const res = await apiFetch(`/api/books/${selectedBook.id}`, {
             method: 'DELETE'
         });
 
@@ -167,11 +168,12 @@ export function useBookEditor(location: any) {
             setLastSavedBook(null);
             setSelectedChapterIndex(0);
             window.location.hash = '';
+            toast.success('Book deleted successfully');
         }
     }, [selectedBook.id]);
 
     const handleSaveBook = useCallback(async () => {
-        const res = await fetch('/api/books/saveDraft', {
+        const res = await apiFetch('/api/books/saveDraft', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ book: selectedBook })
@@ -183,13 +185,14 @@ export function useBookEditor(location: any) {
             setLastSavedBook(JSON.parse(JSON.stringify(selectedBook))); // Mark as saved
             await fetchBooks();
             window.location.hash = `#${encodeURIComponent(bookIdentifier)}`;
+            toast.success('Book saved successfully');
         }
     }, [selectedBook]);
 
     const handleConvertToDraft = useCallback(async () => {
         const id = selectedBook.id;
 
-        const res = await fetch('/api/books/convertToDraft', {
+        const res = await apiFetch('/api/books/convertToDraft', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })
@@ -200,13 +203,14 @@ export function useBookEditor(location: any) {
             setBooks((prev: any) =>
                 prev.map((b: any) => b.id === id ? { ...b, publishedVersionId: null, isFeatured: false } : b)
             );
+            toast.success('Book unpublished successfully');
         }
     }, [selectedBook.id]);
 
     const handleToggleSpotlight = useCallback(async () => {
         const id = selectedBook.id;
 
-        const res = await fetch('/api/books/toggleFeatured', {
+        const res = await apiFetch('/api/books/toggleFeatured', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })
@@ -221,11 +225,12 @@ export function useBookEditor(location: any) {
             setBooks((prev: any) =>
                 prev.map((b: any) => b.id === id ? { ...b, isFeatured: !b.isFeatured } : b)
             );
+            toast.success('Book spotlight status updated successfully');
         }
     }, [selectedBook.id]);
 
     const handlePublishBook = useCallback(async () => {
-        const res = await fetch('/api/books/publish', {
+        const res = await apiFetch('/api/books/publish', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ book: selectedBook })
@@ -234,9 +239,11 @@ export function useBookEditor(location: any) {
         if (res.ok) {
             const data = await res.json();
             const bookIdentifier = data.slug ?? data.id;
-            setLastSavedBook(JSON.parse(JSON.stringify(selectedBook))); // Mark as published (no unsaved)
+            setLastSavedBook(JSON.parse(JSON.stringify(selectedBook)));
+            setSelectedBook((prev: any) => ({ ...prev, publishedVersionId: data.versionId }));
             await fetchBooks();
             window.location.hash = `#${encodeURIComponent(bookIdentifier)}`;
+            toast.success('Book published successfully');
         }
     }, [selectedBook]);
 

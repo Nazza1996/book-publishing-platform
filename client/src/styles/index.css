@@ -3,6 +3,7 @@
 @import url('stories.css');
 @import url('footer.css');
 @import url('login.css');
+@import url('toasts.css');
 
 @font-face {
     font-family: 'Recoleta';

@@ -102,6 +102,12 @@ router.put("/:id", async (req: Request, res: Response) => {
         }
 
         user.username = username || user.username;
+
+        const existingUsername = await User.findOne({ where: { username: user.username } });
+        if (existingUsername && existingUsername.id !== user.id) {
+            return res.status(400).json({ error: "Username already taken" });
+        }
+
         await user.save();
         res.json({ message: "User updated successfully" });
     } catch (error) {

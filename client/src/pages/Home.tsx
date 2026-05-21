@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import profilePic from "../assets/Pfp.jpg";
+import { apiFetch } from "../helpers";
 
 export default function Home() {
     const [featuredBooks, setFeaturedBooks] = useState<any[]>([]);
 
     useEffect(() => {
         async function fetchFeaturedBooks() {
-            const response = await fetch('/api/books/featured');
+            const response = await apiFetch('/api/books/featured');
             const data = await response.json();
 
             for (let i = data.length; i < 3; i++) {

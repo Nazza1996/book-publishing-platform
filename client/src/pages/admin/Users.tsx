@@ -9,7 +9,7 @@ import UserCreateModal from './modals/UserCreate';
 import UserDeleteModal from './modals/UserDelete';
 import UserEditModal from './modals/UserEdit';
 import { useAuth } from '../../contexts/AuthContext';
-import { setPageTitle } from '../../helpers';
+import { apiFetch, setPageTitle, toast } from '../../helpers';
 
 const modules = [
     AllCommunityModule
@@ -65,7 +65,7 @@ export default function Users() {
     ]);
 
     const loadUsers = () => {
-        fetch('/api/users')
+        apiFetch('/api/users')
             .then(res => res.json())
             .then(data => setRowData(data.users))
             .catch(err => console.error('Error fetching users:', err));
@@ -95,7 +95,7 @@ export default function Users() {
     };
 
     const handleCreateUser = async () => {
-        await fetch('/api/users/register', {
+        await apiFetch('/api/users/register', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
@@ -104,6 +104,8 @@ export default function Users() {
             })
         });
 
+        toast.success('User created successfully');
+
         resetModals();
         loadUsers();
     }
@@ -111,7 +113,7 @@ export default function Users() {
     const handleEditUser = async () => {
         if (!selectedUserId) return;
 
-        await fetch(`/api/users/${selectedUserId}`, {
+        const res = await apiFetch(`/api/users/${selectedUserId}`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
@@ -119,19 +121,25 @@ export default function Users() {
             })
         });
 
-        resetModals();
-        loadUsers();
+        if (res.ok) {
+            toast.success('User updated successfully');
+            resetModals();
+            loadUsers();
+        }
     }
 
     const handleDeleteUser = async () => {
         if (!selectedUserId) return;
 
-        await fetch(`/api/users/${selectedUserId}`, {
+        const res = await apiFetch(`/api/users/${selectedUserId}`, {
             method: 'DELETE'
         });
 
-        resetModals();
-        loadUsers();
+        if (res.ok) {
+            toast.success('User deleted successfully');
+            resetModals();
+            loadUsers();
+        }
     }
 
     const resetModals = () => {

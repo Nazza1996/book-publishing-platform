@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { apiFetch } from "../helpers";
 
 interface User {
     id: string;
@@ -32,8 +33,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const res = await fetch("/api/users/currentUser", {
-                    credentials: "include"
+                const res = await apiFetch("/api/users/currentUser", {
+                    credentials: "include",
+                    toast: false,
                 });
                 if (res.ok) {
                     const userData = await res.json();
@@ -51,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     const login = async (username: string, password: string) => {
-        const res = await fetch("/api/users/login", {
+        const res = await apiFetch("/api/users/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -69,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const logout = () => {
-        fetch("/api/users/logout", {
+        apiFetch("/api/users/logout", {
             method: "POST",
             credentials: "include"
         })
@@ -80,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const register = async (username: string, password: string) => {
-        const res = await fetch("/api/users/register", {
+        const res = await apiFetch("/api/users/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import '../styles/library.css';
-import { setPageTitle } from '../helpers';
+import { apiFetch, setPageTitle } from '../helpers';
 
 export default function Library() {
     const [books, setBooks] = useState<any[]>([]);
@@ -9,7 +9,7 @@ export default function Library() {
 
     useEffect(() => {
         async function fetchBooks() {
-            const response = await fetch('/api/books/published');
+            const response = await apiFetch('/api/books/published');
             const data = await response.json();
             setBooks(data);
         }

@@ -3,7 +3,7 @@ import Select from 'react-select';
 import '../styles/books.css';
 import '../styles/book-view.css';
 import '../styles/custom-select.css'
-import { markdownToHtml, setPageTitle } from "../helpers";
+import { apiFetch, markdownToHtml, setPageTitle } from "../helpers";
 import { useNavigate, useParams } from "react-router";
 
 export default function Book() {
@@ -23,7 +23,10 @@ export default function Book() {
 
             try {
                 const version = document.location.search.includes('version=draft') ? 'draft' : 'published';
-                const res = await fetch(`/api/books/${slug}?version=${version}`, { credentials: 'include' });
+                const res = await apiFetch(`/api/books/${slug}?version=${version}`, {
+                    credentials: 'include',
+                    toast: false,
+                });
 
                 if (res.status === 404) {
                     navigate('/notFound');
