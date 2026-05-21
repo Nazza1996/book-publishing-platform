@@ -27,13 +27,13 @@ jobs:
       - run: npm --prefix server ci
 
       # Build app
-      - run: npm --prefix client run build
-      - run: tsc --project server/tsconfig.json
+      - run: npm run build
 
-      # Step 5: Zip client/dist and server/dist
+      # Zip build
       - name: Zip client and server builds
         run: |
-          zip -r app-build.zip tsconfig.json package.json client/dist server/dist
+          TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+          zip -r "app-build-$TIMESTAMP.zip" tsconfig.json package.json client/dist/* client/package.json server/dist/* server/package.json
 
       # Upload the build as artifact
       - name: Upload Build Artifact
