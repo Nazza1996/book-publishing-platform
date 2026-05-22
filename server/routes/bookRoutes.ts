@@ -3,6 +3,7 @@ import { Op } from "sequelize";
 import Book from "../models/Book.js";
 import BookVersion from "../models/BookVersion.js";
 import Chapter from "../models/Chapter.js";
+import { hasValidAccessToken, requireAccessToken } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -146,9 +147,8 @@ router.get("/:slug", async (req: Request, res: Response) => {
 
         // Check if requesting draft version
         if (version === 'draft') {
-            const token = req.cookies?.token;
-            if (!token) {
-                return res.status(404).json({ error: "Book not found" });
+            if (!hasValidAccessToken(req)) {
+                return res.status(401).json({ error: "Not authenticated" });
             }
             
             // Get working draft version
@@ -198,12 +198,9 @@ router.get("/:slug", async (req: Request, res: Response) => {
     }
 });
 
+router.use(requireAccessToken);
+
 router.post("/saveDraft", async (req: Request, res: Response) => {
-    const token = req.cookies?.token;
-    if (!token) {
-        return res.status(401).json({ error: "Not authenticated" });
-    }
-    
     const { book, scope = 'all', currentChapter, currentChapterNumber } = req.body;
 
     try {
@@ -317,11 +314,6 @@ router.post("/saveDraft", async (req: Request, res: Response) => {
 });
 
 router.post("/publish", async (req: Request, res: Response) => {
-    const token = req.cookies?.token;
-    if (!token) {
-        return res.status(401).json({ error: "Not authenticated" });
-    }
-
     const { book, scope = 'all', currentChapter, currentChapterNumber } = req.body;
 
     try {
@@ -401,11 +393,6 @@ router.post("/publish", async (req: Request, res: Response) => {
 });
 
 router.post("/convertToDraft", async (req: Request, res: Response) => {
-    const token = req.cookies?.token;
-    if (!token) {
-        return res.status(401).json({ error: "Not authenticated" });
-    }
-
     const { id } = req.body;
 
     try {

@@ -33,10 +33,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const res = await apiFetch("/api/users/currentUser", {
-                    credentials: "include",
-                    toast: false,
-                });
+                const res = await apiFetch("/api/users/currentUser", { credentials: "include", toast: false });
+                
                 if (res.ok) {
                     const userData = await res.json();
                     setUser(userData.user);

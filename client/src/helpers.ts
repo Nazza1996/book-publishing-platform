@@ -92,13 +92,37 @@ export function subscribeToasts(listener: ToastListener) {
 
 export interface ApiFetchInit extends RequestInit {
   toast?: boolean;
+  skipAuthRefresh?: boolean;
 }
 
 export async function apiFetch(input: RequestInfo | URL, init: ApiFetchInit = {}) {
-  const { toast: shouldToast = true, ...fetchInit } = init;
+  const { toast: shouldToast = true, skipAuthRefresh = false, ...fetchInit } = init;
+
+  const requestUrl = typeof input === 'string'
+    ? input
+    : input instanceof URL
+      ? input.toString()
+      : input.url;
+
+  const shouldAttemptRefresh = !skipAuthRefresh
+    && !requestUrl.includes('/api/users/login')
+    && !requestUrl.includes('/api/users/register')
+    && !requestUrl.includes('/api/users/logout')
+    && !requestUrl.includes('/api/users/refresh');
 
   try {
-    const response = await fetch(input, fetchInit);
+    let response = await fetch(input, fetchInit);
+
+    if (response.status === 401 && shouldAttemptRefresh) {
+      const refreshResponse = await fetch('/api/users/refresh', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (refreshResponse.ok) {
+        response = await fetch(input, fetchInit);
+      }
+    }
 
     if (!response.ok && shouldToast) {
       const fallbackMessage = `Request failed (${response.status})`;

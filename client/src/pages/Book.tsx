@@ -28,7 +28,7 @@ export default function Book() {
                     toast: false,
                 });
 
-                if (res.status === 404) {
+                if (!res.ok) {
                     navigate('/notFound');
                     return;
                 }
