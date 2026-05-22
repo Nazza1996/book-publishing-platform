@@ -1,4 +1,4 @@
-import '../../styles/admin-users.css';
+import '../../styles/admin-users.scss';
 import "ag-grid-community/styles/ag-theme-quartz.css";
 import { AllCommunityModule, type ColDef } from 'ag-grid-community';
 import { AgGridProvider, AgGridReact } from 'ag-grid-react';

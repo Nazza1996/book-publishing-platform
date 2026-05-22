@@ -1,3 +1,5 @@
+@use './variables' as v;
+
 /* Library Page Styles */
 
 .library-hero {
@@ -6,21 +8,21 @@
     color: white;
     text-align: center;
     margin-bottom: 60px;
-}
 
-.library-hero h1 {
-    font-size: 3.5rem;
-    font-family: 'Recoleta', serif;
-    margin: 20px 0;
-    font-weight: 900;
-}
+    h1 {
+        font-size: 3.5rem;
+        font-family: 'Recoleta', serif;
+        margin: 20px 0;
+        font-weight: 900;
+    }
 
-.library-hero p {
-    font-size: 1.1rem;
-    max-width: 600px;
-    margin: 0 auto;
-    line-height: 1.6;
-    opacity: 0.95;
+    p {
+        font-size: 1.1rem;
+        max-width: 600px;
+        margin: 0 auto;
+        line-height: 1.6;
+        opacity: 0.95;
+    }
 }
 
 .library-container {
@@ -38,18 +40,18 @@
 
 .book-card {
     background: white;
-    border-radius: 12px;
+    border-radius: v.$radius-lg;
     overflow: hidden;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: v.$shadow-soft;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     height: 100%;
-}
 
-.book-card:hover {
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-    transform: translateY(-8px);
+    &:hover {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        transform: translateY(-8px);
+    }
 }
 
 .book-card-content {
@@ -82,35 +84,37 @@
     background-color: var(--primary-text-color);
     color: white;
     text-decoration: none;
-    border-radius: 6px;
+    border-radius: v.$radius-sm;
     margin: 20px 0;
     font-weight: 600;
     transition: background-color 0.3s ease;
     align-self: center;
-}
 
-.book-card-link:hover {
-    background-color: var(--secondary-text-color);
+    &:hover {
+        background-color: var(--secondary-text-color);
+    }
 }
 
 .empty-state {
     text-align: center;
     padding: 100px 20px;
-}
 
-.empty-state p {
-    font-size: 1.2rem;
-    color: #666;
+    p {
+        font-size: 1.2rem;
+        color: #666;
+    }
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .library-hero h1 {
-        font-size: 2.5rem;
-    }
+    .library-hero {
+        h1 {
+            font-size: 2.5rem;
+        }
 
-    .library-hero p {
-        font-size: 1rem;
+        p {
+            font-size: 1rem;
+        }
     }
 
     .books-grid {
@@ -123,10 +127,10 @@
     .library-hero {
         padding: 40px 15px;
         margin-bottom: 40px;
-    }
 
-    .library-hero h1 {
-        font-size: 2rem;
+        h1 {
+            font-size: 2rem;
+        }
     }
 
     .books-grid {

@@ -22,15 +22,15 @@
     color: var(--primary-text-color);
     backdrop-filter: blur(10px);
     animation: toast-in 180ms ease-out;
-}
 
-.toast::before {
-    content: '';
-    width: 0.65rem;
-    height: 0.65rem;
-    margin-top: 0.3rem;
-    border-radius: 999px;
-    flex: 0 0 auto;
+    &::before {
+        content: '';
+        width: 0.65rem;
+        height: 0.65rem;
+        margin-top: 0.3rem;
+        border-radius: 999px;
+        flex: 0 0 auto;
+    }
 }
 
 .toast-success::before {

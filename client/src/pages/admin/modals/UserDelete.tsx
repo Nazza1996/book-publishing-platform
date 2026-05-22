@@ -1,4 +1,4 @@
-import '../../../styles/modal.css'
+import '../../../styles/modal.scss'
 
 const props = {
     closeFunction: () => {},

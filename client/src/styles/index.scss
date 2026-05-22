@@ -1,9 +1,9 @@
-@import url('navbar.css');
-@import url('intro.css');
-@import url('stories.css');
-@import url('footer.css');
-@import url('login.css');
-@import url('toasts.css');
+@use './navbar.scss';
+@use './intro.scss';
+@use './stories.scss';
+@use './footer.scss';
+@use './login.scss';
+@use './toasts.scss';
 
 @font-face {
     font-family: 'Recoleta';

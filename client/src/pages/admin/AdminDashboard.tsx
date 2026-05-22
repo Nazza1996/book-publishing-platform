@@ -1,7 +1,7 @@
 import { useAuth } from "../../contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { setPageTitle } from "../../helpers";
-import '../../styles/admin-dashboard.css';
+import '../../styles/admin-dashboard.scss';
 
 export default function AdminDashboard() {
     const { logout, user } = useAuth();

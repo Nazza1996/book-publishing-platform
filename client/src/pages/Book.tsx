@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import Select from 'react-select';
 import { Link, useNavigate, useParams } from "react-router-dom";
-import '../styles/books.css';
-import '../styles/book-view.css';
+import '../styles/books.scss';
+import '../styles/book-view.scss';
 import { apiFetch, markdownToHtml, setPageTitle } from "../helpers";
 
 export default function Book() {

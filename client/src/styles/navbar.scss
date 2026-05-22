@@ -14,10 +14,10 @@ nav {
     display: flex;
     gap: 10px;
     align-items: center;
-}
 
-.branding img {
-    width: 50px;
+    img {
+        width: 50px;
+    }
 }
 
 .nav-list {
@@ -28,16 +28,16 @@ nav {
     padding: 0;
     align-items: center;
     justify-content: center;
-}
 
-.nav-list a {
-    color: #ffffff;
-    text-decoration: none;
-    font-size: clamp(0.95rem, 1vw, 1.15rem);
-}
+    a {
+        color: #ffffff;
+        text-decoration: none;
+        font-size: clamp(0.95rem, 1vw, 1.15rem);
 
-.nav-list a:hover {
-    text-decoration: underline;
+        &:hover {
+            text-decoration: underline;
+        }
+    }
 }
 
 @media (max-width: 768px) {
@@ -49,10 +49,9 @@ nav {
     .branding {
         position: relative;
         font-size: clamp(1.2rem, 3vw, 2rem);
-    }
 
-    .branding span {
-        display: none;
+        span {
+            display: none;
+        }
     }
-    
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import '../styles/library.css';
+import '../styles/library.scss';
 import { apiFetch, setPageTitle } from '../helpers';
 
 export default function Library() {

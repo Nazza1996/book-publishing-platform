@@ -7,19 +7,26 @@
     grid-template-columns: 1fr 1fr;
     align-items: start;
     height: fit-content;
-}
 
-.bio-container img {
-    object-fit: cover;
-    width: 100%;
-    height: clamp(200px, 55vw, 85vh);
-    border-radius: 0 0 0 20px;
+    img {
+        object-fit: cover;
+        width: 100%;
+        height: clamp(200px, 55vw, 85vh);
+        border-radius: 0 0 0 20px;
+    }
 }
 
 .bio-content {
     padding: 0px 50px 10px 50px;
     display: flex;
     flex-direction: column;
+
+    h3 {
+        font-size: clamp(1.2rem, 1.5vw, 1.5rem);
+        color: var(--secondary-text-color);
+        font-weight: normal;
+        margin: 10px;
+    }
 }
 
 .name {
@@ -30,24 +37,17 @@
     color: var(--primary-text-color);
 }
 
-.bio-content h3 {
-    font-size: clamp(1.2rem, 1.5vw, 1.5rem);
-    color: var(--secondary-text-color);
-    font-weight: normal;
-    margin: 10px;
-}
-
 @media (max-width: 768px) {
     .bio-container {
         grid-template-columns: 1fr;
         gap: 30px;
-    }
 
-    .bio-container img {
-        height: auto;
-        width: 70%;
-        justify-self: center;
-        border-radius: 50px;
+        img {
+            height: auto;
+            width: 70%;
+            justify-self: center;
+            border-radius: 50px;
+        }
     }
 
     .bio-content {

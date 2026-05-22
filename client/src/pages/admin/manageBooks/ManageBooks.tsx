@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import '../../../styles/admin-manage-books.css';
+import '../../../styles/admin-manage-books.scss';
 import { Link, useLocation } from 'react-router-dom';
 import BookSidebar from './components/BookSidebar';
 import BookDetails from './components/BookDetails';

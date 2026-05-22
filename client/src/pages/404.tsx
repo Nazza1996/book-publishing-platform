@@ -1,5 +1,5 @@
 import { setPageTitle } from '../helpers';
-import '../styles/error-page.css';
+import '../styles/error-page.scss';
 
 export default function NotFound() {
     setPageTitle("404");

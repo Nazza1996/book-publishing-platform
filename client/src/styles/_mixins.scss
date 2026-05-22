@@ -1,0 +1,22 @@
+@use './variables' as v;
+
+@mixin interactive-lift($distance: -1px, $shadow: v.$shadow-hover) {
+    transition: transform v.$transition-fast, box-shadow v.$transition-fast, border-color v.$transition-fast;
+
+    &:hover,
+    &:focus-visible {
+        transform: translateY($distance);
+        box-shadow: $shadow;
+        outline: none;
+    }
+}
+
+@mixin pill-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: v.$radius-pill;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
