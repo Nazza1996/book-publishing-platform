@@ -71,9 +71,9 @@ nav {
 
 @media (max-width: 768px) {
     nav {
-        padding: 20px;
-        grid-template-columns: 1fr;
+        display: flex;
         gap: 12px;
+        padding: 20px;
     }
 
     .branding {
