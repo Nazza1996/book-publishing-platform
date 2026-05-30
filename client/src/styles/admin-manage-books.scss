@@ -168,9 +168,8 @@ main {
 }
 
 .status-unsaved {
-    background: #fecaca;
-    color: #991b1b;
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    background: #fff5d7;
+    color: #856200;
 }
 
 .unsaved-indicator {
@@ -199,9 +198,17 @@ main {
 }
 
 .toolbar-button.has-changes {
-    box-shadow: 0 0 0 2px #fecaca;
-    border-color: #dc2626;
-    color: #991b1b;
+    background: #fff5d7;
+    color: #856200;
+    border-color: #F6D869;
+    box-shadow: 0 0 0 2px #F6D8692E;
+}
+
+:root[data-theme='dark'] .toolbar-button.has-changes {
+    background: #2A2110;
+    color: #FBBF24;
+    border-color: #5B4614;
+    box-shadow: none;
 }
 
 .editor-topbar {

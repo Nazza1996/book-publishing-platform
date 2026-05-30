@@ -105,8 +105,8 @@ router.get("/", async (req: Request, res: Response) => {
         );
         
         res.json(booksWithDraftStatus);
-    } catch (error) {
-        res.status(500).json({ error: error });
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message });
     }
 });
 
@@ -164,8 +164,21 @@ router.get("/:slug", async (req: Request, res: Response) => {
                 where: { bookVersionId: draftVersion.id }
             });
 
+            const publishedVersion = book.publishedVersionId
+                ? await BookVersion.findOne({ where: { id: book.publishedVersionId } })
+                : null;
+
+            const publishedChapters = publishedVersion
+                ? await Chapter.findAll({
+                    where: { bookVersionId: publishedVersion.id }
+                })
+                : [];
+
             res.json({
                 ...book.dataValues,
+                publishedVersion: publishedVersion
+                    ? { ...publishedVersion.dataValues, chapters: publishedChapters }
+                    : null,
                 version: { ...draftVersion.dataValues, chapters },
                 versionStatus: 'draft'
             });
@@ -193,8 +206,8 @@ router.get("/:slug", async (req: Request, res: Response) => {
                 versionStatus: 'published'
             });
         }
-    } catch (error) {
-        res.status(500).json({ error: "Failed to fetch book" });
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message });
     }
 });
 
@@ -308,8 +321,8 @@ router.post("/saveDraft", async (req: Request, res: Response) => {
         await Chapter.bulkCreate(chaptersToCreate);
 
         return res.json({ id: newBook.id, slug: newBook.slug, versionId: draftVersion.id });
-    } catch (error) {
-        return res.status(500).json({ error });
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message });
     }
 });
 
@@ -336,6 +349,54 @@ router.post("/publish", async (req: Request, res: Response) => {
             description: book.description,
         });
 
+        if (scope === 'current' && currentChapter) {
+            const chapterNumberToReplace = Number(currentChapterNumber ?? currentChapter.chapterNumber);
+
+            if (Number.isNaN(chapterNumberToReplace)) {
+                return res.status(400).json({ error: "A valid currentChapterNumber is required" });
+            }
+
+            let publishedVersion = existingBook.publishedVersionId
+                ? await BookVersion.findOne({ where: { id: existingBook.publishedVersionId } })
+                : null;
+
+            if (!publishedVersion) {
+                publishedVersion = await BookVersion.create({
+                    bookId: existingBook.id,
+                    status: 'published',
+                    isWorkingDraft: false
+                });
+            }
+
+            const existingChapter = await Chapter.findOne({
+                where: {
+                    bookVersionId: publishedVersion.id,
+                    chapterNumber: chapterNumberToReplace
+                }
+            });
+
+            if (existingChapter) {
+                await existingChapter.update({
+                    title: currentChapter.title,
+                    content: currentChapter.content,
+                });
+            } else {
+                await Chapter.create({
+                    bookVersionId: publishedVersion.id,
+                    chapterNumber: chapterNumberToReplace,
+                    title: currentChapter.title,
+                    content: currentChapter.content,
+                });
+            }
+
+            await existingBook.update({
+                slug,
+                publishedVersionId: publishedVersion.id
+            });
+
+            return res.json({ id: existingBook.id, slug: existingBook.slug, versionId: publishedVersion.id });
+        }
+
         // Create published version
         const publishedVersion = await BookVersion.create({
             bookId: existingBook.id,
@@ -343,21 +404,14 @@ router.post("/publish", async (req: Request, res: Response) => {
             isWorkingDraft: false
         });
 
-        const chaptersToCreate = scope === 'current' && currentChapter
-            ? [{
-                bookVersionId: publishedVersion.id,
-                chapterNumber: currentChapterNumber ?? currentChapter.chapterNumber,
-                title: currentChapter.title,
-                content: currentChapter.content,
-            }]
-            : book.chapters.map((chapter: any) => ({
+        const chaptersToPublish = book.chapters.map((chapter: any) => ({
                 bookVersionId: publishedVersion.id,
                 chapterNumber: chapter.chapterNumber,
                 title: chapter.title,
                 content: chapter.content,
             }));
 
-        await Chapter.bulkCreate(chaptersToCreate);
+        await Chapter.bulkCreate(chaptersToPublish);
 
         if (scope !== 'current') {
             // Keep the working draft aligned with the just-published content so
@@ -372,7 +426,7 @@ router.post("/publish", async (req: Request, res: Response) => {
             if (workingDraft) {
                 await Chapter.destroy({ where: { bookVersionId: workingDraft.id } });
                 await Chapter.bulkCreate(
-                    chaptersToCreate.map((chapter: any) => ({
+                    chaptersToPublish.map((chapter: any) => ({
                         ...chapter,
                         bookVersionId: workingDraft.id
                     }))
@@ -387,18 +441,79 @@ router.post("/publish", async (req: Request, res: Response) => {
         });
 
         return res.json({ id: existingBook.id, slug: existingBook.slug, versionId: publishedVersion.id });
-    } catch (error) {
-        return res.status(500).json({ error });
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message });
     }
 });
 
 router.post("/convertToDraft", async (req: Request, res: Response) => {
-    const { id } = req.body;
+    const { book, id, scope = 'all', currentChapterNumber } = req.body;
+    const bookId = book?.id ?? id;
 
     try {
-        const existingBook = await Book.findOne({ where: { id } });
+        if (!bookId) {
+            return res.status(400).json({ error: "Book must have an id to unpublish" });
+        }
+
+        const existingBook = await Book.findOne({ where: { id: bookId } });
         if (!existingBook) {
             return res.status(404).json({ error: "Book not found" });
+        }
+
+        if (scope === 'current') {
+            if (!existingBook.publishedVersionId) {
+                return res.status(400).json({ error: "Only published books can unpublish a chapter" });
+            }
+
+            const chapterNumberToRemove = Number(currentChapterNumber);
+            if (Number.isNaN(chapterNumberToRemove)) {
+                return res.status(400).json({ error: "A valid currentChapterNumber is required" });
+            }
+
+            const publishedVersion = await BookVersion.findOne({
+                where: { id: existingBook.publishedVersionId }
+            });
+
+            if (!publishedVersion) {
+                return res.status(404).json({ error: "Published version not found" });
+            }
+
+            const publishedChapters = await Chapter.findAll({
+                where: { bookVersionId: publishedVersion.id },
+                order: [['chapterNumber', 'ASC']]
+            });
+
+            const chaptersToKeep = publishedChapters.filter(chapter => chapter.chapterNumber !== chapterNumberToRemove);
+
+            if (chaptersToKeep.length === 0) {
+                await existingBook.update({
+                    publishedVersionId: null,
+                    isFeatured: false
+                });
+
+                return res.json({ message: "Book converted to draft successfully", versionId: null });
+            }
+
+            const nextPublishedVersion = await BookVersion.create({
+                bookId: existingBook.id,
+                status: 'published',
+                isWorkingDraft: false
+            });
+
+            await Chapter.bulkCreate(
+                chaptersToKeep.map((chapter: any) => ({
+                    bookVersionId: nextPublishedVersion.id,
+                    chapterNumber: chapter.chapterNumber,
+                    title: chapter.title,
+                    content: chapter.content,
+                }))
+            );
+
+            await existingBook.update({
+                publishedVersionId: nextPublishedVersion.id
+            });
+
+            return res.json({ message: "Chapter unpublished successfully", versionId: nextPublishedVersion.id });
         }
 
         // Unpublish by clearing publishedVersionId
@@ -407,9 +522,9 @@ router.post("/convertToDraft", async (req: Request, res: Response) => {
             isFeatured: false 
         });
 
-        res.json({ message: "Book converted to draft successfully" });
-    } catch (error) {
-        return res.status(500).json({ error });
+        res.json({ message: "Book converted to draft successfully", versionId: null });
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message });
     }
 });
 
@@ -434,8 +549,8 @@ router.delete("/:id", async (req: Request, res: Response) => {
         await existingBook.destroy();
 
         res.json({ message: "Book deleted successfully" });
-    } catch (error) {
-        return res.status(500).json({ error });
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message });
     }
 });
 
@@ -460,8 +575,8 @@ router.post("/toggleFeatured", async (req: Request, res: Response) => {
         await existingBook.update({ isFeatured: !existingBook.isFeatured });
 
         res.json({ message: "Book featured status toggled successfully" });
-    } catch (error) {
-        return res.status(500).json({ error });
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message });
     }
 });
 

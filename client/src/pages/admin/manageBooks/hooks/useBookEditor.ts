@@ -49,6 +49,39 @@ function mergeSavedBookChapter(baseBook: any, selectedBook: any, selectedChapter
     };
 }
 
+function upsertPublishedChapter(publishedVersion: any, chapter: any) {
+    const nextVersion = cloneBook(publishedVersion ?? { chapters: [] });
+    const chapters = Array.isArray(nextVersion.chapters) ? [...nextVersion.chapters] : [];
+    const chapterIndex = chapters.findIndex((item: any) => item.chapterNumber === chapter.chapterNumber);
+
+    if (chapterIndex >= 0) {
+        chapters[chapterIndex] = cloneBook(chapter);
+    } else {
+        chapters.push(cloneBook(chapter));
+    }
+
+    nextVersion.chapters = chapters;
+    return nextVersion;
+}
+
+function removePublishedChapter(publishedVersion: any, chapterNumber: number) {
+    if (!publishedVersion) {
+        return null;
+    }
+
+    const nextVersion = cloneBook(publishedVersion);
+    const chapters = Array.isArray(nextVersion.chapters)
+        ? nextVersion.chapters.filter((chapter: any) => chapter.chapterNumber !== chapterNumber)
+        : [];
+
+    if (chapters.length === 0) {
+        return null;
+    }
+
+    nextVersion.chapters = chapters;
+    return nextVersion;
+}
+
 const EMPTY_BOOK = {
     title: '',
     description: '',
@@ -126,6 +159,7 @@ export function useBookEditor(location: any) {
                 const book = await pubRes.json();
                 const bookData = {
                     ...book,
+                    publishedVersion: book.versionStatus === 'published' ? book.version : null,
                     chapters: book.version?.chapters || []
                 };
                 setSelectedBook(bookData);
@@ -134,6 +168,7 @@ export function useBookEditor(location: any) {
                 const book = await res.json();
                 const bookData = {
                     ...book,
+                    publishedVersion: book.publishedVersion ?? (book.versionStatus === 'published' ? book.version : null),
                     chapters: book.version?.chapters || []
                 };
                 setSelectedBook(bookData);
@@ -242,23 +277,45 @@ export function useBookEditor(location: any) {
         }
     }, [selectedBook, lastSavedBook, selectedChapterIndex]);
 
-    const handleConvertToDraft = useCallback(async () => {
-        const id = selectedBook.id;
+    const handleConvertToDraft = useCallback(async (scope: ActionScope = 'all') => {
+        const payload = buildBookActionPayload(selectedBook, selectedChapterIndex, scope);
 
         const res = await apiFetch('/api/books/convertToDraft', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id })
+            body: JSON.stringify(payload)
         });
 
         if (res.ok) {
-            setSelectedBook((prev: any) => ({ ...prev, publishedVersionId: null, isFeatured: false }));
-            setBooks((prev: any) =>
-                prev.map((b: any) => b.id === id ? { ...b, publishedVersionId: null, isFeatured: false } : b)
-            );
-            toast.success('Book unpublished successfully');
+            const data = await res.json();
+            const currentChapter = selectedBook.chapters?.[selectedChapterIndex];
+            const currentChapterNumber = currentChapter?.chapterNumber ?? selectedChapterIndex + 1;
+
+            if (scope === 'current') {
+                const nextPublishedVersionId = data.versionId ?? null;
+
+                setSelectedBook((prev: any) => ({
+                    ...prev,
+                    publishedVersionId: nextPublishedVersionId,
+                    publishedVersion: removePublishedChapter(prev.publishedVersion, currentChapterNumber),
+                    isFeatured: nextPublishedVersionId ? prev.isFeatured : false
+                }));
+
+                setBooks((prev: any) =>
+                    prev.map((b: any) => b.id === selectedBook.id ? { ...b, publishedVersionId: nextPublishedVersionId, isFeatured: nextPublishedVersionId ? b.isFeatured : false } : b)
+                );
+                toast.success('Chapter unpublished successfully');
+            } else {
+                const id = selectedBook.id;
+
+                setSelectedBook((prev: any) => ({ ...prev, publishedVersionId: null, isFeatured: false }));
+                setBooks((prev: any) =>
+                    prev.map((b: any) => b.id === id ? { ...b, publishedVersionId: null, isFeatured: false } : b)
+                );
+                toast.success('Book unpublished successfully');
+            }
         }
-    }, [selectedBook.id]);
+    }, [selectedBook, selectedChapterIndex]);
 
     const handleToggleSpotlight = useCallback(async () => {
         const id = selectedBook.id;
@@ -294,12 +351,19 @@ export function useBookEditor(location: any) {
         if (res.ok) {
             const data = await res.json();
             const bookIdentifier = data.slug ?? data.id;
+            const currentChapter = selectedBook.chapters?.[selectedChapterIndex];
             setLastSavedBook(
                 scope === 'all'
                     ? cloneBook(selectedBook)
                     : mergeSavedBookChapter(lastSavedBook, selectedBook, selectedChapterIndex)
             );
-            setSelectedBook((prev: any) => ({ ...prev, publishedVersionId: data.versionId }));
+            setSelectedBook((prev: any) => ({
+                ...prev,
+                publishedVersionId: data.versionId,
+                publishedVersion: scope === 'current' && currentChapter
+                    ? upsertPublishedChapter(prev.publishedVersion, currentChapter)
+                    : prev.publishedVersion
+            }));
             await fetchBooks();
             window.location.hash = `#${encodeURIComponent(bookIdentifier)}`;
             toast.success('Book published successfully');

@@ -14,7 +14,8 @@ function SplitActionButton({
     onScopeChange,
     onPrimaryClick,
     buttonClassName,
-    ariaLabel
+    ariaLabel,
+    primaryLabelOverride
 }: {
     baseLabel: string;
     scope: ActionScope;
@@ -22,6 +23,7 @@ function SplitActionButton({
     onPrimaryClick: (scope: ActionScope) => void;
     buttonClassName: string;
     ariaLabel: string;
+    primaryLabelOverride?: string;
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const groupRef = useRef<HTMLDivElement>(null);
@@ -39,7 +41,7 @@ function SplitActionButton({
     }, []);
 
     const selectedLabel = ACTION_SCOPE_OPTIONS.find(option => option.value === scope)?.label ?? ACTION_SCOPE_OPTIONS[0].label;
-    const primaryLabel = `${baseLabel} ${selectedLabel.toLowerCase()}`;
+    const primaryLabel = primaryLabelOverride ?? `${baseLabel} ${selectedLabel.toLowerCase()}`;
 
     return (
         <div className="split-action" ref={groupRef}>
@@ -102,7 +104,8 @@ export default function EditorPane({
 }: any) {
     const currentChapterIndexRef = useRef(selectedChapterIndex);
     const [saveScope, setSaveScope] = useState<ActionScope>("all");
-    const [publishScope, setPublishScope] = useState<ActionScope>("all");
+    const [publishScope, setPublishScope] = useState<ActionScope>("current");
+    const [unpublishScope, setUnpublishScope] = useState<ActionScope>("all");
 
     useEffect(() => {
         currentChapterIndexRef.current = selectedChapterIndex;
@@ -130,6 +133,14 @@ export default function EditorPane({
         setValue(content);
     }, [selectedBook.id, selectedChapterIndex]);
 
+    const activeChapterNumber = selectedBook.chapters?.[selectedChapterIndex]?.chapterNumber ?? (selectedChapterIndex + 1);
+    const isCurrentChapterPublished = Boolean(
+        selectedBook.publishedVersion?.chapters?.some((chapter: any) => chapter.chapterNumber === activeChapterNumber)
+    );
+    const publishPrimaryLabel = publishScope === "current"
+        ? `${isCurrentChapterPublished ? "Republish" : "Publish"} current chapter`
+        : `${isPublished ? "Republish" : "Publish"} all chapters`;
+
     return (
         <section className="books-editor-card">
             <div className="editor-topbar">
@@ -151,7 +162,14 @@ export default function EditorPane({
 
                 {isPublished && (
                     <>
-                        <button type="submit" name="action" value="convert_to_draft" className="toolbar-button secondary" onClick={handleConvertToDraft}>Unpublish</button>
+                        <SplitActionButton
+                            baseLabel="Unpublish"
+                            scope={unpublishScope}
+                            onScopeChange={setUnpublishScope}
+                            onPrimaryClick={handleConvertToDraft}
+                            buttonClassName="secondary"
+                            ariaLabel="Choose unpublish option"
+                        />
                         <button type="submit" name="action" value="toggle_featured" className="toolbar-button secondary featured-toggle" onClick={handleToggleSpotlight}>{selectedBook.isFeatured ? '★ Remove from Spotlight' : '☆ Add to Spotlight'}</button>
                     </>
                 )}
@@ -179,6 +197,7 @@ export default function EditorPane({
                     onPrimaryClick={handlePublishBook}
                     buttonClassName="primary"
                     ariaLabel="Choose publish option"
+                    primaryLabelOverride={publishPrimaryLabel}
                 />
             </div>
         </section>
