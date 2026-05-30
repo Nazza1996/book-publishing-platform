@@ -17,10 +17,10 @@
         display: inline-block;
         padding: 0.6rem 1rem;
         background: transparent;
-        color: #222;
+        color: var(--body-text-color);
         text-decoration: none;
         border-radius: v.$radius-sm;
-        border: 2px solid #222;
+        border: 2px solid var(--border-color);
         font-weight: 600;
         cursor: pointer;
         font-size: 16px;

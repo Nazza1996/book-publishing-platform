@@ -4,7 +4,7 @@
 
 .library-hero {
     padding: 60px 20px;
-    background: linear-gradient(180deg, var(--primary-text-color) 0%, var(--secondary-text-color) 100%);
+    background: linear-gradient(180deg, var(--navbar-bg-color) 0%, #4D7094 100%);
     color: white;
     text-align: center;
     margin-bottom: 60px;
@@ -39,8 +39,9 @@
 }
 
 .book-card {
-    background: white;
+    background: var(--background-secondary-color);
     border-radius: v.$radius-lg;
+    border: 1px solid var(--border-color);
     overflow: hidden;
     box-shadow: v.$shadow-soft;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -72,7 +73,7 @@
 
 .book-card-excerpt {
     font-size: 0.95rem;
-    color: #666;
+    color: var(--secondary-text-color);
     line-height: 1.6;
     margin: 0;
     flex: 1;
@@ -81,17 +82,17 @@
 .book-card-link {
     display: inline-block;
     padding: 12px 25px;
-    background-color: var(--primary-text-color);
+    background-color: var(--navbar-bg-color);
     color: white;
     text-decoration: none;
     border-radius: v.$radius-sm;
     margin: 20px 0;
     font-weight: 600;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
     align-self: center;
 
     &:hover {
-        background-color: var(--secondary-text-color);
+        transform: scale(1.05)
     }
 }
 

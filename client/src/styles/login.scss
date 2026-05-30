@@ -18,14 +18,20 @@
     input {
         padding: 10px;
         font-size: 16px;
-        border: 1px solid #ccc;
+        border: 1px solid var(--border-color);
         border-radius: 4px;
+        background-color: var(--surface-elevated-color);
+
+        &::placeholder {
+            color: var(--text-body-color);
+            opacity: 0.7;
+        }
     }
 
     button {
         padding: 10px;
         font-size: 16px;
-        background-color: var(--primary-text-color);
+        background-color: var(--navbar-bg-color);
         color: white;
         border: none;
         border-radius: 4px;

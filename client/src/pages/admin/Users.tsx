@@ -1,6 +1,6 @@
 import '../../styles/admin-users.scss';
-import "ag-grid-community/styles/ag-theme-quartz.css";
-import { AllCommunityModule, type ColDef } from 'ag-grid-community';
+// import "ag-grid-community/styles/ag-theme-quartz.css";
+import { AllCommunityModule, type ColDef, colorSchemeDarkBlue, themeQuartz } from 'ag-grid-community';
 import { AgGridProvider, AgGridReact } from 'ag-grid-react';
 import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -11,6 +11,7 @@ import UserEditModal from './modals/UserEdit';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { apiFetch, setPageTitle, toast } from '../../helpers';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const modules = [
     AllCommunityModule
@@ -30,6 +31,9 @@ export default function Users() {
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
+    const { theme } = useTheme();
+    const gridTheme = theme === 'dark' ? themeQuartz.withPart(colorSchemeDarkBlue) : themeQuartz;
 
     setPageTitle("Users");
 
@@ -165,6 +169,7 @@ export default function Users() {
             <div className="ag-theme-quartz" style={{ height: '400px' }}>
                 <AgGridProvider modules={modules}>
                     <AgGridReact
+                        theme={gridTheme}
                         ref={gridRef}
                         rowData={rowData}
                         columnDefs={columnDefs}

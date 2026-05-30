@@ -101,11 +101,12 @@ const ChapterSelector = ({ chapters, currentChapter, onSelect }: { chapters: any
             onChange={(selectedOption) => onSelect(selectedOption?.value!)}
             value={chapters.find(ch => ch.chapterNumber === currentChapter) ? { value: currentChapter, label: chapters.find(chapter => chapter.chapterNumber === currentChapter)?.title } : null}
             menuPlacement="auto"
+            classNamePrefix="chapter-select"
             theme={(theme) => ({
                 ...theme,
                 colors: {
                     ...theme.colors,
-                    primary: '#003366',
+                    primary: 'var(--primary-text-color)',
                 }
             })}
             isSearchable={false}

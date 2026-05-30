@@ -24,3 +24,41 @@ $transition-default: 0.3s ease;
 $shadow-soft: 0 2px 12px rgba(0, 0, 0, 0.08);
 $shadow-hover: 0 8px 20px rgba(0, 0, 0, 0.08);
 $shadow-modal: 0 18px 50px rgba(0, 0, 0, 0.25);
+
+:root {
+    --navbar-bg-color: #003366;
+	--nav-accent-color: #ffffff;
+    
+    --footer-bg-color: #003366;
+
+	--primary-text-color: #003366;
+	--secondary-text-color: #4D7094;
+
+	--background-color: #FFFFFF;
+	--background-secondary-color: #F5F5F5;
+	--body-text-color: #1f2b3a;
+	--border-color: #d8e0ea;
+	--surface-color: #ffffff;
+	--surface-elevated-color: #f1f2f4;
+
+	--orange: #FF6B35;
+}
+
+:root[data-theme='dark'] {
+    --navbar-bg-color: #003366;
+	--nav-accent-color: #ffffff;
+    
+    --footer-bg-color: #003366;
+
+	--primary-text-color: #abc7e4;
+	--secondary-text-color: #fff;
+
+	--background-color: #0f1724;
+	--background-secondary-color: #1a2435;
+	--body-text-color: #d7deea;
+	--border-color: #2d3d57;
+	--surface-color: #162133;
+	--surface-elevated-color: #1d2a40;
+
+	--orange: #e1450d;
+}

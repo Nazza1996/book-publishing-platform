@@ -1,12 +1,13 @@
 nav {
+    position: relative;
     display: grid;
     align-items: center;
-    background-color: var(--primary-text-color);
+    background-color: var(--navbar-bg-color );
     padding: 40px;
 }
 
 .branding {
-    color: #ffffff;
+    color: var(--nav-accent-color);
     font-size: clamp(1.5rem, 2vw, 2.5rem);
     font-weight: bold;
     position: absolute;
@@ -30,7 +31,7 @@ nav {
     justify-content: center;
 
     a {
-        color: #ffffff;
+        color: var(--nav-accent-color);
         text-decoration: none;
         font-size: clamp(0.95rem, 1vw, 1.15rem);
 
@@ -40,10 +41,39 @@ nav {
     }
 }
 
+.theme-toggle {
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: transparent;
+    color: var(--nav-accent-color);
+    border-radius: 999px;
+    padding: 0.35rem 0.6rem;
+    font: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    min-width: 44px;
+    height: 44px;
+
+    &:hover,
+    &:focus-visible {
+        background-color: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.75);
+        outline: none;
+    }
+}
+
 @media (max-width: 768px) {
     nav {
         padding: 20px;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
+        gap: 12px;
     }
 
     .branding {
@@ -53,5 +83,16 @@ nav {
         span {
             display: none;
         }
+    }
+
+    .nav-list {
+        justify-content: flex-start;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    .theme-toggle {
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
     }
 }

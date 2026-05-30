@@ -1,3 +1,4 @@
+@use './variables.scss';
 @use './navbar.scss';
 @use './intro.scss';
 @use './stories.scss';
@@ -17,17 +18,6 @@
     font-display: swap;
 }
 
-:root {
-    --primary-text-color: #003366;
-    --secondary-text-color: #4D7094;
-
-    --background-color: #FFFFFF;
-    --background-secondary-color: #F5F5F5;
-
-
-    --orange: #FF6B35;
-}
-
 html {
     height: 100%;
     overflow-x: hidden;
@@ -37,12 +27,14 @@ body {
     font-family: 'Instrumental-Sans', Arial, sans-serif;
     font-size: clamp(14px, 1.1vw, 18px);
     background-color: var(--background-color);
+    color: var(--body-text-color);
     margin: 0;
     padding: 0;
     overflow-x: hidden;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    transition: background-color 180ms ease, color 180ms ease;
 }
 
 body > * {
