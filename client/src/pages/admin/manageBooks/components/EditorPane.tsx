@@ -15,7 +15,10 @@ function SplitActionButton({
     onPrimaryClick,
     buttonClassName,
     ariaLabel,
-    primaryLabelOverride
+    primaryLabelOverride,
+    isLoading = false,
+    loadingLabel,
+    disabled = false
 }: {
     baseLabel: string;
     scope: ActionScope;
@@ -24,6 +27,9 @@ function SplitActionButton({
     buttonClassName: string;
     ariaLabel: string;
     primaryLabelOverride?: string;
+    isLoading?: boolean;
+    loadingLabel?: string;
+    disabled?: boolean;
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const groupRef = useRef<HTMLDivElement>(null);
@@ -47,13 +53,15 @@ function SplitActionButton({
         <div className="split-action" ref={groupRef}>
             <button
                 type="button"
-                className={`toolbar-button ${buttonClassName} split-action-main`}
+                className={`toolbar-button ${buttonClassName} split-action-main ${isLoading ? "is-loading" : ""}`}
                 onClick={() => {
                     onPrimaryClick(scope);
                     setIsOpen(false);
                 }}
+                disabled={isLoading || disabled}
+                aria-busy={isLoading}
             >
-                {primaryLabel}
+                {isLoading ? (loadingLabel ?? `${baseLabel}...`) : primaryLabel}
             </button>
 
             <button
@@ -63,6 +71,7 @@ function SplitActionButton({
                 aria-label={ariaLabel}
                 aria-haspopup="menu"
                 aria-expanded={isOpen}
+                disabled={isLoading || disabled}
             >
                 ▾
             </button>
@@ -100,7 +109,8 @@ export default function EditorPane({
     selectedChapterIndex,
     setSelectedBook,
     unsavedChanges,
-    isPublished
+    isPublished,
+    pendingActions
 }: any) {
     const currentChapterIndexRef = useRef(selectedChapterIndex);
     const [saveScope, setSaveScope] = useState<ActionScope>("all");
@@ -169,15 +179,35 @@ export default function EditorPane({
                             onPrimaryClick={handleConvertToDraft}
                             buttonClassName="secondary"
                             ariaLabel="Choose unpublish option"
+                            isLoading={pendingActions.convertToDraft}
+                            loadingLabel="Unpublishing..."
                         />
-                        <button type="submit" name="action" value="toggle_featured" className="toolbar-button secondary featured-toggle" onClick={handleToggleSpotlight}>{selectedBook.isFeatured ? '★ Remove from Spotlight' : '☆ Add to Spotlight'}</button>
+                        <button
+                            type="submit"
+                            name="action"
+                            value="toggle_featured"
+                            className={`toolbar-button secondary featured-toggle ${pendingActions.toggleSpotlight ? 'is-loading' : ''}`}
+                            onClick={handleToggleSpotlight}
+                            disabled={pendingActions.toggleSpotlight}
+                            aria-busy={pendingActions.toggleSpotlight}
+                        >
+                            {pendingActions.toggleSpotlight
+                                ? 'Updating spotlight...'
+                                : (selectedBook.isFeatured ? '★ Remove from Spotlight' : '☆ Add to Spotlight')}
+                        </button>
                     </>
                 )}
             </div>
             <div className="editor-actions">
                 {selectedBook.id && (
-                    <button type="button" className="toolbar-button secondary" onClick={handleDeleteBook}>
-                        Delete Book
+                    <button
+                        type="button"
+                        className={`toolbar-button secondary ${pendingActions.deleteBook ? 'is-loading' : ''}`}
+                        onClick={handleDeleteBook}
+                        disabled={pendingActions.deleteBook}
+                        aria-busy={pendingActions.deleteBook}
+                    >
+                        {pendingActions.deleteBook ? 'Deleting book...' : 'Delete Book'}
                     </button>
                 )}
                 
@@ -188,6 +218,8 @@ export default function EditorPane({
                     onPrimaryClick={handleSaveBook}
                     buttonClassName={`secondary ${unsavedChanges ? 'has-changes' : ''}`}
                     ariaLabel="Choose save draft option"
+                    isLoading={pendingActions.saveBook}
+                    loadingLabel="Saving..."
                 />
 
                 <SplitActionButton
@@ -198,6 +230,8 @@ export default function EditorPane({
                     buttonClassName="primary"
                     ariaLabel="Choose publish option"
                     primaryLabelOverride={publishPrimaryLabel}
+                    isLoading={pendingActions.publishBook}
+                    loadingLabel="Publishing..."
                 />
             </div>
         </section>

@@ -127,6 +127,17 @@ export function useBookEditor(location: any) {
     const [selectedBook, setSelectedBook] = useState<any>(EMPTY_BOOK);
     const [lastSavedBook, setLastSavedBook] = useState<any>(null);
     const [selectedChapterIndex, setSelectedChapterIndex] = useState(0);
+    const [pendingActions, setPendingActions] = useState({
+        saveBook: false,
+        publishBook: false,
+        convertToDraft: false,
+        toggleSpotlight: false,
+        deleteBook: false
+    });
+
+    const setActionPending = useCallback((action: keyof typeof pendingActions, isPending: boolean) => {
+        setPendingActions(prev => ({ ...prev, [action]: isPending }));
+    }, []);
 
     async function fetchBooks() {
         const response = await apiFetch('/api/books');
@@ -240,137 +251,167 @@ export function useBookEditor(location: any) {
             return;
         }
 
-        const res = await apiFetch(`/api/books/${selectedBook.id}`, {
-            method: 'DELETE'
-        });
+        setActionPending('deleteBook', true);
 
-        if (res.ok) {
-            setBooks(prev => prev.filter(b => b.id !== selectedBook.id));
-            setSelectedBook(EMPTY_BOOK);
-            setLastSavedBook(null);
-            setSelectedChapterIndex(0);
-            window.location.hash = '';
-            toast.success('Book deleted successfully');
+        try {
+            const res = await apiFetch(`/api/books/${selectedBook.id}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                setBooks(prev => prev.filter(b => b.id !== selectedBook.id));
+                setSelectedBook(EMPTY_BOOK);
+                setLastSavedBook(null);
+                setSelectedChapterIndex(0);
+                window.location.hash = '';
+                toast.success('Book deleted successfully');
+            }
+        } finally {
+            setActionPending('deleteBook', false);
         }
-    }, [selectedBook.id]);
+    }, [selectedBook.id, setActionPending]);
 
     const handleSaveBook = useCallback(async (scope: ActionScope = 'all') => {
         const payload = buildBookActionPayload(selectedBook, selectedChapterIndex, scope);
 
-        const res = await apiFetch('/api/books/saveDraft', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+        setActionPending('saveBook', true);
 
-        if (res.ok) {
-            const data = await res.json();
-            const bookIdentifier = data.slug ?? data.id;
-            setLastSavedBook(
-                scope === 'all'
-                    ? cloneBook(selectedBook)
-                    : mergeSavedBookChapter(lastSavedBook, selectedBook, selectedChapterIndex)
-            );
-            await fetchBooks();
-            window.location.hash = `#${encodeURIComponent(bookIdentifier)}`;
-            toast.success('Book saved successfully');
+        try {
+            const res = await apiFetch('/api/books/saveDraft', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                const bookIdentifier = data.slug ?? data.id;
+                setLastSavedBook(
+                    scope === 'all'
+                        ? cloneBook(selectedBook)
+                        : mergeSavedBookChapter(lastSavedBook, selectedBook, selectedChapterIndex)
+                );
+                await fetchBooks();
+                window.location.hash = `#${encodeURIComponent(bookIdentifier)}`;
+                toast.success('Book saved successfully');
+            }
+        } finally {
+            setActionPending('saveBook', false);
         }
-    }, [selectedBook, lastSavedBook, selectedChapterIndex]);
+    }, [selectedBook, lastSavedBook, selectedChapterIndex, setActionPending]);
 
     const handleConvertToDraft = useCallback(async (scope: ActionScope = 'all') => {
         const payload = buildBookActionPayload(selectedBook, selectedChapterIndex, scope);
 
-        const res = await apiFetch('/api/books/convertToDraft', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+        setActionPending('convertToDraft', true);
 
-        if (res.ok) {
-            const data = await res.json();
-            const currentChapter = selectedBook.chapters?.[selectedChapterIndex];
-            const currentChapterNumber = currentChapter?.chapterNumber ?? selectedChapterIndex + 1;
+        try {
+            const res = await apiFetch('/api/books/convertToDraft', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-            if (scope === 'current') {
-                const nextPublishedVersionId = data.versionId ?? null;
+            if (res.ok) {
+                const data = await res.json();
+                const currentChapter = selectedBook.chapters?.[selectedChapterIndex];
+                const currentChapterNumber = currentChapter?.chapterNumber ?? selectedChapterIndex + 1;
 
-                setSelectedBook((prev: any) => ({
-                    ...prev,
-                    publishedVersionId: nextPublishedVersionId,
-                    publishedVersion: removePublishedChapter(prev.publishedVersion, currentChapterNumber),
-                    isFeatured: nextPublishedVersionId ? prev.isFeatured : false
-                }));
+                if (scope === 'current') {
+                    const nextPublishedVersionId = data.versionId ?? null;
 
-                setBooks((prev: any) =>
-                    prev.map((b: any) => b.id === selectedBook.id ? { ...b, publishedVersionId: nextPublishedVersionId, isFeatured: nextPublishedVersionId ? b.isFeatured : false } : b)
-                );
-                toast.success('Chapter unpublished successfully');
-            } else {
-                const id = selectedBook.id;
+                    setSelectedBook((prev: any) => ({
+                        ...prev,
+                        publishedVersionId: nextPublishedVersionId,
+                        publishedVersion: removePublishedChapter(prev.publishedVersion, currentChapterNumber),
+                        isFeatured: nextPublishedVersionId ? prev.isFeatured : false
+                    }));
 
-                setSelectedBook((prev: any) => ({ ...prev, publishedVersionId: null, isFeatured: false }));
-                setBooks((prev: any) =>
-                    prev.map((b: any) => b.id === id ? { ...b, publishedVersionId: null, isFeatured: false } : b)
-                );
-                toast.success('Book unpublished successfully');
+                    setBooks((prev: any) =>
+                        prev.map((b: any) => b.id === selectedBook.id ? { ...b, publishedVersionId: nextPublishedVersionId, isFeatured: nextPublishedVersionId ? b.isFeatured : false } : b)
+                    );
+                    toast.success('Chapter unpublished successfully');
+                } else {
+                    const id = selectedBook.id;
+
+                    setSelectedBook((prev: any) => ({ ...prev, publishedVersionId: null, isFeatured: false }));
+                    setBooks((prev: any) =>
+                        prev.map((b: any) => b.id === id ? { ...b, publishedVersionId: null, isFeatured: false } : b)
+                    );
+                    toast.success('Book unpublished successfully');
+                }
             }
+        } finally {
+            setActionPending('convertToDraft', false);
         }
-    }, [selectedBook, selectedChapterIndex]);
+    }, [selectedBook, selectedChapterIndex, setActionPending]);
 
     const handleToggleSpotlight = useCallback(async () => {
         const id = selectedBook.id;
 
-        const res = await apiFetch('/api/books/toggleFeatured', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id })
-        });
+        setActionPending('toggleSpotlight', true);
 
-        if (res.ok) {
-            setSelectedBook((prev: any) => ({
-                ...prev,
-                isFeatured: !prev.isFeatured
-            }));
+        try {
+            const res = await apiFetch('/api/books/toggleFeatured', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
 
-            setBooks((prev: any) =>
-                prev.map((b: any) => b.id === id ? { ...b, isFeatured: !b.isFeatured } : b)
-            );
-            toast.success('Book spotlight status updated successfully');
+            if (res.ok) {
+                setSelectedBook((prev: any) => ({
+                    ...prev,
+                    isFeatured: !prev.isFeatured
+                }));
+
+                setBooks((prev: any) =>
+                    prev.map((b: any) => b.id === id ? { ...b, isFeatured: !b.isFeatured } : b)
+                );
+                toast.success('Book spotlight status updated successfully');
+            }
+        } finally {
+            setActionPending('toggleSpotlight', false);
         }
-    }, [selectedBook.id]);
+    }, [selectedBook.id, setActionPending]);
 
     const handlePublishBook = useCallback(async (scope: ActionScope = 'all') => {
         const payload = buildBookActionPayload(selectedBook, selectedChapterIndex, scope);
 
-        const res = await apiFetch('/api/books/publish', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+        setActionPending('publishBook', true);
 
-        if (res.ok) {
-            const data = await res.json();
-            const bookIdentifier = data.slug ?? data.id;
-            const currentChapter = selectedBook.chapters?.[selectedChapterIndex];
-            setLastSavedBook(
-                scope === 'all'
-                    ? cloneBook(selectedBook)
-                    : mergeSavedBookChapter(lastSavedBook, selectedBook, selectedChapterIndex)
-            );
-            setSelectedBook((prev: any) => ({
-                ...prev,
-                id: data.id ?? prev.id,
-                slug: data.slug ?? prev.slug,
-                publishedVersionId: data.versionId,
-                publishedVersion: scope === 'current' && currentChapter
-                    ? upsertPublishedChapter(prev.publishedVersion, currentChapter)
-                    : prev.publishedVersion
-            }));
-            await fetchBooks();
-            window.location.hash = `#${encodeURIComponent(bookIdentifier)}`;
-            toast.success('Book published successfully');
+        try {
+            const res = await apiFetch('/api/books/publish', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                const bookIdentifier = data.slug ?? data.id;
+                const currentChapter = selectedBook.chapters?.[selectedChapterIndex];
+                setLastSavedBook(
+                    scope === 'all'
+                        ? cloneBook(selectedBook)
+                        : mergeSavedBookChapter(lastSavedBook, selectedBook, selectedChapterIndex)
+                );
+                setSelectedBook((prev: any) => ({
+                    ...prev,
+                    id: data.id ?? prev.id,
+                    slug: data.slug ?? prev.slug,
+                    publishedVersionId: data.versionId,
+                    publishedVersion: scope === 'current' && currentChapter
+                        ? upsertPublishedChapter(prev.publishedVersion, currentChapter)
+                        : prev.publishedVersion
+                }));
+                await fetchBooks();
+                window.location.hash = `#${encodeURIComponent(bookIdentifier)}`;
+                toast.success('Book published successfully');
+            }
+        } finally {
+            setActionPending('publishBook', false);
         }
-    }, [selectedBook, lastSavedBook, selectedChapterIndex]);
+    }, [selectedBook, lastSavedBook, selectedChapterIndex, setActionPending]);
 
     const unsavedChanges = hasUnsavedChanges(selectedBook, lastSavedBook);
     const isPublished = selectedBook.publishedVersionId !== null && selectedBook.publishedVersionId !== undefined;
@@ -396,6 +437,8 @@ export function useBookEditor(location: any) {
         handleConvertToDraft,
         handleToggleSpotlight,
         handlePublishBook,
+
+        pendingActions,
         
         unsavedChanges,
         isPublished

@@ -60,6 +60,31 @@ main {
         color: var(--body-text-color);
         border-color: var(--border-color);
     }
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.75;
+    }
+
+    &.is-loading {
+        position: relative;
+        pointer-events: none;
+        padding-left: 2.5rem;
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0.95rem;
+            top: 50%;
+            width: 0.95rem;
+            height: 0.95rem;
+            margin-top: -0.475rem;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            border-right-color: transparent;
+            animation: spin 0.7s linear infinite;
+        }
+    }
 }
 
 .books-layout {
@@ -194,6 +219,12 @@ main {
     }
     50% {
         opacity: 0.8;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
     }
 }
 
