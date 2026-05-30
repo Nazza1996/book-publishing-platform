@@ -86,7 +86,7 @@ const EMPTY_BOOK = {
     title: '',
     description: '',
     id: null,
-    slug: null,
+    slug: '',
     isFeatured: false,
     publishedVersionId: null,
     chapters: [
@@ -359,6 +359,8 @@ export function useBookEditor(location: any) {
             );
             setSelectedBook((prev: any) => ({
                 ...prev,
+                id: data.id ?? prev.id,
+                slug: data.slug ?? prev.slug,
                 publishedVersionId: data.versionId,
                 publishedVersion: scope === 'current' && currentChapter
                     ? upsertPublishedChapter(prev.publishedVersion, currentChapter)

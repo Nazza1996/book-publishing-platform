@@ -486,7 +486,7 @@ main {
 }
 
 .empty-state {
-    color: #666;
+    color: var(--body-text-color);
     padding: 1rem 0;
 }
 

@@ -330,12 +330,14 @@ router.post("/publish", async (req: Request, res: Response) => {
     const { book, scope = 'all', currentChapter, currentChapterNumber } = req.body;
 
     try {
-        if (!book.id) {
-            return res.status(400).json({ error: "Book must have an id to publish" });
-        }
+        const existingBook = book.id
+            ? await Book.findOne({ where: { id: book.id } })
+            : await Book.create({
+                slug: await buildUniqueSlug(book.title),
+                title: book.title,
+                description: book.description,
+            });
 
-        const existingBook = await Book.findOne({ where: { id: book.id } });
-        
         if (!existingBook) {
             return res.status(404).json({ error: "Book not found" });
         }
