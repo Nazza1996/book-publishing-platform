@@ -330,13 +330,25 @@ router.post("/publish", async (req: Request, res: Response) => {
     const { book, scope = 'all', currentChapter, currentChapterNumber } = req.body;
 
     try {
-        const existingBook = book.id
-            ? await Book.findOne({ where: { id: book.id } })
-            : await Book.create({
+        let existingBook = null;
+
+        if (book.id) {
+            existingBook = await Book.findOne({ where: { id: book.id } });
+        }
+
+        // Fallback to slug lookup so publishing still targets the correct book
+        // when the client has not yet hydrated the saved id.
+        if (!existingBook && book.slug) {
+            existingBook = await Book.findOne({ where: { slug: book.slug } });
+        }
+
+        if (!existingBook) {
+            existingBook = await Book.create({
                 slug: await buildUniqueSlug(book.title),
                 title: book.title,
                 description: book.description,
             });
+        }
 
         if (!existingBook) {
             return res.status(404).json({ error: "Book not found" });

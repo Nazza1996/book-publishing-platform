@@ -274,6 +274,10 @@ export function useBookEditor(location: any) {
     const handleSaveBook = useCallback(async (scope: ActionScope = 'all') => {
         const payload = buildBookActionPayload(selectedBook, selectedChapterIndex, scope);
 
+        if (!validateModel()) {
+            return;
+        }
+
         setActionPending('saveBook', true);
 
         try {
@@ -286,6 +290,12 @@ export function useBookEditor(location: any) {
             if (res.ok) {
                 const data = await res.json();
                 const bookIdentifier = data.slug ?? data.id;
+                setSelectedBook((prev: any) => ({
+                    ...prev,
+                    id: data.id ?? prev.id,
+                    slug: data.slug ?? prev.slug,
+                    publishedVersionId: data.publishedVersionId ?? prev.publishedVersionId
+                }));
                 setLastSavedBook(
                     scope === 'all'
                         ? cloneBook(selectedBook)
@@ -376,6 +386,10 @@ export function useBookEditor(location: any) {
 
     const handlePublishBook = useCallback(async (scope: ActionScope = 'all') => {
         const payload = buildBookActionPayload(selectedBook, selectedChapterIndex, scope);
+        
+        if (!validateModel()) {
+            return;
+        }
 
         setActionPending('publishBook', true);
 
@@ -415,6 +429,33 @@ export function useBookEditor(location: any) {
 
     const unsavedChanges = hasUnsavedChanges(selectedBook, lastSavedBook);
     const isPublished = selectedBook.publishedVersionId !== null && selectedBook.publishedVersionId !== undefined;
+
+    function validateModel() {
+        if (!selectedBook.title || selectedBook.title.trim() === '') {
+            toast.error('Book title cannot be empty');
+            return false;
+        }
+
+        if (!selectedBook.description || selectedBook.description.trim() === '') {
+            toast.error('Book description cannot be empty');
+            return false;
+        }
+
+        if (!selectedBook.chapters || selectedBook.chapters.length === 0) {
+            toast.error('Book must have at least one chapter');
+            return false;
+        }
+
+        for (let i = 0; i < selectedBook.chapters.length; i++) {
+            const chapter = selectedBook.chapters[i];
+            if (!chapter.title || chapter.title.trim() === '') {
+                toast.error(`Chapter ${i + 1} title cannot be empty`);
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     return {
         books,
