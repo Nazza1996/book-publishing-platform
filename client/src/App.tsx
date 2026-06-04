@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './styles/index.scss';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ReadingPreferencesProvider } from './contexts/ReadingPreferencesContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -18,20 +19,22 @@ function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <Router>
-          <Navbar />
-          <Routes>
-            <Route path='*' element={<NotFound />} />
-            <Route path='/' element={<Home />} />
-            <Route path='/library' element={<Library />} />
-            <Route path='/book/:slug' element={<Book />} />
-            <Route path='/login' element={<Login />} />
-            <Route path='/admin' element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
-            <Route path='/admin/users' element={<PrivateRoute><Users /></PrivateRoute>} />
-            <Route path='/admin/manage_books' element={<PrivateRoute><ManageBooks /></PrivateRoute>} />
-          </Routes>
-          <Footer />
-        </Router>
+        <ReadingPreferencesProvider>
+          <Router>
+            <Navbar />
+            <Routes>
+              <Route path='*' element={<NotFound />} />
+              <Route path='/' element={<Home />} />
+              <Route path='/library' element={<Library />} />
+              <Route path='/book/:slug' element={<Book />} />
+              <Route path='/login' element={<Login />} />
+              <Route path='/admin' element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
+              <Route path='/admin/users' element={<PrivateRoute><Users /></PrivateRoute>} />
+              <Route path='/admin/manage_books' element={<PrivateRoute><ManageBooks /></PrivateRoute>} />
+            </Routes>
+            <Footer />
+          </Router>
+        </ReadingPreferencesProvider>
       </ThemeProvider>
     </AuthProvider>
   );
