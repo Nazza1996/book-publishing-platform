@@ -1,0 +1,31 @@
+{
+  "name": "nate-the-plot",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "start": "concurrently -p \"[{name}]\" -n \"Server,Client\" -c \"blue.bold,green.bold\" \"npm run server\" \"npm run client:wait\"",
+    "server": "nodemon --ignore client/ --exec tsx server/index.ts",
+    "client": "npm --prefix client run dev",
+    "client:wait": "wait-on tcp:3000 && npm run client",
+    "build": "npm --prefix client run build && tsc --project server/tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "concurrently": "^8.2.0",
+    "nodemon": "^3.0.2",
+    "tsx": "^4.21.0",
+    "wait-on": "^9.0.10"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.3",
+    "react-select": "^5.10.2",
+    "typescript": "^6.0.3"
+  }
+}

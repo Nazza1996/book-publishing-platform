@@ -1,0 +1,398 @@
+/* Book View Page Styles */
+
+/* Hero/Header Section */
+.books-site-hero {
+    padding: 3rem 0 1.5rem;
+    margin-bottom: 3rem;
+    border-bottom: 2px solid #e0e0e0;
+
+    h1 {
+        font-size: 3rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin: 0 0 20px;
+        color: var(--primary-text-color);
+        text-align: center;
+    }
+
+    p {
+        margin: 1rem 0 0;
+        font-size: 1.1rem;
+    }
+}
+
+.books-site-hero a,
+.books-site-footer a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--primary-text-color);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    padding: 0.5rem 0;
+
+    &:hover {
+        color: var(--secondary-text-color);
+    }
+}
+
+.books-site-hero a:hover {
+    transform: translateX(-4px);
+}
+
+/* Main Book Viewer */
+.book-viewer {
+    width: 100%;
+    margin: 0 auto;
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: var(--body-text-color);
+    /* Markdown Content Styling */
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-weight: 700;
+        color: var(--primary-text-color);
+        scroll-margin-top: 80px;
+    }
+
+    h2 {
+        font-size: 1.95rem;
+        margin: 2.5rem 0 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #f0f0f0;
+
+        &:first-child {
+            border-top: none;
+            padding-top: 0;
+            margin-top: 0;
+        }
+    }
+
+    h3 {
+        font-size: 1.5rem;
+        margin: 2rem 0 0.75rem;
+    }
+
+    h4 {
+        font-size: 1.25rem;
+        margin: 1.5rem 0 0.5rem;
+    }
+
+    h5,
+    h6 {
+        font-size: 1.1rem;
+        margin: 1.25rem 0 0.5rem;
+    }
+
+    p {
+        margin: 0 0 1.5rem;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    /* Lists */
+    ul,
+    ol {
+        margin: 1.5rem 0;
+        padding-left: 2.5rem;
+    }
+
+    li {
+        margin: 0.75rem 0;
+        padding-left: 0.5rem;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    /* Blockquotes */
+    blockquote {
+        margin: 2rem 0;
+        padding: 1.25rem 1.75rem;
+        border-left: 4px solid var(--primary-text-color);
+        background: #f9f9f9;
+        border-radius: 0 4px 4px 0;
+        font-style: italic;
+        color: #555;
+
+        p {
+            margin: 0.5rem 0;
+
+            &:first-child {
+                margin-top: 0;
+            }
+
+            &:last-child {
+                margin-bottom: 0;
+            }
+        }
+    }
+
+    /* Code Blocks */
+    pre {
+        background: #282c34;
+        border-radius: 8px;
+        padding: 1.5rem;
+        overflow-x: auto;
+        margin: 2rem 0;
+        line-height: 1.5;
+
+        code {
+            color: #abb2bf;
+            font-size: 0.95rem;
+        }
+    }
+
+    /* Inline Code */
+    code:not(pre code) {
+        background: #f5f5f5;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        color: #d73a49;
+        font-size: 0.95em;
+    }
+
+    /* Text Formatting */
+    strong {
+        font-weight: 700;
+    }
+
+    em {
+        font-style: italic;
+        color: #555;
+    }
+
+    /* Links */
+    a {
+        color: var(--primary-text-color);
+        text-decoration: none;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s ease;
+
+        &:hover {
+            border-bottom-color: var(--primary-text-color);
+        }
+    }
+
+    /* Images */
+    img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 2rem 0;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Horizontal Rules */
+    hr {
+        margin: 2rem 0;
+        border: none;
+        height: 1px;
+        background: linear-gradient(to right, transparent, #ddd, transparent);
+    }
+
+    /* Tables */
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 1.5rem 0;
+    }
+
+    th,
+    td {
+        border: 1px solid #e0e0e0;
+        padding: 0.75rem 1rem;
+        text-align: left;
+    }
+
+    th {
+        background: #f8f8f8;
+        font-weight: 700;
+        color: var(--primary-text-color);
+    }
+}
+
+.book-viewer tr:nth-child(even) {
+    background: #fafafa;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .books-site-hero {
+        padding: 2rem 0 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .books-site-hero h1 {
+        font-size: 2rem;
+    }
+
+    .book-viewer {
+        font-size: 1rem;
+    }
+
+    .book-viewer h2 {
+        font-size: 1.6rem;
+        margin: 1.75rem 0 0.75rem;
+    }
+
+    .book-viewer h3 {
+        font-size: 1.3rem;
+        margin: 1.5rem 0 0.6rem;
+    }
+
+    .book-viewer h4 {
+        font-size: 1.1rem;
+    }
+
+    .book-viewer ul,
+    .book-viewer ol {
+        padding-left: 1.75rem;
+    }
+
+    .book-viewer pre {
+        padding: 1rem;
+        margin: 1.5rem 0;
+    }
+
+    .book-viewer blockquote {
+        padding: 1rem 1.25rem;
+        margin: 1.5rem 0;
+    }
+
+    .book-viewer img {
+        margin: 1.5rem 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .book-view {
+        padding: 30px 15px 50px;
+    }
+
+    .book-header {
+        padding: 20px 15px;
+    }
+
+    .book-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .book-body {
+        padding: 20px 15px;
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+
+    .book-body p {
+        margin-bottom: 15px;
+    }
+
+    .back-link {
+        font-size: 0.95rem;
+    }
+}
+
+.book-controls {
+    display: flex;
+    justify-content: space-between;
+
+    & p {
+        margin: 0;
+    }
+
+    .chapter-select {
+        min-width: 16rem;
+
+        &__control {
+            background-color: var(--surface-color) !important;
+            border-color: var(--border-color) !important;
+            box-shadow: none !important;
+
+            &:hover {
+                border-color: var(--primary-text-color) !important;
+            }
+        }
+
+        &__single-value,
+        &__input-container,
+        &__placeholder {
+            color: var(--primary-text-color) !important;
+        }
+
+        &__menu {
+            background-color: var(--surface-color) !important;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
+        }
+
+        &__option {
+            background-color: var(--surface-color);
+            color: var(--body-text-color);
+
+            &--is-focused {
+                background-color: var(--background-secondary-color);
+            }
+
+            &--is-selected {
+                background-color: var(--primary-text-color);
+                color: var(--background-color);
+            }
+        }
+
+        &__indicator-separator {
+            background-color: var(--border-color);
+        }
+
+        &__dropdown-indicator,
+        &__clear-indicator {
+            color: var(--secondary-text-color);
+
+            &:hover {
+                color: var(--primary-text-color);
+            }
+        }
+    }
+}
+
+/* Chapter Content */
+.chapter-content {
+    margin: 2rem 0;
+}
+
+.chapter-content p:first-of-type {
+    margin-top: 0;
+}
+
+.books-site-footer {
+    margin-top: 3rem;
+    border-top: 2px solid #e0e0e0;
+    padding-top: 1.5rem;
+}
+
+.book-badges {
+    display: grid;
+    width: 100%;
+    margin: 0 auto 1.5rem;
+    justify-content: center;
+}
+
+.book-draft-badge {
+    display: inline-block;
+    background: #df3535;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    width: 60px;
+    text-align: center;
+}

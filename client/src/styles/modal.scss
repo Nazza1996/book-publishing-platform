@@ -1,0 +1,99 @@
+.modal {
+    border: none;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+
+    .modal-header {
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem 1.25rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-title {
+        font-weight: 600;
+        color: var(--body-text-color);
+    }
+
+    .modal-body {
+        padding: 0 1.25rem;
+    }
+
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: var(--body-text-color);
+    }
+
+    .form-control {
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        color: var(--body-text-color);
+        border: 1px solid var(--border-color);
+        background-color: var(--surface-elevated-color);
+
+        &::placeholder {
+            color: var(--body-text-color);
+            opacity: 0.7;
+        }
+    }
+
+    .modal-footer {
+        border-top: 1px solid var(--border-color);
+        padding: 1rem 1.25rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .btn {
+        border-radius: 10px;
+        padding: 0.6rem 1.2rem;
+        font-weight: 500;
+        border: 1px solid var(--border-color);
+        background-color: var(--surface-elevated-color);
+        color: var(--body-text-color);
+        transition: all 0.2s ease;
+
+        &:hover {
+            cursor: pointer;
+            transform: translateY(-1px);
+        }
+    }
+
+    .btn-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        line-height: 1;
+        color: var(--body-text-color);
+        opacity: 0.5;
+        transition: all 0.2s ease;
+    }
+}
+
+.modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    background-color: var(--surface-color);
+    border-radius: 14px;
+    margin: 5% auto;
+    padding: 0;
+    width: 500px;
+    max-width: 90%;
+}
+
+.mb-3 {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+}

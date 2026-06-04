@@ -1,0 +1,54 @@
+@use './variables.scss';
+@use './navbar.scss';
+@use './intro.scss';
+@use './stories.scss';
+@use './footer.scss';
+@use './login.scss';
+@use './toasts.scss';
+
+@font-face {
+    font-family: 'Recoleta';
+    src: url('/fonts/Recoleta.otf') format('opentype');
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Instrumental-Sans';
+    src: url('/fonts/InstrumentalSans.ttf') format('truetype');
+    font-display: swap;
+}
+
+html {
+    height: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    font-family: 'Instrumental-Sans', Arial, sans-serif;
+    font-size: clamp(14px, 1.1vw, 18px);
+    background-color: var(--background-color);
+    color: var(--body-text-color);
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    transition: background-color 180ms ease, color 180ms ease;
+}
+
+body > * {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Utilities (shared) */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+
+.text-underline { text-decoration: underline; }
+
+code, pre code {
+    font-family: ui-monospace, SFMono-Regular, Consolas, 'SF Mono', Menlo, 'Liberation Mono', monospace;
+}
