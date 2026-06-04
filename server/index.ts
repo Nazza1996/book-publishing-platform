@@ -20,7 +20,9 @@ import bookRoutes from './routes/bookRoutes.js';
 
 const app = express();
 app.use(cors({ credentials: true, origin: true }));
-app.use(express.json());
+app.use(express.json({
+  limit: '10mb',
+}));
 app.use(cookieParser());
 
 app.use('/api/users', userRoutes);

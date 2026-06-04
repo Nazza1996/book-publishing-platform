@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import '../styles/books.scss';
 import '../styles/book-view.scss';
 import { apiFetch, markdownToHtml, setPageTitle } from "../helpers";
+import AccessibilityMenu from "../components/AccessibilityMenu";
 
 export default function Book() {
     const { slug } = useParams();
@@ -69,7 +70,11 @@ export default function Book() {
                         {isDraft && <div className="book-badges"><span className="book-draft-badge">DRAFT</span></div>}
                     </div>
                     <div className="book-controls">
-                        <p><Link to="/library">← Back to Library</Link></p>
+                        <div className="back-to-library">
+                            <Link to="/library">← Back to Library</Link>
+                            <AccessibilityMenu isMobile={true} />
+                        </div>
+                        <AccessibilityMenu />
                         <ChapterSelector
                             chapters={book?.chapters || []}
                             currentChapter={currentChapter}
@@ -82,7 +87,9 @@ export default function Book() {
 
             <div className="books-site-footer">
                 <div className="book-controls">
-                    <p><Link to="/library">← Back to Library</Link></p>
+                    <div className="back-to-library">
+                        <Link to="/library">← Back to Library</Link>
+                    </div>
                     <ChapterSelector
                         chapters={book?.chapters || []}
                         currentChapter={currentChapter}

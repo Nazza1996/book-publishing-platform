@@ -8,6 +8,7 @@ class Book extends Model {
     public description!: string;
     public publishedVersionId!: number | null;
 	public isFeatured!: boolean;
+    public readonly chapters?: any[];
 }
 
 Book.init(
