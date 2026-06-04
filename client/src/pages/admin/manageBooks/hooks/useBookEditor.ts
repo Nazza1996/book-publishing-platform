@@ -246,11 +246,7 @@ export function useBookEditor(location: any) {
     }, []);
 
     // ------------- API actions --------------
-    const handleDeleteBook = useCallback(async () => {
-        if (!window.confirm('Are you sure you want to delete this book? This action cannot be undone.')) {
-            return;
-        }
-
+    const handleDeleteBook = useCallback(async (setModalOpen: (open: boolean) => void) => {
         setActionPending('deleteBook', true);
 
         try {
@@ -264,6 +260,7 @@ export function useBookEditor(location: any) {
                 setLastSavedBook(null);
                 setSelectedChapterIndex(0);
                 window.location.hash = '';
+                setModalOpen(false);
                 toast.success('Book deleted successfully');
             }
         } finally {

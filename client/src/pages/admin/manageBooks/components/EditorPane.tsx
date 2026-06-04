@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useEasyMDE } from "../hooks/useEasyMDE"
+import BookDeleteModal from "../../modals/BookDelete";
 
 type ActionScope = "all" | "current";
 
@@ -116,6 +117,7 @@ export default function EditorPane({
     const [saveScope, setSaveScope] = useState<ActionScope>("all");
     const [publishScope, setPublishScope] = useState<ActionScope>("current");
     const [unpublishScope, setUnpublishScope] = useState<ActionScope>("all");
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
     useEffect(() => {
         currentChapterIndexRef.current = selectedChapterIndex;
@@ -152,88 +154,98 @@ export default function EditorPane({
         : `${isPublished ? "Republish" : "Publish"} all chapters`;
 
     return (
-        <section className="books-editor-card">
-            <div className="editor-topbar">
-                <div>
-                    <p className="eyebrow">Editor</p>
-                    <h2>
-                        {selectedBook.title ? `Editing ${selectedBook.title}` : 'New Book'}
-                        {unsavedChanges && <span className="unsaved-indicator" title="Unsaved changes"> ●</span>}
-                    </h2>
-                </div>                                
-            </div>
+        <>
+            <section className="books-editor-card">
+                <div className="editor-topbar">
+                    <div>
+                        <p className="eyebrow">Editor</p>
+                        <h2>
+                            {selectedBook.title ? `Editing ${selectedBook.title}` : 'New Book'}
+                            {unsavedChanges && <span className="unsaved-indicator" title="Unsaved changes"> ●</span>}
+                        </h2>
+                    </div>                                
+                </div>
 
-            <label className="field editor-field">
-                <span>Markdown Content</span>
-                <textarea ref={textareaRef} name="markdown_content" id="markdownContent" rows={22} placeholder="Write your book here..." />
-            </label>
+                <label className="field editor-field">
+                    <span>Markdown Content</span>
+                    <textarea ref={textareaRef} name="markdown_content" id="markdownContent" rows={22} placeholder="Write your book here..." />
+                </label>
 
-            <div className="editor-actions">
+                <div className="editor-actions">
 
-                {isPublished && (
-                    <>
-                        <SplitActionButton
-                            baseLabel="Unpublish"
-                            scope={unpublishScope}
-                            onScopeChange={setUnpublishScope}
-                            onPrimaryClick={handleConvertToDraft}
-                            buttonClassName="secondary"
-                            ariaLabel="Choose unpublish option"
-                            isLoading={pendingActions.convertToDraft}
-                            loadingLabel="Unpublishing..."
-                        />
+                    {isPublished && (
+                        <>
+                            <SplitActionButton
+                                baseLabel="Unpublish"
+                                scope={unpublishScope}
+                                onScopeChange={setUnpublishScope}
+                                onPrimaryClick={handleConvertToDraft}
+                                buttonClassName="secondary"
+                                ariaLabel="Choose unpublish option"
+                                isLoading={pendingActions.convertToDraft}
+                                loadingLabel="Unpublishing..."
+                            />
+                            <button
+                                type="submit"
+                                name="action"
+                                value="toggle_featured"
+                                className={`toolbar-button secondary featured-toggle ${pendingActions.toggleSpotlight ? 'is-loading' : ''}`}
+                                onClick={handleToggleSpotlight}
+                                disabled={pendingActions.toggleSpotlight}
+                                aria-busy={pendingActions.toggleSpotlight}
+                            >
+                                {pendingActions.toggleSpotlight
+                                    ? 'Updating spotlight...'
+                                    : (selectedBook.isFeatured ? '★ Remove from Spotlight' : '☆ Add to Spotlight')}
+                            </button>
+                        </>
+                    )}
+                </div>
+                <div className="editor-actions">
+                    {selectedBook.id && (
                         <button
-                            type="submit"
-                            name="action"
-                            value="toggle_featured"
-                            className={`toolbar-button secondary featured-toggle ${pendingActions.toggleSpotlight ? 'is-loading' : ''}`}
-                            onClick={handleToggleSpotlight}
-                            disabled={pendingActions.toggleSpotlight}
-                            aria-busy={pendingActions.toggleSpotlight}
+                            type="button"
+                            className={`toolbar-button secondary ${pendingActions.deleteBook ? 'is-loading' : ''}`}
+                            onClick={() => setDeleteModalOpen(true)}
+                            disabled={pendingActions.deleteBook}
+                            aria-busy={pendingActions.deleteBook}
                         >
-                            {pendingActions.toggleSpotlight
-                                ? 'Updating spotlight...'
-                                : (selectedBook.isFeatured ? '★ Remove from Spotlight' : '☆ Add to Spotlight')}
+                            {pendingActions.deleteBook ? 'Deleting book...' : 'Delete Book'}
                         </button>
-                    </>
-                )}
-            </div>
-            <div className="editor-actions">
-                {selectedBook.id && (
-                    <button
-                        type="button"
-                        className={`toolbar-button secondary ${pendingActions.deleteBook ? 'is-loading' : ''}`}
-                        onClick={handleDeleteBook}
-                        disabled={pendingActions.deleteBook}
-                        aria-busy={pendingActions.deleteBook}
-                    >
-                        {pendingActions.deleteBook ? 'Deleting book...' : 'Delete Book'}
-                    </button>
-                )}
-                
-                <SplitActionButton
-                    baseLabel="Save"
-                    scope={saveScope}
-                    onScopeChange={setSaveScope}
-                    onPrimaryClick={handleSaveBook}
-                    buttonClassName={`secondary ${unsavedChanges ? 'has-changes' : ''}`}
-                    ariaLabel="Choose save draft option"
-                    isLoading={pendingActions.saveBook}
-                    loadingLabel="Saving..."
-                />
+                    )}
+                    
+                    <SplitActionButton
+                        baseLabel="Save"
+                        scope={saveScope}
+                        onScopeChange={setSaveScope}
+                        onPrimaryClick={handleSaveBook}
+                        buttonClassName={`secondary ${unsavedChanges ? 'has-changes' : ''}`}
+                        ariaLabel="Choose save draft option"
+                        isLoading={pendingActions.saveBook}
+                        loadingLabel="Saving..."
+                    />
 
-                <SplitActionButton
-                    baseLabel={isPublished ? "Republish" : "Publish"}
-                    scope={publishScope}
-                    onScopeChange={setPublishScope}
-                    onPrimaryClick={handlePublishBook}
-                    buttonClassName="primary"
-                    ariaLabel="Choose publish option"
-                    primaryLabelOverride={publishPrimaryLabel}
-                    isLoading={pendingActions.publishBook}
-                    loadingLabel="Publishing..."
+                    <SplitActionButton
+                        baseLabel={isPublished ? "Republish" : "Publish"}
+                        scope={publishScope}
+                        onScopeChange={setPublishScope}
+                        onPrimaryClick={handlePublishBook}
+                        buttonClassName="primary"
+                        ariaLabel="Choose publish option"
+                        primaryLabelOverride={publishPrimaryLabel}
+                        isLoading={pendingActions.publishBook}
+                        loadingLabel="Publishing..."
+                    />
+                </div>
+            </section>
+
+            {deleteModalOpen && (
+                <BookDeleteModal
+                    closeFunction={() => setDeleteModalOpen(false)}
+                    submitFunction={() => handleDeleteBook(setDeleteModalOpen)}
+                    bookName={selectedBook.title}
                 />
-            </div>
-        </section>
+            )}
+        </>
     )
 }
