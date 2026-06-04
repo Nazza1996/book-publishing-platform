@@ -531,12 +531,51 @@ router.post("/convertToDraft", async (req: Request, res: Response) => {
         }
 
         // Unpublish by clearing publishedVersionId
+        // First, ensure there's a working draft version
+        let workingDraft = await BookVersion.findOne({
+            where: { bookId: existingBook.id, isWorkingDraft: true }
+        });
+
+        if (!workingDraft) {
+            workingDraft = await BookVersion.create({
+                bookId: existingBook.id,
+                status: 'draft',
+                isWorkingDraft: true
+            });
+        }
+
+        // Copy chapters from published version to working draft if it doesn't have any
+        const workingDraftChapters = await Chapter.findAll({
+            where: { bookVersionId: workingDraft.id }
+        });
+
+        if (workingDraftChapters.length === 0 && existingBook.publishedVersionId) {
+            const publishedVersion = await BookVersion.findOne({
+                where: { id: existingBook.publishedVersionId }
+            });
+
+            if (publishedVersion) {
+                const publishedChapters = await Chapter.findAll({
+                    where: { bookVersionId: publishedVersion.id }
+                });
+
+                await Chapter.bulkCreate(
+                    publishedChapters.map((chapter: any) => ({
+                        bookVersionId: workingDraft.id,
+                        chapterNumber: chapter.chapterNumber,
+                        title: chapter.title,
+                        content: chapter.content,
+                    }))
+                );
+            }
+        }
+
         await existingBook.update({ 
             publishedVersionId: null,
             isFeatured: false 
         });
 
-        res.json({ message: "Book converted to draft successfully", versionId: null });
+        res.json({ message: "Book converted to draft successfully", versionId: workingDraft.id });
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
     }
