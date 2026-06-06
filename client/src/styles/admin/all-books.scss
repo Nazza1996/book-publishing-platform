@@ -1,0 +1,139 @@
+#allBooksHeader {
+    margin-bottom: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    #booksHeaderLeft {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        
+        div:first-child {
+            font-size: 1.5rem;
+            color: var(--body-text-color);
+            font-weight: 600;
+        }
+        
+        div:last-child {
+            font-size: 1rem;
+            color: var(--secondary-text-color);
+        }
+    }
+
+    #booksHeaderRight {
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+
+        #searchBooksInput {
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 0.95rem;
+            color: var(--body-text-color);
+            background-color: var(--surface-color);
+            
+            &:focus {
+                outline: none;
+                border-color: var(--orange);
+            }
+        }
+
+        #newBookButton {
+            padding: 10px 20px;
+            background-color: var(--orange);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            
+            &:hover {
+                background-color: var(--surface-color);
+            }
+        }
+    }
+    
+}
+
+#books-table-wrapper {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: var(--surface-elevated-color);
+    border-radius: 10px;
+    overflow: hidden;
+    
+    #books-table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+        
+        #books-table-title {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--body-text-color);
+        }
+    }
+
+    #books-table {
+        width: 100%;
+        border-collapse: collapse;
+        
+        thead {
+            background-color: var(--surface-color);
+            
+            th {
+                padding: 15px;
+                text-align: left;
+                font-size: 1rem;
+                color: var(--secondary-text-color);
+            }
+        }
+        
+        tbody {
+            tr {
+                border-bottom: 1px solid var(--border-color);
+                
+                &:hover {
+                    background-color: var(--surface-color);
+                }
+                
+                td {
+                    padding: 15px;
+                    font-size: 0.95rem;
+                    color: var(--body-text-color);
+
+                    .book-link {
+                        color: var(--body-text-color);
+                        text-decoration: none;
+                        
+                        &:hover {
+                            text-decoration: underline;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: 720px) {
+    #allBooksHeader {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 1rem;
+
+        #booksHeaderRight {
+            justify-content: stretch;
+
+            #searchBooksInput {
+                flex: 1;
+                min-width: 0;
+            }
+        }
+    }
+}

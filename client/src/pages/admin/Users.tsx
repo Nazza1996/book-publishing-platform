@@ -12,6 +12,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { apiFetch, setPageTitle, toast } from '../../helpers';
 import { useTheme } from '../../contexts/ThemeContext';
+import AdminNav from '../newAdmin/AdminNav';
 
 const modules = [
     AllCommunityModule
@@ -157,58 +158,61 @@ export default function Users() {
     }
 
     return (
-        <main className="users-container">
+        <div id="adminView" >
+            <AdminNav />
+            <main className="admin-section">
 
-            <div className="users-toolbar">
-                <h1>Users</h1>
-                <button type="button" className="toolbar-button primary" onClick={() => setCreateModalOpen(true)}>
-                    Create User
-                </button>
-            </div>
+                <div className="users-toolbar">
+                    <h1>Users</h1>
+                    <button type="button" className="toolbar-button primary" onClick={() => setCreateModalOpen(true)}>
+                        Create User
+                    </button>
+                </div>
 
-            <div className="ag-theme-quartz" style={{ height: '400px' }}>
-                <AgGridProvider modules={modules}>
-                    <AgGridReact
-                        theme={gridTheme}
-                        ref={gridRef}
-                        rowData={rowData}
-                        columnDefs={columnDefs}
-                        suppressMovableColumns
-                        onGridReady={handleGridReady}
-                        onColumnMoved={handleColumnStateChanged}
-                        onColumnResized={handleColumnStateChanged}
+                <div className="ag-theme-quartz" style={{ height: '400px' }}>
+                    <AgGridProvider modules={modules}>
+                        <AgGridReact
+                            theme={gridTheme}
+                            ref={gridRef}
+                            rowData={rowData}
+                            columnDefs={columnDefs}
+                            suppressMovableColumns
+                            onGridReady={handleGridReady}
+                            onColumnMoved={handleColumnStateChanged}
+                            onColumnResized={handleColumnStateChanged}
+                        />
+                    </AgGridProvider>
+                </div>
+
+                <p className="back-link"><Link className="back-dashboard-button" to="/admin">Back to Dashboard</Link></p>
+
+                {/* Modals */}
+                {createModalOpen && (
+                    <UserCreateModal
+                        closeFunction={resetModals}
+                        submitFunction={handleCreateUser}
+                        username={selectedUsername}
+                        password={password}
+                        setUsername={setSelectedUsername}
+                        setPassword={setPassword}
                     />
-                </AgGridProvider>
-            </div>
-
-            <p className="back-link"><Link className="back-dashboard-button" to="/admin">Back to Dashboard</Link></p>
-
-            {/* Modals */}
-            {createModalOpen && (
-                <UserCreateModal
-                    closeFunction={resetModals}
-                    submitFunction={handleCreateUser}
-                    username={selectedUsername}
-                    password={password}
-                    setUsername={setSelectedUsername}
-                    setPassword={setPassword}
-                />
-            )}
-            {editModalOpen && (
-                <UserEditModal
-                    closeFunction={resetModals}
-                    submitFunction={handleEditUser}
-                    username={selectedUsername}
-                    setUsername={setSelectedUsername}
-                />
-            )}
-            {deleteModalOpen && (
-                <UserDeleteModal
-                    closeFunction={resetModals}
-                    submitFunction={() => handleDeleteUser()}
-                    username={selectedUsername}
-                />
-            )}
-        </main>
+                )}
+                {editModalOpen && (
+                    <UserEditModal
+                        closeFunction={resetModals}
+                        submitFunction={handleEditUser}
+                        username={selectedUsername}
+                        setUsername={setSelectedUsername}
+                    />
+                )}
+                {deleteModalOpen && (
+                    <UserDeleteModal
+                        closeFunction={resetModals}
+                        submitFunction={() => handleDeleteUser()}
+                        username={selectedUsername}
+                    />
+                )}
+            </main>
+        </div>
     )
 }
