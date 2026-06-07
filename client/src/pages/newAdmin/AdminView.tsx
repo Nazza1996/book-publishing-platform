@@ -18,7 +18,7 @@ export default function AdminView() {
 
                 <div className="admin-actions">
                     <Link className="btn" to="/admin/users">View Users</Link>
-                    <Link className="btn" to="/admin/manage_books">Manage Books</Link>
+                    <Link className="btn" to="/admin/all-books">Manage Books</Link>
                     <button className="btn" onClick={logout}>
                         Logout
                     </button>

@@ -10,7 +10,7 @@ export default function Library() {
 
     useEffect(() => {
         async function fetchBooks() {
-            const response = await apiFetch('/api/books/published');
+            const response = await apiFetch('/api/books/released');
             const data = await response.json();
             setBooks(data);
         }
@@ -23,14 +23,14 @@ export default function Library() {
             <section className="library-hero">
                 <div>
                     <h1>Story Library</h1>
-                    <p>A complete collection of my published stories, ranging from short tales to longer narratives. Find your next favorite story here.</p>
+                    <p>A complete collection of stories with public releases, ranging from short tales to longer narratives. Find your next favorite story here.</p>
                 </div>
             </section>
 
             <main className="library-container">
                 {!Array.isArray(books) || books.length === 0 ? (
                     <div className="empty-state">
-                        <p>No published stories yet. Check back soon!</p>
+                        <p>No released stories yet. Check back soon!</p>
                     </div>
                 ) : (
                     <div className="books-grid">

@@ -58,7 +58,7 @@ export default function Home() {
 
             <section id="stories" style={{ justifyItems: "center", textAlign: "center", display: "grid" }}>
                 <h2>All Stories</h2>
-                <p>Explore the complete collection of my published works or start reading from the featured selection above.</p>
+                <p>Explore the complete collection of released works or start reading from the featured selection above.</p>
                 <Link to="/library" className="library-link">Browse Full Library</Link>
             </section>
         </>

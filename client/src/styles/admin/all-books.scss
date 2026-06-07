@@ -63,7 +63,7 @@
     margin-top: 20px;
     background-color: var(--surface-elevated-color);
     border-radius: 10px;
-    overflow: hidden;
+    overflow: visible;
     
     #books-table-header {
         display: flex;
@@ -71,6 +71,8 @@
         align-items: center;
         padding: 20px;
         border-bottom: 1px solid var(--border-color);
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
         
         #books-table-title {
             margin: 0;
@@ -82,6 +84,7 @@
     #books-table {
         width: 100%;
         border-collapse: collapse;
+        overflow: visible;
         
         thead {
             background-color: var(--surface-color);
@@ -101,6 +104,18 @@
                 &:hover {
                     background-color: var(--surface-color);
                 }
+
+                &:last-child {
+                    border-bottom: 0;
+
+                    td:first-child {
+                        border-bottom-left-radius: 10px;
+                    }
+
+                    td:last-child {
+                        border-bottom-right-radius: 10px;
+                    }
+                }
                 
                 td {
                     padding: 15px;
@@ -115,6 +130,7 @@
                             text-decoration: underline;
                         }
                     }
+
                 }
             }
         }

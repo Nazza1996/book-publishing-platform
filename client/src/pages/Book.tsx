@@ -13,7 +13,7 @@ export default function Book() {
     const [currentChapter, setCurrentChapter] = useState<number>(1);
 
     const navigate = useNavigate();
-    const isDraft = document.location.search.includes('version=draft');
+    const isPreview = document.location.search.includes('version=draft');
 
     useEffect(() => {
         async function fetchBook() {
@@ -23,7 +23,7 @@ export default function Book() {
             }
 
             try {
-                const version = isDraft ? 'draft' : 'published';
+                const version = isPreview ? 'draft' : 'public';
                 const res = await apiFetch(`/api/books/${slug}?version=${version}`, {
                     credentials: 'include',
                     toast: false,
@@ -55,6 +55,14 @@ export default function Book() {
         setPageTitle(book ? book.title : "Book");
     }, [book]);
 
+    useEffect(() => {
+        const firstChapter = book?.chapters?.[0];
+
+        if (firstChapter && !book.chapters.some((chapter: any) => chapter.chapterNumber === currentChapter)) {
+            setCurrentChapter(firstChapter.chapterNumber);
+        }
+    }, [book, currentChapter]);
+
     const selectChapter = (num: number, scrollIntoView: boolean = false) => {
         setCurrentChapter(num);
         if (scrollIntoView) {
@@ -67,7 +75,7 @@ export default function Book() {
                 <header className="books-site-hero">
                     <div>
                         <h1>{book?.title}</h1>
-                        {isDraft && <div className="book-badges"><span className="book-draft-badge">DRAFT</span></div>}
+                        {isPreview && <div className="book-badges"><span className="book-draft-badge">PREVIEW</span></div>}
                     </div>
                     <div className="book-controls">
                         <div className="back-to-library">

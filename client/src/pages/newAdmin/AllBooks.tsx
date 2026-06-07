@@ -5,14 +5,28 @@ import '../../styles/admin/shared-admin.scss';
 import '../../styles/admin/all-books.scss';
 import AdminNav from "./AdminNav";
 
+type BookStatus = "not_started" | "in_progress" | "on_hold" | "finished" | "cancelled";
+
 interface BookSummary {
     id: number;
     slug: string;
     title: string;
+    status?: BookStatus;
     updatedAt: string;
-    publishedVersionId?: number | null;
-    hasUnpublishedDrafts?: boolean;
+    nextRelease?: {
+        channel: string;
+        chapterNumber: number;
+        releaseAt: string;
+    } | null;
 }
+
+const statusLabels: Record<BookStatus, string> = {
+    not_started: "Not Started",
+    in_progress: "In Progress",
+    on_hold: "On Hold",
+    finished: "Finished",
+    cancelled: "Cancelled",
+};
 
 export default function AllBooks() {
     const navigate = useNavigate();
@@ -99,17 +113,33 @@ export default function AllBooks() {
                 ) : error ? (
                     <div className="admin-state error">{error}</div>
                 ) : (
-                    <BooksTable books={filteredBooks} />
+                    <BooksTable
+                        books={filteredBooks}
+                        onStatusChange={(bookId, status) => {
+                            setBooks((current) => current.map((book) =>
+                                book.id === bookId ? { ...book, status } : book
+                            ));
+                        }}
+                    />
                 )}
             </section>
         </div>
     )
 }
 
-function BooksTable({ books }: { books: BookSummary[] }) {
+function BooksTable({
+    books,
+    onStatusChange
+}: {
+    books: BookSummary[];
+    onStatusChange: (bookId: number, status: BookStatus) => void;
+}) {
+    const [savingStatusId, setSavingStatusId] = useState<number | null>(null);
+    const [openStatusId, setOpenStatusId] = useState<number | null>(null);
+
     function formatDate(dateString: string) {
         const date = new Date(dateString);
-        return new Intl.DateTimeFormat('en-GB', {
+        return new Intl.DateTimeFormat('en-US', {
             month: 'short',
             day: '2-digit',
             year: 'numeric'
@@ -123,20 +153,34 @@ function BooksTable({ books }: { books: BookSummary[] }) {
             day: '2-digit',
             year: 'numeric',
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+            timeZoneName: 'short',
         }).format(date);
     }
 
     function getStatus(book: BookSummary) {
-        if (!book.publishedVersionId) {
-            return "Draft";
-        }
+        return book.status ?? "in_progress";
+    }
 
-        if (book.hasUnpublishedDrafts) {
-            return "Published with drafts";
-        }
+    async function handleStatusChange(book: BookSummary, status: BookStatus) {
+        const previousStatus = getStatus(book);
 
-        return "Published";
+        onStatusChange(book.id, status);
+        setSavingStatusId(book.id);
+
+        try {
+            const res = await apiFetch(`/api/books/${book.id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+
+            if (!res.ok) {
+                onStatusChange(book.id, previousStatus);
+            }
+        } finally {
+            setSavingStatusId(null);
+        }
     }
 
     return (
@@ -154,14 +198,64 @@ function BooksTable({ books }: { books: BookSummary[] }) {
                             <th>Title</th>
                             <th>Status</th>
                             <th>Last Updated</th>
+                            <th>Next Release</th>
                         </tr>
                     </thead>
                     <tbody>
                         {books.map((book) => (
                             <tr key={book.id}>
                                 <td><Link to={`/admin/book/${book.slug}`} className="book-link">{book.title}</Link></td>
-                                <td>{getStatus(book)}</td>
+                                <td>
+                                    <div
+                                        className="status-dropdown"
+                                        onBlur={(event) => {
+                                            if (!event.currentTarget.contains(event.relatedTarget)) {
+                                                setOpenStatusId(null);
+                                            }
+                                        }}
+                                    >
+                                        <button
+                                            type="button"
+                                            className="status-dropdown-trigger"
+                                            onClick={() => setOpenStatusId(openStatusId === book.id ? null : book.id)}
+                                            disabled={savingStatusId === book.id}
+                                            aria-haspopup="listbox"
+                                            aria-expanded={openStatusId === book.id}
+                                            aria-label={`Change status for ${book.title}`}
+                                        >
+                                            <span className={`status-pill ${statusClassName(getStatus(book))}`}>{statusLabels[getStatus(book)]}</span>
+                                        </button>
+
+                                        {openStatusId === book.id && (
+                                            <div className="status-dropdown-menu" role="listbox" aria-label={`Status options for ${book.title}`}>
+                                                {Object.entries(statusLabels).map(([value, label]) => {
+                                                    const status = value as BookStatus;
+
+                                                    return (
+                                                        <button
+                                                            key={value}
+                                                            type="button"
+                                                            className={`status-dropdown-option ${getStatus(book) === status ? 'active' : ''}`}
+                                                            onMouseDown={(event) => event.preventDefault()}
+                                                            onClick={() => {
+                                                                setOpenStatusId(null);
+                                                                handleStatusChange(book, status);
+                                                            }}
+                                                            role="option"
+                                                            aria-selected={getStatus(book) === status}
+                                                        >
+                                                            <span className={`status-pill ${statusClassName(status)}`}>{label}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                </td>
                                 <td title={formatDateTitle(book.updatedAt)}>{formatDate(book.updatedAt)}</td>
+                                <td title={book.nextRelease ? formatDateTitle(book.nextRelease.releaseAt) : undefined}>
+                                    {book.nextRelease ? formatDate(book.nextRelease.releaseAt) : "-"}
+                                </td>
                             </tr>
                         ))}
                     </tbody>
@@ -169,4 +263,8 @@ function BooksTable({ books }: { books: BookSummary[] }) {
             )}
         </div>
     )
+}
+
+function statusClassName(status: BookStatus) {
+    return status.replace(/_/g, "-");
 }

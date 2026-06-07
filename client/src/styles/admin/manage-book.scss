@@ -1,16 +1,5 @@
 @use '../variables' as v;
 
-#manageBookView {
-    --admin-purple: #6d4be7;
-    --admin-purple-soft: rgba(109, 75, 231, 0.12);
-    --admin-blue: #2877e6;
-    --admin-blue-soft: rgba(40, 119, 230, 0.12);
-    --admin-green: #2f9f57;
-    --admin-green-soft: rgba(47, 159, 87, 0.12);
-    --admin-amber: #b67816;
-    --admin-amber-soft: rgba(182, 120, 22, 0.14);
-}
-
 #manageBookHeader {
     margin-bottom: 1.25rem;
     display: flex;
@@ -123,7 +112,14 @@
 
     textarea {
         min-height: 120px;
+        height: 300px;
         resize: vertical;
+    }
+}
+
+#manageBookDetailsTab {
+    .admin-panel {
+        overflow: visible;
     }
 }
 
@@ -175,6 +171,86 @@
 
 .admin-panel-body {
     padding: 1rem;
+}
+
+.admin-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(7, 24, 45, 0.55);
+}
+
+.admin-modal {
+    width: min(460px, 100%);
+    border: 1px solid var(--border-color);
+    border-radius: v.$radius-md;
+    background: var(--surface-color);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+    overflow: hidden;
+}
+
+.admin-modal-header,
+.admin-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.admin-modal-header {
+    border-bottom: 1px solid var(--border-color);
+
+    h2 {
+        margin: 0;
+        font-size: 1.05rem;
+    }
+}
+
+.admin-modal-body {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+
+    p {
+        margin: 0;
+        color: var(--body-text-color);
+        line-height: 1.55;
+    }
+}
+
+.admin-modal-actions {
+    justify-content: flex-end;
+    border-top: 1px solid var(--border-color);
+}
+
+.delete-release-warning {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    border: 1px solid rgba(170, 17, 17, 0.24);
+    border-radius: v.$radius-sm;
+    padding: 0.8rem;
+    background: rgba(170, 17, 17, 0.08);
+
+    strong {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        background: rgba(170, 17, 17, 0.12);
+        color: #a11;
+    }
+
+    span {
+        color: var(--body-text-color);
+        font-weight: 700;
+    }
 }
 
 .step-badge {
@@ -294,22 +370,36 @@
 
     &.published,
     &.released,
-    &.active {
+    &.active,
+    &.finished {
         color: var(--admin-green);
         background: var(--admin-green-soft);
     }
 
     &.draft,
     &.empty,
-    &.archived {
+    &.archived,
+    &.unreleased,
+    &.not-started {
         color: var(--secondary-text-color);
         background: var(--surface-elevated-color);
     }
 
     &.scheduled,
-    &.current {
+    &.current,
+    &.in-progress {
         color: var(--admin-amber);
         background: var(--admin-amber-soft);
+    }
+
+    &.on-hold {
+        color: var(--admin-blue);
+        background: var(--admin-blue-soft);
+    }
+
+    &.cancelled {
+        color: #a11;
+        background: rgba(170, 17, 17, 0.12);
     }
 
     &.alpha-readers {
@@ -562,6 +652,20 @@
     }
 }
 
+.reader-group-card {
+    border: 1px solid var(--border-color);
+    color: var(--body-text-color);
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+
+    &.active,
+    &:hover {
+        border-color: var(--admin-purple);
+        background: var(--admin-purple-soft);
+    }
+}
+
 .release-preview-item {
     justify-content: space-between;
 
@@ -589,10 +693,61 @@
 
 .revision-card {
     justify-content: space-between;
+    color: var(--body-text-color);
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+    width: 100%;
 
     &.active {
         border-color: var(--admin-purple);
         background: var(--admin-purple-soft);
+    }
+}
+
+.history-layout {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+    gap: 1rem;
+}
+
+.revision-preview {
+    border: 1px solid var(--border-color);
+    border-radius: v.$radius-md;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.revision-preview-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem;
+
+    h3 {
+        margin: 0;
+    }
+
+    p {
+        margin: 0.3rem 0 0;
+        color: var(--secondary-text-color);
+    }
+}
+
+.revision-preview-content {
+    max-height: 520px;
+    overflow: auto;
+    padding: 1rem;
+    line-height: 1.7;
+
+    p:first-child {
+        margin-top: 0;
+    }
+
+    p:last-child {
+        margin-bottom: 0;
     }
 }
 
@@ -657,6 +812,26 @@
     }
 }
 
+.reader-member-form,
+.feedback-form {
+    display: grid;
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+
+.reader-member-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+
+.feedback-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    textarea,
+    button {
+        grid-column: 1 / -1;
+    }
+}
+
 .feedback-card {
     align-items: stretch;
     flex-direction: column;
@@ -665,6 +840,12 @@
         margin: 0;
         line-height: 1.55;
     }
+}
+
+.feedback-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .feedback-card-header {
@@ -708,6 +889,9 @@
     }
 
     .feedback-toolbar,
+    .reader-member-form,
+    .feedback-form,
+    .history-layout,
     #manageBookTabContent .field-row {
         grid-template-columns: 1fr;
     }

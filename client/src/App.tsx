@@ -12,7 +12,6 @@ import Book from './pages/Book';
 import { PrivateRoute } from './components/PrivateRoute';
 import Login from './pages/Login';
 import Users from './pages/admin/Users';
-import ManageBooks from './pages/admin/manageBooks/ManageBooks';
 import AdminView from './pages/newAdmin/AdminView';
 import AllBooks from './pages/newAdmin/AllBooks';
 import ManageBook from './pages/newAdmin/ManageBook';
@@ -33,7 +32,6 @@ function App() {
               <Route path='/login' element={<Login />} />
               <Route path='/admin' element={<PrivateRoute><AdminView /></PrivateRoute>} />
               <Route path='/admin/users' element={<PrivateRoute><Users /></PrivateRoute>} />
-              <Route path='/admin/manage_books' element={<PrivateRoute><ManageBooks /></PrivateRoute>} />
               <Route path='/admin/all-books' element={<PrivateRoute><AllBooks /></PrivateRoute>} />
               <Route path='/admin/new-book' element={<PrivateRoute><ManageBook /></PrivateRoute>} />
               <Route path='/admin/book/:slug' element={<PrivateRoute><ManageBook /></PrivateRoute>} />

@@ -7,6 +7,7 @@ import '../../styles/admin/manage-book.scss';
 import AdminNav from "./AdminNav";
 
 type ReaderChannel = "alpha" | "beta" | "public";
+type BookStatus = "not_started" | "in_progress" | "on_hold" | "finished" | "cancelled";
 
 interface Chapter {
     id?: number;
@@ -21,9 +22,13 @@ interface BookEditorState {
     slug: string;
     title: string;
     description: string;
-    publishedVersionId: number | null;
-    versionStatus: string;
+    status: BookStatus;
+    isFeatured: boolean;
     chapters: Chapter[];
+    releases: ChapterRelease[];
+    readerGroups: ReaderGroup[];
+    feedback: ReaderFeedbackItem[];
+    chapterRevisions: ChapterRevision[];
 }
 
 interface ChannelMetadata {
@@ -34,11 +39,56 @@ interface ChannelMetadata {
 }
 
 interface ReaderGroup {
+    id?: number;
     key: ReaderChannel;
+    channel?: ReaderChannel;
     label: string;
+    name?: string;
     shortLabel: string;
     members: number;
+    memberCount?: number;
     tone: string;
+    description?: string;
+    memberList?: ReaderGroupMember[];
+}
+
+interface ChapterRelease {
+    id?: number;
+    channel: ReaderChannel;
+    chapterNumber: number;
+    title?: string;
+    content?: string;
+    status: "scheduled" | "released";
+    releaseAt: string | null;
+}
+
+interface ReaderGroupMember {
+    id?: number;
+    readerGroupId: number;
+    username: string;
+    status: "active" | "invited" | "removed";
+    joinedAt: string | null;
+}
+
+interface ReaderFeedbackItem {
+    id?: number;
+    channel: ReaderChannel;
+    chapterNumber: number | null;
+    readerUsername: string;
+    comment: string;
+    status: "open" | "reviewed" | "resolved";
+    createdAt?: string;
+}
+
+interface ChapterRevision {
+    id?: number;
+    chapterNumber: number;
+    revisionNumber: number;
+    title: string;
+    content: string | null;
+    sourceBookVersionId: number | null;
+    createdByLabel: string;
+    createdAt?: string;
 }
 
 const EMPTY_BOOK: BookEditorState = {
@@ -46,25 +96,37 @@ const EMPTY_BOOK: BookEditorState = {
     slug: "",
     title: "",
     description: "",
-    publishedVersionId: null,
-    versionStatus: "draft",
+    status: "in_progress",
+    isFeatured: false,
     chapters: [
         { title: "Chapter 1", content: "", chapterNumber: 1 }
-    ]
+    ],
+    releases: [],
+    readerGroups: [],
+    feedback: [],
+    chapterRevisions: []
 };
 
-const tabs = ["overview", "details", "chapters", "versions", "releases", "reader-groups", "feedback", "settings"];
+const tabs = ["overview", "details", "chapters", "history", "releases", "reader-groups", "feedback", "settings"];
 
 const readerGroups: ReaderGroup[] = [
-    { key: "alpha", label: "Alpha Readers", shortLabel: "A", members: 12, tone: "purple" },
-    { key: "beta", label: "Beta Readers", shortLabel: "B", members: 45, tone: "blue" },
+    { key: "alpha", label: "Alpha Readers", shortLabel: "A", members: 0, tone: "purple" },
+    { key: "beta", label: "Beta Readers", shortLabel: "B", members: 0, tone: "blue" },
     { key: "public", label: "Public Readers", shortLabel: "P", members: 0, tone: "green" }
 ];
+
+const bookStatusLabels: Record<BookStatus, string> = {
+    not_started: "Not Started",
+    in_progress: "In Progress",
+    on_hold: "On Hold",
+    finished: "Finished",
+    cancelled: "Cancelled",
+};
 
 const initialChannelMetadata: Record<ReaderChannel, ChannelMetadata> = {
     alpha: {
         description: "An early look at the story. Feedback is welcome.",
-        authorNote: "This is an early draft. Expect changes.",
+        authorNote: "This is an early working copy. Expect changes.",
         releaseLimit: 4,
         nextRelease: "Chapter 5"
     },
@@ -94,15 +156,21 @@ export default function ManageBook() {
     const [channelMetadata, setChannelMetadata] = useState(initialChannelMetadata);
     const [loading, setLoading] = useState(!isNewBook);
     const [saving, setSaving] = useState(false);
+    const [savingStatus, setSavingStatus] = useState(false);
+    const [togglingSpotlight, setTogglingSpotlight] = useState(false);
+    const [pendingReleaseDeleteIds, setPendingReleaseDeleteIds] = useState<number[]>([]);
     const [error, setError] = useState("");
 
     const currentTab = useMemo(() => {
         const hash = location.hash.substring(1).toLowerCase();
+        if (hash === "versions") {
+            return "history";
+        }
         return tabs.includes(hash) ? hash : "overview";
     }, [location.hash]);
 
     const selectedChapter = book.chapters[selectedChapterIndex] ?? book.chapters[0];
-    const isPublished = Boolean(book.publishedVersionId);
+    const hasPublicRelease = book.releases.some((release) => release.channel === "public" && release.status === "released");
 
     useEffect(() => {
         setPageTitle(isNewBook ? "New Book" : "Manage Book");
@@ -111,7 +179,9 @@ export default function ManageBook() {
     useEffect(() => {
         if (isNewBook) {
             setBook(EMPTY_BOOK);
+            setChannelMetadata(initialChannelMetadata);
             setSelectedChapterIndex(0);
+            setPendingReleaseDeleteIds([]);
             setLoading(false);
             setError("");
             return;
@@ -142,16 +212,21 @@ export default function ManageBook() {
                     slug: data.slug,
                     title: data.title ?? "",
                     description: data.description ?? "",
-                    publishedVersionId: data.publishedVersionId ?? null,
-                    versionStatus: data.versionStatus ?? "draft",
-                    chapters
+                    status: data.status ?? "in_progress",
+                    isFeatured: Boolean(data.isFeatured),
+                    chapters,
+                    releases: data.releases ?? [],
+                    readerGroups: normalizeReaderGroups(data.readerGroups),
+                    feedback: data.feedback ?? [],
+                    chapterRevisions: data.chapterRevisions ?? []
                 });
-                setChannelMetadata((current) => ({
-                    alpha: { ...current.alpha, description: data.description || current.alpha.description },
-                    beta: { ...current.beta, description: data.description || current.beta.description },
-                    public: { ...current.public, description: data.description || current.public.description }
-                }));
+                setChannelMetadata(data.channelMetadata ?? {
+                    alpha: { ...initialChannelMetadata.alpha, description: data.description || initialChannelMetadata.alpha.description },
+                    beta: { ...initialChannelMetadata.beta, description: data.description || initialChannelMetadata.beta.description },
+                    public: { ...initialChannelMetadata.public, description: data.description || initialChannelMetadata.public.description }
+                });
                 setSelectedChapterIndex(0);
+                setPendingReleaseDeleteIds([]);
             } finally {
                 if (isMounted) {
                     setLoading(false);
@@ -185,7 +260,8 @@ export default function ManageBook() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     book,
-                    scope: 'all'
+                    scope: 'all',
+                    channelMetadata
                 })
             });
 
@@ -202,6 +278,29 @@ export default function ManageBook() {
                 slug: nextSlug
             }));
 
+            if (pendingReleaseDeleteIds.length) {
+                try {
+                    const responses = await Promise.all(pendingReleaseDeleteIds.map((releaseId) =>
+                        apiFetch(`/api/books/${data.id ?? book.id}/releases/${releaseId}`, {
+                            method: 'DELETE'
+                        })
+                    ));
+
+                    const failedReleaseDeleteIds = pendingReleaseDeleteIds.filter((_, index) => !responses[index].ok);
+
+                    if (failedReleaseDeleteIds.length) {
+                        setPendingReleaseDeleteIds(failedReleaseDeleteIds);
+                        toast.error("Book saved, but some release cleanup failed");
+                        return;
+                    }
+
+                    setPendingReleaseDeleteIds([]);
+                } catch {
+                    toast.error("Book saved, but release cleanup failed");
+                    return;
+                }
+            }
+
             toast.success("Book saved successfully");
 
             if (isNewBook && nextSlug) {
@@ -214,6 +313,39 @@ export default function ManageBook() {
 
     function updateBookField(field: "title" | "description", value: string) {
         setBook((current) => ({ ...current, [field]: value }));
+    }
+
+    async function updateBookStatus(status: BookStatus) {
+        if (status === book.status) {
+            return;
+        }
+
+        const previousStatus = book.status;
+        setBook((current) => ({ ...current, status }));
+
+        if (!book.id) {
+            return;
+        }
+
+        setSavingStatus(true);
+
+        try {
+            const res = await apiFetch(`/api/books/${book.id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+
+            if (!res.ok) {
+                setBook((current) => ({ ...current, status: previousStatus }));
+                toast.error("Could not update book status");
+                return;
+            }
+
+            toast.success("Book status updated");
+        } finally {
+            setSavingStatus(false);
+        }
     }
 
     function updateChannelField(field: keyof ChannelMetadata, value: string | number) {
@@ -252,7 +384,25 @@ export default function ManageBook() {
         }));
     }
 
-    function handleDeleteChapter(index: number) {
+    async function handleDeleteChapter(index: number) {
+        const chapterToDelete = book.chapters[index];
+
+        if (!chapterToDelete) {
+            return false;
+        }
+
+        const releasesToDelete = book.releases.filter((release) =>
+            release.chapterNumber === chapterToDelete.chapterNumber
+        );
+
+        const persistedReleaseIds = releasesToDelete
+            .map((release) => release.id)
+            .filter((releaseId): releaseId is number => Boolean(releaseId));
+
+        if (persistedReleaseIds.length) {
+            setPendingReleaseDeleteIds((current) => Array.from(new Set([...current, ...persistedReleaseIds])));
+        }
+
         setBook((current) => {
             const chapters = current.chapters
                 .filter((_, chapterIndex) => chapterIndex !== index)
@@ -265,9 +415,269 @@ export default function ManageBook() {
 
             return {
                 ...current,
-                chapters: chapters.length ? chapters : EMPTY_BOOK.chapters
+                chapters: chapters.length ? chapters : EMPTY_BOOK.chapters,
+                releases: current.releases.filter((release) =>
+                    release.chapterNumber !== chapterToDelete.chapterNumber
+                )
             };
         });
+
+        if (releasesToDelete.length) {
+            toast.success("Releases for deleted chapter will be removed on save");
+        }
+
+        return true;
+    }
+
+    async function handleToggleSpotlight() {
+        if (!book.id) {
+            toast.error("Save this book before changing spotlight status");
+            return;
+        }
+
+        if (!hasPublicRelease) {
+            toast.error("Only books with public releases can be spotlighted");
+            return;
+        }
+
+        setTogglingSpotlight(true);
+
+        try {
+            const res = await apiFetch('/api/books/toggleFeatured', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: book.id })
+            });
+
+            if (res.ok) {
+                setBook((current) => ({ ...current, isFeatured: !current.isFeatured }));
+                toast.success("Spotlight status updated");
+            }
+        } finally {
+            setTogglingSpotlight(false);
+        }
+    }
+
+    async function handleScheduleRelease(input: {
+        channel: ReaderChannel;
+        chapterNumber: number;
+        releaseAt: string | null;
+        status?: ChapterRelease["status"];
+    }) {
+        if (!book.id) {
+            toast.error("Save this book before scheduling a release");
+            return;
+        }
+
+        const chapter = book.chapters.find((item) => item.chapterNumber === input.chapterNumber);
+
+        if (!chapter) {
+            toast.error("Chapter not found");
+            return;
+        }
+
+        const res = await apiFetch(`/api/books/${book.id}/releases`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...input,
+                title: chapter.title,
+                content: chapter.content,
+                status: input.status ?? "scheduled"
+            })
+        });
+
+        if (!res.ok) {
+            return;
+        }
+
+        const release = await res.json();
+        setBook((current) => ({
+            ...current,
+            releases: [
+                ...current.releases.filter((item) => !(item.channel === release.channel && item.chapterNumber === release.chapterNumber)),
+                release
+            ]
+        }));
+        toast.success(input.status === "released" ? "Chapter released" : "Release scheduled");
+    }
+
+    async function handleDeleteRelease(releaseId: number) {
+        if (!book.id) {
+            return;
+        }
+
+        const res = await apiFetch(`/api/books/${book.id}/releases/${releaseId}`, {
+            method: 'DELETE'
+        });
+
+        if (!res.ok) {
+            return;
+        }
+
+        setBook((current) => ({
+            ...current,
+            releases: current.releases.filter((release) => release.id !== releaseId)
+        }));
+        setPendingReleaseDeleteIds((current) => current.filter((id) => id !== releaseId));
+        toast.success("Release removed");
+    }
+
+    async function handleCreateRevision(chapterNumber: number) {
+        if (!book.id) {
+            toast.error("Save this book before creating revisions");
+            return;
+        }
+
+        const res = await apiFetch(`/api/books/${book.id}/chapters/${chapterNumber}/revisions`, {
+            method: 'POST'
+        });
+
+        if (!res.ok) {
+            return;
+        }
+
+        const revision = await res.json();
+        setBook((current) => ({
+            ...current,
+            chapterRevisions: [
+                revision,
+                ...current.chapterRevisions.filter((item) => item.id !== revision.id)
+            ]
+        }));
+        toast.success("Revision snapshot created");
+    }
+
+    async function handleRestoreRevision(revision: ChapterRevision) {
+        if (!book.id || !revision.id) {
+            toast.error("Save this book before restoring revisions");
+            return;
+        }
+
+        const res = await apiFetch(`/api/books/${book.id}/chapters/${revision.chapterNumber}/revisions/${revision.id}/restore`, {
+            method: 'POST'
+        });
+
+        if (!res.ok) {
+            return;
+        }
+
+        const restoredChapter = await res.json();
+        setBook((current) => ({
+            ...current,
+            chapters: current.chapters.some((chapter) => chapter.chapterNumber === restoredChapter.chapterNumber)
+                ? current.chapters.map((chapter) =>
+                    chapter.chapterNumber === restoredChapter.chapterNumber
+                        ? {
+                            ...chapter,
+                            title: restoredChapter.title,
+                            content: restoredChapter.content ?? "",
+                            updatedAt: restoredChapter.updatedAt
+                        }
+                        : chapter
+                )
+                : [
+                    ...current.chapters,
+                    {
+                        title: restoredChapter.title,
+                        content: restoredChapter.content ?? "",
+                        chapterNumber: restoredChapter.chapterNumber,
+                        updatedAt: restoredChapter.updatedAt
+                    }
+                ].sort((a, b) => a.chapterNumber - b.chapterNumber)
+        }));
+        toast.success("Revision restored to working copy");
+    }
+
+    async function handleAddReaderGroupMember(groupId: number, username: string) {
+        if (!book.id) {
+            toast.error("Save this book before adding readers");
+            return;
+        }
+
+        const res = await apiFetch(`/api/books/${book.id}/reader-groups/${groupId}/members`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username })
+        });
+
+        if (!res.ok) {
+            return;
+        }
+
+        const member = await res.json();
+        setBook((current) => ({
+            ...current,
+            readerGroups: current.readerGroups.map((group) => {
+                if (group.id !== groupId) {
+                    return group;
+                }
+
+                const memberList = [
+                    member,
+                    ...(group.memberList ?? []).filter((item) => item.id !== member.id)
+                ];
+
+                return {
+                    ...group,
+                    memberList,
+                    members: memberList.filter((item) => item.status !== "removed").length,
+                    memberCount: memberList.filter((item) => item.status !== "removed").length
+                };
+            })
+        }));
+        toast.success("Reader added");
+    }
+
+    async function handleCreateFeedback(input: {
+        channel: ReaderChannel;
+        chapterNumber: number | null;
+        readerUsername: string;
+        comment: string;
+    }) {
+        if (!book.id) {
+            toast.error("Save this book before adding feedback");
+            return;
+        }
+
+        const res = await apiFetch(`/api/books/${book.id}/feedback`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(input)
+        });
+
+        if (!res.ok) {
+            return;
+        }
+
+        const feedback = await res.json();
+        setBook((current) => ({
+            ...current,
+            feedback: [feedback, ...current.feedback]
+        }));
+        toast.success("Feedback added");
+    }
+
+    async function handleFeedbackStatus(feedbackId: number, status: ReaderFeedbackItem["status"]) {
+        if (!book.id) {
+            return;
+        }
+
+        const res = await apiFetch(`/api/books/${book.id}/feedback/${feedbackId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+        });
+
+        if (!res.ok) {
+            return;
+        }
+
+        const feedback = await res.json();
+        setBook((current) => ({
+            ...current,
+            feedback: current.feedback.map((item) => item.id === feedback.id ? feedback : item)
+        }));
     }
 
     return (
@@ -283,9 +693,13 @@ export default function ManageBook() {
                         <BookWorkspaceHeader
                             book={book}
                             isNewBook={isNewBook}
-                            isPublished={isPublished}
+                            hasPublicRelease={hasPublicRelease}
                             saving={saving}
+                            savingStatus={savingStatus}
+                            togglingSpotlight={togglingSpotlight}
                             onSave={handleSaveDraft}
+                            onStatusChange={updateBookStatus}
+                            onToggleSpotlight={handleToggleSpotlight}
                         />
 
                         <Tablist activeTab={currentTab} />
@@ -297,6 +711,9 @@ export default function ManageBook() {
                                     groups={readerGroups}
                                     metadata={channelMetadata}
                                     selectedChapter={selectedChapter}
+                                    releases={book.releases}
+                                    readerGroups={book.readerGroups}
+                                    feedback={book.feedback}
                                     onNavigate={(tab) => navigate(`#${tab}`)}
                                 />
                             )}
@@ -318,27 +735,48 @@ export default function ManageBook() {
                                     selectedChapter={selectedChapter}
                                     groups={readerGroups}
                                     metadata={channelMetadata}
+                                    releases={book.releases}
                                     onAddChapter={handleAddChapter}
                                     onSelectChapter={setSelectedChapterIndex}
                                     onUpdateChapter={updateChapter}
                                     onDeleteChapter={handleDeleteChapter}
+                                    onReleaseNow={(channel, chapterNumber) => handleScheduleRelease({ channel, chapterNumber, releaseAt: new Date().toISOString(), status: "released" })}
                                 />
                             )}
-                            {currentTab === "versions" && (
-                                <VersionsTab selectedChapter={selectedChapter} />
+                            {currentTab === "history" && (
+                                <VersionsTab
+                                    selectedChapter={selectedChapter}
+                                    revisions={book.chapterRevisions}
+                                    onCreateRevision={handleCreateRevision}
+                                    onRestoreRevision={handleRestoreRevision}
+                                />
                             )}
                             {currentTab === "releases" && (
                                 <ReleasesTab
                                     groups={readerGroups}
                                     metadata={channelMetadata}
+                                    releases={book.releases}
                                     selectedChapter={selectedChapter}
+                                    chapters={book.chapters}
+                                    onScheduleRelease={handleScheduleRelease}
+                                    onDeleteRelease={handleDeleteRelease}
                                 />
                             )}
                             {currentTab === "reader-groups" && (
-                                <ReaderGroupsTab groups={readerGroups} />
+                                <ReaderGroupsTab
+                                    groups={book.readerGroups.length ? book.readerGroups : readerGroups}
+                                    onAddMember={handleAddReaderGroupMember}
+                                />
                             )}
                             {currentTab === "feedback" && (
-                                <FeedbackTab groups={readerGroups} selectedChapter={selectedChapter} />
+                                <FeedbackTab
+                                    groups={book.readerGroups.length ? book.readerGroups : readerGroups}
+                                    chapters={book.chapters}
+                                    feedback={book.feedback}
+                                    selectedChapter={selectedChapter}
+                                    onCreateFeedback={handleCreateFeedback}
+                                    onFeedbackStatus={handleFeedbackStatus}
+                                />
                             )}
                             {currentTab === "settings" && (
                                 <SettingsTab book={book} />
@@ -372,15 +810,23 @@ export default function ManageBook() {
 function BookWorkspaceHeader({
     book,
     isNewBook,
-    isPublished,
+    hasPublicRelease,
     saving,
-    onSave
+    savingStatus,
+    togglingSpotlight,
+    onSave,
+    onStatusChange,
+    onToggleSpotlight
 }: {
     book: BookEditorState;
     isNewBook: boolean;
-    isPublished: boolean;
+    hasPublicRelease: boolean;
     saving: boolean;
+    savingStatus: boolean;
+    togglingSpotlight: boolean;
     onSave: () => void;
+    onStatusChange: (status: BookStatus) => void;
+    onToggleSpotlight: () => void;
 }) {
     return (
         <div id="manageBookHeader">
@@ -392,16 +838,28 @@ function BookWorkspaceHeader({
                 </div>
                 <h1>{isNewBook ? "New Book" : book.title || "Untitled Book"}</h1>
                 <div className="title-row-meta">
-                    <span className={`status-pill ${isPublished ? "published" : "draft"}`}>
-                        {isPublished ? "Published" : "Draft"}
-                    </span>
+                    <BookStatusDropdown status={book.status} onChange={onStatusChange} disabled={savingStatus} />
                     <span>{book.chapters.length} chapters</span>
                     <span>{countBookWords(book).toLocaleString()} words</span>
+                    <span>{countReleasedChapters(book.releases, "public")} public releases</span>
                 </div>
             </div>
 
             <div className="admin-header-actions">
-                <button className="secondary-btn" type="button">Preview Book</button>
+                {book.slug ? (
+                    <Link className="secondary-btn" to={`/book/${book.slug}?version=draft`} target="_blank" rel="noreferrer">Preview Book</Link>
+                ) : (
+                    <button className="secondary-btn" type="button" disabled>Preview Book</button>
+                )}
+                <button
+                    className={book.isFeatured && hasPublicRelease ? "spotlight-btn active" : "spotlight-btn"}
+                    type="button"
+                    onClick={onToggleSpotlight}
+                    disabled={!hasPublicRelease || togglingSpotlight}
+                    title={hasPublicRelease ? "Toggle homepage spotlight" : "Release at least one public chapter before spotlighting it"}
+                >
+                    {book.isFeatured && hasPublicRelease ? "Spotlight On" : "Spotlight Off"}
+                </button>
                 <button className="primary-btn" type="button" onClick={onSave} disabled={saving}>
                     {saving ? "Saving..." : "Save Changes"}
                 </button>
@@ -415,14 +873,22 @@ function OverviewTab({
     groups,
     metadata,
     selectedChapter,
+    releases,
+    readerGroups,
+    feedback,
     onNavigate
 }: {
     book: BookEditorState;
     groups: ReaderGroup[];
     metadata: Record<ReaderChannel, ChannelMetadata>;
     selectedChapter?: Chapter;
+    releases: ChapterRelease[];
+    readerGroups: ReaderGroup[];
+    feedback: ReaderFeedbackItem[];
     onNavigate: (tab: string) => void;
 }) {
+    const activeGroups = readerGroups.length ? readerGroups : groups;
+
     return (
         <div className="admin-grid overview-grid">
             <Panel step="1" title="Book Details" description="Shared metadata and channel-specific reader copy.">
@@ -432,8 +898,8 @@ function OverviewTab({
                         <strong>{book.title || "Untitled Book"}</strong>
                     </div>
                     <div>
-                        <span>Status</span>
-                        <strong>{book.publishedVersionId ? "Published" : "Draft"}</strong>
+                        <span>Release Availability</span>
+                        <strong>{getBookReleaseAvailability(book.releases)}</strong>
                     </div>
                     <div>
                         <span>Slug</span>
@@ -443,8 +909,8 @@ function OverviewTab({
                 <button className="secondary-btn panel-action" onClick={() => onNavigate("details")}>Edit Details</button>
             </Panel>
 
-            <Panel step="2" title="Chapters Overview" description="Draft chapter list with release availability.">
-                <ChapterMiniTable chapters={book.chapters} groups={groups} metadata={metadata} />
+            <Panel step="2" title="Chapters Overview" description="Working chapter list with release availability.">
+                <ChapterMiniTable chapters={book.chapters} groups={groups} metadata={metadata} releases={releases} />
                 <button className="secondary-btn panel-action" onClick={() => onNavigate("chapters")}>Open Chapters</button>
             </Panel>
 
@@ -457,15 +923,15 @@ function OverviewTab({
             </Panel>
 
             <Panel step="4" title="Release Preview" description="What each reader group can access.">
-                <ReleasePreview groups={groups} metadata={metadata} />
+                <ReleasePreview groups={groups} metadata={metadata} releases={releases} />
             </Panel>
 
             <Panel step="5" title="Reader Groups" description="Access groups for staged releases.">
-                <ReaderGroupCards groups={groups} />
+                <ReaderGroupCards groups={activeGroups} />
             </Panel>
 
             <Panel step="6" title="Feedback" description="Recent reader feedback.">
-                <FeedbackList groups={groups} selectedChapter={selectedChapter} compact />
+                <FeedbackList groups={activeGroups} feedback={feedback} selectedChapter={selectedChapter} compact />
             </Panel>
         </div>
     );
@@ -539,10 +1005,6 @@ function DetailsTab({
                                 <textarea id="authorNote" maxLength={500} value={metadata.authorNote} onChange={(e) => onChannelFieldChange("authorNote", e.target.value)} />
                                 <small>{metadata.authorNote.length} / 500</small>
                             </div>
-                            <div className="field">
-                                <label htmlFor="releaseLimit">Current Release Limit</label>
-                                <input id="releaseLimit" type="number" min="0" value={metadata.releaseLimit} onChange={(e) => onChannelFieldChange("releaseLimit", Number(e.target.value))} />
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -557,21 +1019,44 @@ function ChaptersTab({
     selectedChapter,
     groups,
     metadata,
+    releases,
     onAddChapter,
     onSelectChapter,
     onUpdateChapter,
-    onDeleteChapter
+    onDeleteChapter,
+    onReleaseNow
 }: {
     book: BookEditorState;
     selectedChapterIndex: number;
     selectedChapter?: Chapter;
     groups: ReaderGroup[];
     metadata: Record<ReaderChannel, ChannelMetadata>;
+    releases: ChapterRelease[];
     onAddChapter: () => void;
     onSelectChapter: (index: number) => void;
     onUpdateChapter: (index: number, updates: Partial<Chapter>) => void;
-    onDeleteChapter: (index: number) => void;
+    onDeleteChapter: (index: number) => boolean | Promise<boolean>;
+    onReleaseNow: (channel: ReaderChannel, chapterNumber: number) => void;
 }) {
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deletingChapter, setDeletingChapter] = useState(false);
+    const selectedChapterReleases = selectedChapter
+        ? releases.filter((release) => release.chapterNumber === selectedChapter.chapterNumber)
+        : [];
+
+    async function confirmDeleteChapter() {
+        setDeletingChapter(true);
+
+        try {
+            const deleted = await onDeleteChapter(selectedChapterIndex);
+            if (deleted) {
+                setDeleteModalOpen(false);
+            }
+        } finally {
+            setDeletingChapter(false);
+        }
+    }
+
     return (
         <div className="chapter-workspace">
             <aside className="chapter-sidebar">
@@ -588,7 +1073,6 @@ function ChaptersTab({
                         >
                             <span>{chapter.chapterNumber}</span>
                             <strong>{chapter.title}</strong>
-                            <StatusPill label={getChapterStatus(chapter, book.publishedVersionId)} />
                         </button>
                     ))}
                 </div>
@@ -632,7 +1116,7 @@ function ChaptersTab({
 
                                 <div className="editor-footer">
                                     <span>{countWords(selectedChapter.content).toLocaleString()} words</span>
-                                    <button className="danger-btn" onClick={() => onDeleteChapter(selectedChapterIndex)} disabled={book.chapters.length === 1}>Delete Chapter</button>
+                                    <button className="danger-btn" onClick={() => setDeleteModalOpen(true)} disabled={book.chapters.length === 1}>Delete Chapter</button>
                                 </div>
                             </>
                         )}
@@ -641,11 +1125,11 @@ function ChaptersTab({
 
                 <aside className="release-sidebar">
                     <Panel title="Release Overview" description="Reader access by channel.">
-                        <ReleasePreview groups={groups} metadata={metadata} />
+                        <ReleasePreview groups={groups} metadata={metadata} releases={releases} />
                     </Panel>
                     <Panel title="Quick Actions">
                         {groups.map((group) => (
-                            <button key={group.key} className="quick-action">
+                            <button key={group.key} className="quick-action" onClick={() => selectedChapter && onReleaseNow(group.key, selectedChapter.chapterNumber)} disabled={!selectedChapter}>
                                 Release to {group.label}
                                 <span>{">"}</span>
                             </button>
@@ -653,30 +1137,117 @@ function ChaptersTab({
                     </Panel>
                 </aside>
             </div>
+
+            {deleteModalOpen && selectedChapter && (
+                <div className="admin-modal-backdrop" role="presentation" onMouseDown={() => !deletingChapter && setDeleteModalOpen(false)}>
+                    <div
+                        className="admin-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="deleteChapterModalTitle"
+                        onMouseDown={(event) => event.stopPropagation()}
+                    >
+                        <div className="admin-modal-header">
+                            <h2 id="deleteChapterModalTitle">Delete Chapter {selectedChapter.chapterNumber}?</h2>
+                            <button className="icon-btn" type="button" onClick={() => setDeleteModalOpen(false)} disabled={deletingChapter} aria-label="Close delete chapter modal">x</button>
+                        </div>
+                        <div className="admin-modal-body">
+                            <p>
+                                This will delete "{selectedChapter.title}" from the working copy. All associated releases for this chapter will be removed when you save changes.
+                            </p>
+                            <div className="delete-release-warning">
+                                <strong>{selectedChapterReleases.length}</strong>
+                                <span>{selectedChapterReleases.length === 1 ? "release queued for removal" : "releases queued for removal"}</span>
+                            </div>
+                        </div>
+                        <div className="admin-modal-actions">
+                            <button className="secondary-btn" type="button" onClick={() => setDeleteModalOpen(false)} disabled={deletingChapter}>Cancel</button>
+                            <button className="danger-btn" type="button" onClick={confirmDeleteChapter} disabled={deletingChapter}>
+                                {deletingChapter ? "Deleting..." : "Delete Chapter"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
 
-function VersionsTab({ selectedChapter }: { selectedChapter?: Chapter }) {
-    const revisions = [5, 4, 3, 2, 1];
+function VersionsTab({
+    selectedChapter,
+    revisions,
+    onCreateRevision,
+    onRestoreRevision
+}: {
+    selectedChapter?: Chapter;
+    revisions: ChapterRevision[];
+    onCreateRevision: (chapterNumber: number) => void;
+    onRestoreRevision: (revision: ChapterRevision) => void;
+}) {
+    const chapterRevisions = revisions.filter((revision) => revision.chapterNumber === selectedChapter?.chapterNumber);
+    const [selectedRevisionId, setSelectedRevisionId] = useState<number | null>(chapterRevisions[0]?.id ?? null);
+    const selectedRevision = chapterRevisions.find((revision) => revision.id === selectedRevisionId) ?? chapterRevisions[0] ?? null;
+
+    useEffect(() => {
+        setSelectedRevisionId(chapterRevisions[0]?.id ?? null);
+    }, [selectedChapter?.chapterNumber, revisions.length]);
 
     return (
-        <Panel step="4" title="Versions & Revisions" description="Track and manage revisions for this chapter.">
-            <div className="revision-list">
-                {revisions.map((revision, index) => (
-                    <div className={index === 0 ? "revision-card active" : "revision-card"} key={revision}>
-                        <div>
-                            <strong>Revision {revision}{index === 0 ? " (Current)" : ""}</strong>
-                            <span>{selectedChapter?.title ?? "Selected Chapter"}</span>
-                        </div>
-                        <div>
-                            <StatusPill label={index === 0 ? "Current" : "Archived"} />
-                            <span>{Math.max(250, countWords(selectedChapter?.content ?? "") - index * 110).toLocaleString()} words</span>
-                        </div>
-                    </div>
-                ))}
+        <Panel step="4" title="Chapter History" description="Preview previous snapshots and restore one into the current working copy.">
+            <div className="history-layout">
+                <div className="revision-list">
+                    {chapterRevisions.length === 0 ? (
+                        <div className="admin-empty-state">No revisions yet. Create a snapshot from the current working copy.</div>
+                    ) : chapterRevisions.map((revision, index) => (
+                        <button
+                            type="button"
+                            className={selectedRevision?.id === revision.id ? "revision-card active" : "revision-card"}
+                            key={revision.id ?? revision.revisionNumber}
+                            onClick={() => setSelectedRevisionId(revision.id ?? null)}
+                        >
+                            <div>
+                                <strong>Revision {revision.revisionNumber}{index === 0 ? " (Latest)" : ""}</strong>
+                                <span>{revision.title}</span>
+                                <span>{revision.createdAt ? new Date(revision.createdAt).toLocaleString('en-GB') : "No timestamp"}</span>
+                            </div>
+                            <div>
+                                <StatusPill label={index === 0 ? "Latest" : "Snapshot"} />
+                                <span>{countWords(revision.content ?? "").toLocaleString()} words</span>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+
+                <div className="revision-preview">
+                    {selectedRevision ? (
+                        <>
+                            <div className="revision-preview-header">
+                                <div>
+                                    <h3>{selectedRevision.title}</h3>
+                                    <p>Revision {selectedRevision.revisionNumber} by {selectedRevision.createdByLabel}</p>
+                                </div>
+                                <button className="primary-btn" onClick={() => onRestoreRevision(selectedRevision)}>
+                                    Restore to Working Copy
+                                </button>
+                            </div>
+                            <div className="revision-preview-content">
+                                {(selectedRevision.content || "This revision has no content.").split(/\n{2,}/).map((paragraph, index) => (
+                                    <p key={index}>{paragraph}</p>
+                                ))}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="admin-empty-state">Select a revision to preview it.</div>
+                    )}
+                </div>
             </div>
-            <button className="secondary-btn centered-action">Create New Revision</button>
+            <button
+                className="secondary-btn centered-action"
+                onClick={() => selectedChapter && onCreateRevision(selectedChapter.chapterNumber)}
+                disabled={!selectedChapter}
+            >
+                Create Snapshot
+            </button>
         </Panel>
     );
 }
@@ -684,23 +1255,60 @@ function VersionsTab({ selectedChapter }: { selectedChapter?: Chapter }) {
 function ReleasesTab({
     groups,
     metadata,
-    selectedChapter
+    releases,
+    selectedChapter,
+    chapters,
+    onScheduleRelease,
+    onDeleteRelease
 }: {
     groups: ReaderGroup[];
     metadata: Record<ReaderChannel, ChannelMetadata>;
+    releases: ChapterRelease[];
     selectedChapter?: Chapter;
+    chapters: Chapter[];
+    onScheduleRelease: (input: {
+        channel: ReaderChannel;
+        chapterNumber: number;
+        releaseAt: string | null;
+        status?: ChapterRelease["status"];
+    }) => void;
+    onDeleteRelease: (releaseId: number) => void;
 }) {
+    const [scheduleChannel, setScheduleChannel] = useState<ReaderChannel>("beta");
+    const [scheduleChapterNumber, setScheduleChapterNumber] = useState(selectedChapter?.chapterNumber ?? chapters[0]?.chapterNumber ?? 1);
+    const [releaseDate, setReleaseDate] = useState("");
+    const [releaseTime, setReleaseTime] = useState("10:00");
+
+    function submitSchedule() {
+        const releaseAt = releaseDate ? `${releaseDate}T${releaseTime || "10:00"}:00` : null;
+
+        onScheduleRelease({
+            channel: scheduleChannel,
+            chapterNumber: scheduleChapterNumber,
+            releaseAt
+        });
+    }
+
+    function releaseNow() {
+        onScheduleRelease({
+            channel: scheduleChannel,
+            chapterNumber: scheduleChapterNumber,
+            releaseAt: new Date().toISOString(),
+            status: "released"
+        });
+    }
+
     return (
         <div className="release-grid">
             <Panel step="5" title="Release Preview" description="See how this chapter is released to each reader group.">
-                <ReleasePreview groups={groups} metadata={metadata} />
+                <ReleasePreview groups={groups} metadata={metadata} releases={releases} />
             </Panel>
 
             <Panel step="6" title="Schedule Release" description="Plan when chapters go live for each reader group.">
                 <div className="schedule-form">
                     <label>
                         Reader Group
-                        <select defaultValue="beta">
+                        <select value={scheduleChannel} onChange={(e) => setScheduleChannel(e.target.value as ReaderChannel)}>
                             {groups.map((group) => (
                                 <option value={group.key} key={group.key}>{group.label}</option>
                             ))}
@@ -708,67 +1316,111 @@ function ReleasesTab({
                     </label>
                     <label>
                         Release Chapter
-                        <select defaultValue={selectedChapter?.chapterNumber ?? 1}>
-                            <option value={selectedChapter?.chapterNumber ?? 1}>{selectedChapter?.title ?? "Current Chapter"}</option>
+                        <select value={scheduleChapterNumber} onChange={(e) => setScheduleChapterNumber(Number(e.target.value))}>
+                            {chapters.map((chapter) => (
+                                <option key={chapter.chapterNumber} value={chapter.chapterNumber}>
+                                    Chapter {chapter.chapterNumber}: {chapter.title}
+                                </option>
+                            ))}
                         </select>
                     </label>
                     <label>
                         Release Date
-                        <input type="date" defaultValue="2026-06-10" />
+                        <input type="date" value={releaseDate} onChange={(e) => setReleaseDate(e.target.value)} />
                     </label>
                     <label>
                         Release Time
-                        <input type="time" defaultValue="10:00" />
+                        <input type="time" value={releaseTime} onChange={(e) => setReleaseTime(e.target.value)} />
                     </label>
-                    <label className="checkbox-row">
-                        <input type="checkbox" defaultChecked />
-                        Notify readers when released
-                    </label>
-                    <button className="primary-btn">Schedule Release</button>
+                    <button className="primary-btn" onClick={submitSchedule}>Schedule Release</button>
+                    <button className="secondary-btn" onClick={releaseNow}>Release Now</button>
                 </div>
             </Panel>
 
             <Panel title="Schedule">
                 <div className="schedule-list">
-                    {groups.map((group, index) => (
-                        <div className="schedule-item" key={group.key}>
-                            <div className="schedule-date">
-                                <span>JUN</span>
-                                <strong>{10 + index * 7}</strong>
-                            </div>
-                            <div>
-                                <strong>{selectedChapter?.title ?? "Next Chapter"}</strong>
-                                <span>{group.label} at 10:00 AM</span>
-                            </div>
-                            <StatusPill label="Scheduled" />
-                        </div>
-                    ))}
+                    {releases.length === 0 ? (
+                        <div className="admin-empty-state">No releases scheduled yet.</div>
+                    ) : (
+                        releases.map((release) => {
+                            const group = groups.find((item) => item.key === release.channel);
+                            const chapter = chapters.find((item) => item.chapterNumber === release.chapterNumber);
+                            const date = release.releaseAt ? new Date(release.releaseAt) : null;
+
+                            return (
+                                <div className="schedule-item" key={release.id ?? `${release.channel}-${release.chapterNumber}`}>
+                                    <div className="schedule-date">
+                                        <span>{date ? date.toLocaleString('en-GB', { month: 'short' }).toUpperCase() : "TBD"}</span>
+                                        <strong>{date ? date.getDate() : "-"}</strong>
+                                    </div>
+                                    <div>
+                                        <strong>{chapter?.title ?? `Chapter ${release.chapterNumber}`}</strong>
+                                        <span>{group?.label ?? release.channel} {date ? `at ${date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : ""}</span>
+                                    </div>
+                                    <StatusPill label={release.status} />
+                                    {release.id && (
+                                        <button className="danger-btn" onClick={() => onDeleteRelease(release.id!)}>
+                                            {release.status === "scheduled" ? "Cancel" : "Revert"}
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
                 </div>
             </Panel>
         </div>
     );
 }
 
-function ReaderGroupsTab({ groups }: { groups: ReaderGroup[] }) {
+function ReaderGroupsTab({
+    groups,
+    onAddMember
+}: {
+    groups: ReaderGroup[];
+    onAddMember: (groupId: number, username: string) => void;
+}) {
+    const [activeGroupId, setActiveGroupId] = useState(groups[0]?.id ?? 0);
+    const [username, setUsername] = useState("");
+    const activeGroup = groups.find((group) => group.id === activeGroupId) ?? groups[0];
+
+    function submitMember() {
+        if (!activeGroup?.id) {
+            toast.error("Save this book before adding readers");
+            return;
+        }
+
+        onAddMember(activeGroup.id, username);
+        setUsername("");
+    }
+
     return (
         <Panel step="7" title="Reader Groups" description="Manage who can access each reader group.">
-            <ReaderGroupCards groups={groups} />
+            <ReaderGroupCards groups={groups} activeGroupId={activeGroup?.id} onSelect={setActiveGroupId} />
+
+            <div className="reader-member-form">
+                <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+                <button className="primary-btn" onClick={submitMember}>Add Member</button>
+            </div>
+
             <table className="admin-data-table">
                 <thead>
                     <tr>
                         <th>Member</th>
-                        <th>Email</th>
                         <th>Joined</th>
                         <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {["lira.reader@example.com", "kael.fan@example.com", "storm.chaser@example.com"].map((email, index) => (
-                        <tr key={email}>
-                            <td>{email.split("@")[0]}</td>
-                            <td>{email}</td>
-                            <td>{new Date(2026, 4, index + 1).toLocaleDateString('en-GB')}</td>
-                            <td><StatusPill label="Active" /></td>
+                    {(activeGroup?.memberList ?? []).length === 0 ? (
+                        <tr>
+                            <td colSpan={3}>No members in this group yet.</td>
+                        </tr>
+                    ) : (activeGroup?.memberList ?? []).map((member) => (
+                        <tr key={member.id ?? member.username}>
+                            <td>{member.username}</td>
+                            <td>{member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('en-GB') : "-"}</td>
+                            <td><StatusPill label={member.status} /></td>
                         </tr>
                     ))}
                 </tbody>
@@ -777,7 +1429,42 @@ function ReaderGroupsTab({ groups }: { groups: ReaderGroup[] }) {
     );
 }
 
-function FeedbackTab({ groups, selectedChapter }: { groups: ReaderGroup[]; selectedChapter?: Chapter }) {
+function FeedbackTab({
+    groups,
+    chapters,
+    feedback,
+    selectedChapter,
+    onCreateFeedback,
+    onFeedbackStatus
+}: {
+    groups: ReaderGroup[];
+    chapters: Chapter[];
+    feedback: ReaderFeedbackItem[];
+    selectedChapter?: Chapter;
+    onCreateFeedback: (input: {
+        channel: ReaderChannel;
+        chapterNumber: number | null;
+        readerUsername: string;
+        comment: string;
+    }) => void;
+    onFeedbackStatus: (feedbackId: number, status: ReaderFeedbackItem["status"]) => void;
+}) {
+    const [channel, setChannel] = useState<ReaderChannel>("alpha");
+    const [chapterNumber, setChapterNumber] = useState<number | "">(selectedChapter?.chapterNumber ?? "");
+    const [readerUsername, setReaderUsername] = useState("");
+    const [comment, setComment] = useState("");
+
+    function submitFeedback() {
+        onCreateFeedback({
+            channel,
+            chapterNumber: chapterNumber === "" ? null : chapterNumber,
+            readerUsername: readerUsername || "Reader",
+            comment
+        });
+        setReaderUsername("");
+        setComment("");
+    }
+
     return (
         <Panel step="8" title="Feedback" description="See reader feedback by chapter and reader group.">
             <div className="feedback-toolbar">
@@ -787,7 +1474,30 @@ function FeedbackTab({ groups, selectedChapter }: { groups: ReaderGroup[]; selec
                 <input placeholder="Search feedback..." />
                 <button className="secondary-btn">Filter</button>
             </div>
-            <FeedbackList groups={groups} selectedChapter={selectedChapter} />
+
+            <div className="feedback-form">
+                <select value={channel} onChange={(e) => setChannel(e.target.value as ReaderChannel)}>
+                    {groups.map((group) => (
+                        <option key={group.key} value={group.key}>{group.label}</option>
+                    ))}
+                </select>
+                <select value={chapterNumber} onChange={(e) => setChapterNumber(e.target.value === "" ? "" : Number(e.target.value))}>
+                    <option value="">Whole book</option>
+                    {chapters.map((chapter) => (
+                        <option key={chapter.chapterNumber} value={chapter.chapterNumber}>Chapter {chapter.chapterNumber}: {chapter.title}</option>
+                    ))}
+                </select>
+                <input placeholder="Reader username" value={readerUsername} onChange={(e) => setReaderUsername(e.target.value)} />
+                <textarea placeholder="Feedback comment" value={comment} onChange={(e) => setComment(e.target.value)} />
+                <button className="primary-btn" onClick={submitFeedback}>Add Feedback</button>
+            </div>
+
+            <FeedbackList
+                groups={groups}
+                feedback={feedback}
+                selectedChapter={selectedChapter}
+                onFeedbackStatus={onFeedbackStatus}
+            />
         </Panel>
     );
 }
@@ -805,8 +1515,8 @@ function SettingsTab({ book }: { book: BookEditorState }) {
                     <span>{book.slug || "Generated after save"}</span>
                 </div>
                 <div>
-                    <strong>Version Status</strong>
-                    <span>{book.versionStatus}</span>
+                    <strong>Release Availability</strong>
+                    <span>{getBookReleaseAvailability(book.releases)}</span>
                 </div>
             </div>
         </Panel>
@@ -862,11 +1572,13 @@ function ChannelSwitcher({
 function ChapterMiniTable({
     chapters,
     groups,
-    metadata
+    metadata,
+    releases
 }: {
     chapters: Chapter[];
     groups: ReaderGroup[];
     metadata: Record<ReaderChannel, ChannelMetadata>;
+    releases: ChapterRelease[];
 }) {
     return (
         <table className="admin-data-table">
@@ -874,7 +1586,6 @@ function ChapterMiniTable({
                 <tr>
                     <th>#</th>
                     <th>Title</th>
-                    <th>Status</th>
                     <th>Words</th>
                     <th>Releases</th>
                 </tr>
@@ -884,10 +1595,9 @@ function ChapterMiniTable({
                     <tr key={chapter.id ?? chapter.chapterNumber}>
                         <td>{chapter.chapterNumber}</td>
                         <td>{chapter.title}</td>
-                        <td><StatusPill label={getChapterStatus(chapter, null)} /></td>
                         <td>{countWords(chapter.content).toLocaleString()}</td>
                         <td>
-                            <ReleaseDots groups={groups} metadata={metadata} chapterNumber={chapter.chapterNumber} />
+                            <ReleaseDots groups={groups} metadata={metadata} releases={releases} chapterNumber={chapter.chapterNumber} />
                         </td>
                     </tr>
                 ))}
@@ -898,10 +1608,12 @@ function ChapterMiniTable({
 
 function ReleasePreview({
     groups,
-    metadata
+    metadata,
+    releases
 }: {
     groups: ReaderGroup[];
     metadata: Record<ReaderChannel, ChannelMetadata>;
+    releases: ChapterRelease[];
 }) {
     return (
         <div className="release-preview-list">
@@ -910,26 +1622,40 @@ function ReleasePreview({
                     <span className={`channel-dot ${group.tone}`}>{group.shortLabel}</span>
                     <div>
                         <strong>{group.label}</strong>
-                        <span>Up to Chapter {metadata[group.key].releaseLimit}</span>
+                        <span>{countReleasedChapters(releases, group.key)} released chapters</span>
+                        <span>{countScheduledChapters(releases, group.key)} scheduled releases</span>
                     </div>
-                    <StatusPill label={group.key === "alpha" ? "Released" : "Scheduled"} />
+                    <StatusPill label={getChannelReleaseStatus(group.key, metadata, releases)} />
                 </div>
             ))}
         </div>
     );
 }
 
-function ReaderGroupCards({ groups }: { groups: ReaderGroup[] }) {
+function ReaderGroupCards({
+    groups,
+    activeGroupId,
+    onSelect
+}: {
+    groups: ReaderGroup[];
+    activeGroupId?: number;
+    onSelect?: (groupId: number) => void;
+}) {
     return (
         <div className="reader-group-cards">
             {groups.map((group) => (
-                <div className="reader-group-card" key={group.key}>
+                <button
+                    type="button"
+                    className={activeGroupId === group.id ? "reader-group-card active" : "reader-group-card"}
+                    key={group.key}
+                    onClick={() => group.id && onSelect?.(group.id)}
+                >
                     <span className={`channel-dot ${group.tone}`}>{group.shortLabel}</span>
                     <div>
                         <strong>{group.label}</strong>
-                        <span>{group.members ? `${group.members} members` : "All readers"}</span>
+                        <span>{group.members ? `${group.members} members` : group.key === "public" ? "All readers" : "No members"}</span>
                     </div>
-                </div>
+                </button>
             ))}
         </div>
     );
@@ -937,25 +1663,44 @@ function ReaderGroupCards({ groups }: { groups: ReaderGroup[] }) {
 
 function FeedbackList({
     groups,
+    feedback,
     selectedChapter,
-    compact = false
+    compact = false,
+    onFeedbackStatus
 }: {
     groups: ReaderGroup[];
+    feedback: ReaderFeedbackItem[];
     selectedChapter?: Chapter;
     compact?: boolean;
+    onFeedbackStatus?: (feedbackId: number, status: ReaderFeedbackItem["status"]) => void;
 }) {
-    const group = groups[0];
+    const visibleFeedback = compact ? feedback.slice(0, 2) : feedback;
 
     return (
         <div className={compact ? "feedback-list compact" : "feedback-list"}>
-            <article className="feedback-card">
-                <div className="feedback-card-header">
-                    <strong>lira.reader</strong>
-                    <StatusPill label={group.label} />
-                    <span>{selectedChapter?.title ?? "Chapter 1"}</span>
-                </div>
-                <p>Love the opening. The atmosphere is clear, but I wanted a little more description around what the character is feeling.</p>
-            </article>
+            {visibleFeedback.length === 0 ? (
+                <div className="admin-empty-state">No feedback yet.</div>
+            ) : visibleFeedback.map((item) => {
+                const group = groups.find((candidate) => candidate.key === item.channel) ?? groups[0];
+
+                return (
+                    <article className="feedback-card" key={item.id ?? `${item.channel}-${item.chapterNumber}-${item.readerUsername}`}>
+                        <div className="feedback-card-header">
+                            <strong>{item.readerUsername}</strong>
+                            <StatusPill label={group.label} />
+                            <span>{item.chapterNumber ? `Chapter ${item.chapterNumber}` : selectedChapter?.title ?? "Whole book"}</span>
+                            <StatusPill label={item.status} />
+                        </div>
+                        <p>{item.comment}</p>
+                        {!compact && item.id && (
+                            <div className="feedback-actions">
+                                <button className="secondary-btn" onClick={() => onFeedbackStatus?.(item.id!, "reviewed")}>Mark Reviewed</button>
+                                <button className="secondary-btn" onClick={() => onFeedbackStatus?.(item.id!, "resolved")}>Resolve</button>
+                            </div>
+                        )}
+                    </article>
+                );
+            })}
         </div>
     );
 }
@@ -963,10 +1708,12 @@ function FeedbackList({
 function ReleaseDots({
     groups,
     metadata,
+    releases,
     chapterNumber
 }: {
     groups: ReaderGroup[];
     metadata: Record<ReaderChannel, ChannelMetadata>;
+    releases: ChapterRelease[];
     chapterNumber: number;
 }) {
     return (
@@ -974,11 +1721,71 @@ function ReleaseDots({
             {groups.map((group) => (
                 <span
                     key={group.key}
-                    className={chapterNumber <= metadata[group.key].releaseLimit ? `channel-dot ${group.tone}` : "release-missing"}
+                    className={isChapterReleasedToChannel(chapterNumber, group.key, metadata, releases) ? `channel-dot ${group.tone}` : "release-missing"}
                 >
-                    {chapterNumber <= metadata[group.key].releaseLimit ? group.shortLabel : "-"}
+                    {isChapterReleasedToChannel(chapterNumber, group.key, metadata, releases) ? group.shortLabel : "-"}
                 </span>
             ))}
+        </div>
+    );
+}
+
+function BookStatusDropdown({
+    status,
+    onChange,
+    disabled = false
+}: {
+    status: BookStatus;
+    onChange: (status: BookStatus) => void;
+    disabled?: boolean;
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+
+    return (
+        <div
+            className="status-dropdown"
+            onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                    setIsOpen(false);
+                }
+            }}
+        >
+            <button
+                type="button"
+                className="status-dropdown-trigger"
+                onClick={() => setIsOpen((current) => !current)}
+                disabled={disabled}
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+                aria-label="Change book status"
+            >
+                <StatusPill label={formatBookStatus(status)} />
+            </button>
+
+            {isOpen && (
+                <div className="status-dropdown-menu" role="listbox" aria-label="Book status options">
+                    {Object.entries(bookStatusLabels).map(([value, label]) => {
+                        const optionStatus = value as BookStatus;
+
+                        return (
+                            <button
+                                key={value}
+                                type="button"
+                                className={`status-dropdown-option ${status === optionStatus ? "active" : ""}`}
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={() => {
+                                    setIsOpen(false);
+                                    onChange(optionStatus);
+                                }}
+                                role="option"
+                                aria-selected={status === optionStatus}
+                            >
+                                <StatusPill label={label} />
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }
@@ -989,19 +1796,100 @@ function StatusPill({ label }: { label: string }) {
 }
 
 function formatTabLabel(tab: string) {
+    if (tab === "history") {
+        return "Chapter History";
+    }
+
     return tab.split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 }
 
-function getChapterStatus(chapter: Chapter, publishedVersionId: number | null) {
-    if (publishedVersionId && chapter.content.trim()) {
-        return "Published";
+function formatBookStatus(status: BookStatus) {
+    return bookStatusLabels[status] ?? "In Progress";
+}
+
+function isChapterReleasedToChannel(
+    chapterNumber: number,
+    channel: ReaderChannel,
+    _metadata: Record<ReaderChannel, ChannelMetadata>,
+    releases: ChapterRelease[]
+) {
+    return releases.some((release) =>
+        release.channel === channel
+        && release.chapterNumber === chapterNumber
+        && release.status === "released"
+    );
+}
+
+function getBookReleaseAvailability(releases: ChapterRelease[]) {
+    if (releases.some((release) => release.channel === "public" && release.status === "released")) {
+        return "Public";
     }
 
-    if (chapter.content.trim()) {
-        return "Draft";
+    if (releases.some((release) => release.channel === "beta" && release.status === "released")) {
+        return "Beta Released";
     }
 
-    return "Empty";
+    if (releases.some((release) => release.channel === "alpha" && release.status === "released")) {
+        return "Alpha Released";
+    }
+
+    if (releases.some((release) => release.status === "scheduled")) {
+        return "Scheduled";
+    }
+
+    return "Unreleased";
+}
+
+function countReleasedChapters(releases: ChapterRelease[], channel: ReaderChannel) {
+    return releases.filter((release) => release.channel === channel && release.status === "released").length;
+}
+
+function countScheduledChapters(releases: ChapterRelease[], channel: ReaderChannel) {
+    return releases.filter((release) => release.channel === channel && release.status === "scheduled").length;
+}
+
+function getChannelReleaseStatus(
+    channel: ReaderChannel,
+    _metadata: Record<ReaderChannel, ChannelMetadata>,
+    releases: ChapterRelease[]
+) {
+    const channelReleases = releases.filter((release) => release.channel === channel);
+
+    if (channelReleases.some((release) => release.status === "released")) {
+        return "Released";
+    }
+
+    if (channelReleases.some((release) => release.status === "scheduled")) {
+        return "Scheduled";
+    }
+
+    return "Unreleased";
+}
+
+function normalizeReaderGroups(groups: any[] = []): ReaderGroup[] {
+    if (!groups.length) {
+        return readerGroups;
+    }
+
+    return groups.map((group) => {
+        const channel = group.channel as ReaderChannel;
+        const fallback = readerGroups.find((item) => item.key === channel) ?? readerGroups[0];
+        const memberList = group.members ?? [];
+
+        return {
+            id: group.id,
+            key: channel,
+            channel,
+            label: group.name ?? fallback.label,
+            name: group.name,
+            shortLabel: fallback.shortLabel,
+            members: group.memberCount ?? memberList.length,
+            memberCount: group.memberCount ?? memberList.length,
+            tone: fallback.tone,
+            description: group.description ?? "",
+            memberList,
+        };
+    });
 }
 
 function countBookWords(book: BookEditorState) {
