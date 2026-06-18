@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext"
 import { setPageTitle } from "../helpers";
 
@@ -7,6 +7,7 @@ export default function Login() {
     const [loginLoading, setLoginLoading] = useState(false);
     const { login, user } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
 
     setPageTitle("Login");
 
@@ -23,9 +24,9 @@ export default function Login() {
 
     useEffect(() => {
         if (user) {
-            navigate("/admin", { replace: true });
+            navigate(searchParams.get("redirect") || (user.role === "admin" ? "/admin" : "/library"), { replace: true });
         }
-    }, [navigate, user]);
+    }, [navigate, searchParams, user]);
 
     return (
         <section id="loginContent">

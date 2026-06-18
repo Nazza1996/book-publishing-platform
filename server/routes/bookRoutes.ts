@@ -9,7 +9,8 @@ import ChapterRelease from "../models/ChapterRelease.js";
 import ReaderFeedback from "../models/ReaderFeedback.js";
 import ReaderGroup from "../models/ReaderGroup.js";
 import ReaderGroupMember from "../models/ReaderGroupMember.js";
-import { hasValidAccessToken, requireAccessToken } from "../middleware/auth.js";
+import User from "../models/User.js";
+import { getCurrentActiveUser, requireAccessToken, requireAdmin, type AuthUser } from "../middleware/auth.js";
 
 const router = Router();
 const readerChannels: ReaderChannel[] = ["alpha", "beta", "public"];
@@ -132,12 +133,25 @@ async function getBookReleaseData(book: Book) {
 
     const readerGroups = await ReaderGroup.findAll({
         where: { bookId: book.id },
-        include: [{ model: ReaderGroupMember, as: "members" }],
+        include: [{
+            model: ReaderGroupMember,
+            as: "members",
+            include: [{
+                model: User,
+                as: "user",
+                attributes: ["id", "username", "role", "active"],
+            }],
+        }],
         order: [["channel", "ASC"]]
     });
 
     const feedback = await ReaderFeedback.findAll({
         where: { bookId: book.id },
+        include: [{
+            model: User,
+            as: "reader",
+            attributes: ["id", "username", "role", "active"],
+        }],
         order: [["createdAt", "DESC"]]
     });
 
@@ -171,6 +185,50 @@ async function getBookReleaseSummary(bookId: number) {
 
         return summary;
     }, {} as Record<ReaderChannel, { released: number; scheduled: number }>);
+}
+
+async function hasReaderChannelAccess(bookId: number, channel: ReaderChannel, user: AuthUser | null) {
+    if (!user?.active) {
+        return false;
+    }
+
+    if (user.role === "admin") {
+        return true;
+    }
+
+    const group = await ReaderGroup.findOne({ where: { bookId, channel } });
+    if (!group) {
+        return false;
+    }
+
+    const membership = await ReaderGroupMember.findOne({
+        where: {
+            readerGroupId: group.id,
+            userId: user.id,
+            status: "active",
+        },
+    });
+
+    return Boolean(membership);
+}
+
+async function getReleasedChaptersForChannel(bookId: number, channel: ReaderChannel) {
+    const releases = await ChapterRelease.findAll({
+        where: {
+            bookId,
+            channel,
+            status: "released"
+        },
+        order: [["chapterNumber", "ASC"]]
+    });
+
+    return releases.map((release) => ({
+        id: release.id,
+        chapterNumber: release.chapterNumber,
+        title: release.title,
+        content: release.content,
+        updatedAt: release.updatedAt,
+    }));
 }
 
 async function syncBookChannelMetadata(bookId: number, input: any, fallbackDescription: string) {
@@ -245,9 +303,9 @@ async function ensureWorkingDraftVersion(book: Book) {
 }
 
 router.get("/", async (req: Request, res: Response) => {
-    const token = req.cookies?.token;
-    if (!token) {
-        return res.status(401).json({ error: "Not authenticated" });
+    const user = await getCurrentActiveUser(req);
+    if (!user?.active || user.role !== "admin") {
+        return res.status(user ? 403 : 401).json({ error: user ? "Admin access required" : "Not authenticated" });
     }
 
     try {
@@ -297,10 +355,92 @@ async function getReleasedPublicBooks() {
     });
 }
 
+function addLibraryBook(
+    entries: Map<number, any>,
+    book: Book,
+    channel: ReaderChannel,
+) {
+    const existing = entries.get(book.id);
+
+    if (!existing) {
+        entries.set(book.id, {
+            ...book.dataValues,
+            availableChannels: [channel],
+        });
+        return;
+    }
+
+    if (!existing.availableChannels.includes(channel)) {
+        existing.availableChannels.push(channel);
+    }
+}
+
+async function getReaderReleasedBooks(userId: number) {
+    const readerGroups = await ReaderGroup.findAll({
+        where: { channel: { [Op.in]: ["alpha", "beta"] } },
+        include: [{
+            model: ReaderGroupMember,
+            as: "members",
+            where: { userId, status: "active" },
+            required: true,
+        }],
+        attributes: ["bookId", "channel"],
+    });
+
+    const accessPairs = readerGroups.map((group) => ({
+        bookId: group.bookId,
+        channel: group.channel,
+    }));
+
+    if (accessPairs.length === 0) {
+        return [];
+    }
+
+    const releasedRows = await ChapterRelease.findAll({
+        where: {
+            status: "released",
+            [Op.or]: accessPairs,
+        },
+        attributes: ["bookId", "channel"],
+        group: ["bookId", "channel"],
+    });
+
+    const bookIds = Array.from(new Set(releasedRows.map((release) => release.bookId)));
+    if (bookIds.length === 0) {
+        return [];
+    }
+
+    const books = await Book.findAll({
+        where: { id: { [Op.in]: bookIds } },
+    });
+    const booksById = new Map(books.map((book) => [book.id, book]));
+
+    return releasedRows
+        .map((release) => {
+            const book = booksById.get(release.bookId);
+            return book ? { book, channel: release.channel } : null;
+        })
+        .filter((item): item is { book: Book; channel: ReaderChannel } => Boolean(item));
+}
+
 router.get("/released", async (req: Request, res: Response) => {
     try {
-        const books = await getReleasedPublicBooks();
-        res.json(books);
+        const entries = new Map<number, any>();
+        const publicBooks = await getReleasedPublicBooks();
+
+        for (const book of publicBooks) {
+            addLibraryBook(entries, book, "public");
+        }
+
+        const user = await getCurrentActiveUser(req);
+        if (user?.role === "reader") {
+            const readerBooks = await getReaderReleasedBooks(user.id);
+            for (const item of readerBooks) {
+                addLibraryBook(entries, item.book, item.channel);
+            }
+        }
+
+        res.json(Array.from(entries.values()));
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch released books" });
     }
@@ -334,6 +474,7 @@ router.get("/featured", async (req: Request, res: Response) => {
 router.get("/:slug", async (req: Request, res: Response) => {
     const { slug } = req.params;
     const { version = 'public' } = req.query;
+    const requestedVersion = String(version);
 
     try {
         const book = await getBookByIdentifier(slug as string);
@@ -341,9 +482,10 @@ router.get("/:slug", async (req: Request, res: Response) => {
             return res.status(404).json({ error: "Book not found" });
         }
 
-        if (version === 'draft') {
-            if (!hasValidAccessToken(req)) {
-                return res.status(401).json({ error: "Not authenticated" });
+        if (requestedVersion === 'draft') {
+            const user = await getCurrentActiveUser(req);
+            if (!user?.active || user.role !== "admin") {
+                return res.status(user ? 403 : 401).json({ error: user ? "Admin access required" : "Not authenticated" });
             }
             
             const draftVersion = await ensureWorkingDraftVersion(book);
@@ -360,27 +502,37 @@ router.get("/:slug", async (req: Request, res: Response) => {
                 version: { ...draftVersion.dataValues, chapters },
                 versionStatus: 'working_draft'
             });
-        } else {
-            const publicReleases = await ChapterRelease.findAll({
-                where: {
-                    bookId: book.id,
-                    channel: "public",
-                    status: "released"
-                },
-                order: [["chapterNumber", "ASC"]]
-            });
+        } else if (requestedVersion === "alpha" || requestedVersion === "beta") {
+            const channel = requestedVersion as ReaderChannel;
+            const user = await getCurrentActiveUser(req);
+            const hasAccess = await hasReaderChannelAccess(book.id, channel, user);
 
-            if (publicReleases.length === 0) {
+            if (!hasAccess) {
+                return res.status(user ? 403 : 401).json({ error: user ? "Reader access required" : "Not authenticated" });
+            }
+
+            const chapters = await getReleasedChaptersForChannel(book.id, channel);
+
+            if (chapters.length === 0) {
                 return res.status(404).json({ error: "Book not found" });
             }
 
-            const chapters = publicReleases.map((release) => ({
-                id: release.id,
-                chapterNumber: release.chapterNumber,
-                title: release.title,
-                content: release.content,
-                updatedAt: release.updatedAt,
-            }));
+            const releaseData = await getBookReleaseData(book);
+
+            res.json({
+                ...book.dataValues,
+                ...releaseData,
+                version: { chapters },
+                versionStatus: `${channel}_release`,
+                readerChannel: channel,
+            });
+        } else {
+            const chapters = await getReleasedChaptersForChannel(book.id, "public");
+
+            if (chapters.length === 0) {
+                return res.status(404).json({ error: "Book not found" });
+            }
+
             const releaseData = await getBookReleaseData(book);
 
             res.json({
@@ -395,7 +547,59 @@ router.get("/:slug", async (req: Request, res: Response) => {
     }
 });
 
-router.use(requireAccessToken);
+router.post("/:id/feedback", requireAccessToken, async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { channel = "alpha", chapterNumber = null, readerUserId = null, readerUsername = "Reader", comment } = req.body;
+    const currentUser = (req as any).user as AuthUser;
+
+    if (!readerChannels.includes(channel)) {
+        return res.status(400).json({ error: "A valid reader channel is required" });
+    }
+
+    if (!comment || typeof comment !== "string") {
+        return res.status(400).json({ error: "Feedback comment is required" });
+    }
+
+    try {
+        const existingBook = await Book.findOne({ where: { id } });
+        if (!existingBook) {
+            return res.status(404).json({ error: "Book not found" });
+        }
+
+        let feedbackUser: User | null = null;
+
+        if (currentUser.role === "admin") {
+            if (readerUserId) {
+                feedbackUser = await User.findByPk(readerUserId);
+            } else if (readerUsername && readerUsername !== "Reader") {
+                feedbackUser = await User.findOne({ where: { username: readerUsername } });
+            }
+        } else {
+            const hasAccess = await hasReaderChannelAccess(existingBook.id, channel, currentUser);
+            if (!hasAccess) {
+                return res.status(403).json({ error: "Reader access required" });
+            }
+
+            feedbackUser = await User.findByPk(currentUser.id);
+        }
+
+        const feedback = await ReaderFeedback.create({
+            bookId: existingBook.id,
+            channel,
+            chapterNumber: chapterNumber ? Number(chapterNumber) : null,
+            readerUserId: feedbackUser?.id ?? null,
+            readerUsername: feedbackUser?.username ?? readerUsername,
+            comment,
+            status: "open",
+        });
+
+        res.json(feedback);
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+router.use(requireAdmin);
 
 router.post("/saveDraft", async (req: Request, res: Response) => {
     const { book, scope = 'all', currentChapter, currentChapterNumber, channelMetadata } = req.body;
@@ -685,10 +889,14 @@ router.delete("/:id/releases/:releaseId", async (req: Request, res: Response) =>
 
 router.post("/:id/reader-groups/:groupId/members", async (req: Request, res: Response) => {
     const { id, groupId } = req.params;
-    const { username, status = "active" } = req.body;
+    const { userId, username, status = "active" } = req.body;
 
-    if (!username || typeof username !== "string") {
-        return res.status(400).json({ error: "Reader username is required" });
+    if (!userId && !username) {
+        return res.status(400).json({ error: "Reader account is required" });
+    }
+
+    if (!["active", "invited", "removed"].includes(status)) {
+        return res.status(400).json({ error: "A valid member status is required" });
     }
 
     try {
@@ -700,11 +908,24 @@ router.post("/:id/reader-groups/:groupId/members", async (req: Request, res: Res
             return res.status(404).json({ error: "Reader group not found" });
         }
 
+        const reader = userId
+            ? await User.findByPk(userId)
+            : await User.findOne({ where: { username: String(username).trim() } });
+
+        if (!reader || reader.role !== "reader") {
+            return res.status(404).json({ error: "Reader account not found" });
+        }
+
+        if (!reader.active) {
+            return res.status(400).json({ error: "Reader account is inactive" });
+        }
+
         const [member, created] = await ReaderGroupMember.findOrCreate({
-            where: { readerGroupId: group.id, username },
+            where: { readerGroupId: group.id, userId: reader.id },
             defaults: {
                 readerGroupId: group.id,
-                username,
+                userId: reader.id,
+                username: reader.username,
                 status,
                 joinedAt: new Date(),
             }
@@ -712,50 +933,74 @@ router.post("/:id/reader-groups/:groupId/members", async (req: Request, res: Res
 
         if (!created) {
             await member.update({
-                username,
+                username: reader.username,
                 status,
+                joinedAt: member.joinedAt ?? new Date(),
             });
         }
 
         const memberCount = await ReaderGroupMember.count({
-            where: { readerGroupId: group.id, status: { [Op.ne]: "removed" } }
+            where: { readerGroupId: group.id, status: "active" }
         });
         await group.update({ memberCount });
 
-        res.json({ ...member.dataValues, readerGroupId: group.id });
+        res.json({
+            ...member.dataValues,
+            readerGroupId: group.id,
+            user: {
+                id: reader.id,
+                username: reader.username,
+                role: reader.role,
+                active: reader.active,
+            }
+        });
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
     }
 });
 
-router.post("/:id/feedback", async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { channel = "alpha", chapterNumber = null, readerUsername = "Reader", comment } = req.body;
+router.patch("/:id/reader-groups/:groupId/members/:memberId", async (req: Request, res: Response) => {
+    const { id, groupId, memberId } = req.params;
+    const { status } = req.body;
 
-    if (!readerChannels.includes(channel)) {
-        return res.status(400).json({ error: "A valid reader channel is required" });
-    }
-
-    if (!comment || typeof comment !== "string") {
-        return res.status(400).json({ error: "Feedback comment is required" });
+    if (!["active", "invited", "removed"].includes(status)) {
+        return res.status(400).json({ error: "A valid member status is required" });
     }
 
     try {
-        const existingBook = await Book.findOne({ where: { id } });
-        if (!existingBook) {
-            return res.status(404).json({ error: "Book not found" });
-        }
-
-        const feedback = await ReaderFeedback.create({
-            bookId: existingBook.id,
-            channel,
-            chapterNumber: chapterNumber ? Number(chapterNumber) : null,
-            readerUsername,
-            comment,
-            status: "open",
+        const group = await ReaderGroup.findOne({
+            where: { id: groupId, bookId: id }
         });
 
-        res.json(feedback);
+        if (!group) {
+            return res.status(404).json({ error: "Reader group not found" });
+        }
+
+        const member = await ReaderGroupMember.findOne({
+            where: { id: memberId, readerGroupId: group.id },
+            include: [{
+                model: User,
+                as: "user",
+                attributes: ["id", "username", "role", "active"],
+            }],
+        });
+
+        if (!member) {
+            return res.status(404).json({ error: "Reader group member not found" });
+        }
+
+        await member.update({ status });
+
+        const memberCount = await ReaderGroupMember.count({
+            where: { readerGroupId: group.id, status: "active" }
+        });
+        await group.update({ memberCount });
+
+        res.json({
+            ...member.dataValues,
+            status,
+            readerGroupId: group.id,
+        });
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
     }

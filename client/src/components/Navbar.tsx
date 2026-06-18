@@ -15,7 +15,7 @@ export default function Navbar() {
             <ul className="nav-list">
                 <li><Link to="/">Home</Link></li>
                 <li><Link to="/library">Library</Link></li>
-                {user && (
+                {user && user.role === "admin" && (
                     <li><Link to="/admin">Admin</Link></li>
                 )}
             </ul>

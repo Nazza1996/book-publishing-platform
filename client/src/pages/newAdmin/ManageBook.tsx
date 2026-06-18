@@ -65,19 +65,30 @@ interface ChapterRelease {
 interface ReaderGroupMember {
     id?: number;
     readerGroupId: number;
+    userId: number | null;
     username: string;
     status: "active" | "invited" | "removed";
     joinedAt: string | null;
+    user?: ReaderAccount | null;
 }
 
 interface ReaderFeedbackItem {
     id?: number;
     channel: ReaderChannel;
     chapterNumber: number | null;
+    readerUserId?: number | null;
     readerUsername: string;
     comment: string;
     status: "open" | "reviewed" | "resolved";
     createdAt?: string;
+    reader?: ReaderAccount | null;
+}
+
+interface ReaderAccount {
+    id: number;
+    username: string;
+    role: "admin" | "reader";
+    active: boolean;
 }
 
 interface ChapterRevision {
@@ -159,6 +170,7 @@ export default function ManageBook() {
     const [savingStatus, setSavingStatus] = useState(false);
     const [togglingSpotlight, setTogglingSpotlight] = useState(false);
     const [pendingReleaseDeleteIds, setPendingReleaseDeleteIds] = useState<number[]>([]);
+    const [readerAccounts, setReaderAccounts] = useState<ReaderAccount[]>([]);
     const [error, setError] = useState("");
 
     const currentTab = useMemo(() => {
@@ -175,6 +187,28 @@ export default function ManageBook() {
     useEffect(() => {
         setPageTitle(isNewBook ? "New Book" : "Manage Book");
     }, [isNewBook]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        async function fetchReaderAccounts() {
+            const res = await apiFetch('/api/users', { toast: false });
+            if (!res.ok) {
+                return;
+            }
+
+            const data = await res.json();
+            if (isMounted) {
+                setReaderAccounts((data.users ?? []).filter((item: ReaderAccount) => item.role === "reader"));
+            }
+        }
+
+        fetchReaderAccounts();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     useEffect(() => {
         if (isNewBook) {
@@ -589,7 +623,7 @@ export default function ManageBook() {
         toast.success("Revision restored to working copy");
     }
 
-    async function handleAddReaderGroupMember(groupId: number, username: string) {
+    async function handleAddReaderGroupMember(groupId: number, userId: number) {
         if (!book.id) {
             toast.error("Save this book before adding readers");
             return;
@@ -598,7 +632,7 @@ export default function ManageBook() {
         const res = await apiFetch(`/api/books/${book.id}/reader-groups/${groupId}/members`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username })
+            body: JSON.stringify({ userId })
         });
 
         if (!res.ok) {
@@ -629,9 +663,46 @@ export default function ManageBook() {
         toast.success("Reader added");
     }
 
+    async function handleReaderGroupMemberStatus(groupId: number, memberId: number, status: ReaderGroupMember["status"]) {
+        if (!book.id) {
+            return;
+        }
+
+        const res = await apiFetch(`/api/books/${book.id}/reader-groups/${groupId}/members/${memberId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+        });
+
+        if (!res.ok) {
+            return;
+        }
+
+        const member = await res.json();
+        setBook((current) => ({
+            ...current,
+            readerGroups: current.readerGroups.map((group) => {
+                if (group.id !== groupId) {
+                    return group;
+                }
+
+                const memberList = (group.memberList ?? []).map((item) => item.id === member.id ? member : item);
+
+                return {
+                    ...group,
+                    memberList,
+                    members: memberList.filter((item) => item.status === "active").length,
+                    memberCount: memberList.filter((item) => item.status === "active").length
+                };
+            })
+        }));
+        toast.success(status === "active" ? "Reader access restored" : "Reader access removed");
+    }
+
     async function handleCreateFeedback(input: {
         channel: ReaderChannel;
         chapterNumber: number | null;
+        readerUserId?: number | null;
         readerUsername: string;
         comment: string;
     }) {
@@ -765,7 +836,9 @@ export default function ManageBook() {
                             {currentTab === "reader-groups" && (
                                 <ReaderGroupsTab
                                     groups={book.readerGroups.length ? book.readerGroups : readerGroups}
+                                    readerAccounts={readerAccounts}
                                     onAddMember={handleAddReaderGroupMember}
+                                    onMemberStatus={handleReaderGroupMemberStatus}
                                 />
                             )}
                             {currentTab === "feedback" && (
@@ -1375,14 +1448,30 @@ function ReleasesTab({
 
 function ReaderGroupsTab({
     groups,
-    onAddMember
+    readerAccounts,
+    onAddMember,
+    onMemberStatus
 }: {
     groups: ReaderGroup[];
-    onAddMember: (groupId: number, username: string) => void;
+        readerAccounts: ReaderAccount[];
+    onAddMember: (groupId: number, userId: number) => void;
+    onMemberStatus: (groupId: number, memberId: number, status: ReaderGroupMember["status"]) => void;
 }) {
     const [activeGroupId, setActiveGroupId] = useState(groups[0]?.id ?? 0);
-    const [username, setUsername] = useState("");
+    const [selectedUserId, setSelectedUserId] = useState<number | "">("");
     const activeGroup = groups.find((group) => group.id === activeGroupId) ?? groups[0];
+    const activeMemberUserIds = new Set((activeGroup?.memberList ?? [])
+        .filter((member) => member.status === "active")
+        .map((member) => member.userId));
+    const availableReaders = readerAccounts.filter((reader) =>
+        reader.active && !activeMemberUserIds.has(reader.id)
+    );
+
+    useEffect(() => {
+        if (!activeGroupId && groups[0]?.id) {
+            setActiveGroupId(groups[0].id);
+        }
+    }, [activeGroupId, groups]);
 
     function submitMember() {
         if (!activeGroup?.id) {
@@ -1390,8 +1479,13 @@ function ReaderGroupsTab({
             return;
         }
 
-        onAddMember(activeGroup.id, username);
-        setUsername("");
+        if (!selectedUserId) {
+            toast.error("Choose a reader account");
+            return;
+        }
+
+        onAddMember(activeGroup.id, selectedUserId);
+        setSelectedUserId("");
     }
 
     return (
@@ -1399,7 +1493,12 @@ function ReaderGroupsTab({
             <ReaderGroupCards groups={groups} activeGroupId={activeGroup?.id} onSelect={setActiveGroupId} />
 
             <div className="reader-member-form">
-                <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+                <select value={selectedUserId} onChange={(e) => setSelectedUserId(e.target.value ? Number(e.target.value) : "")}>
+                    <option value="">Choose reader account</option>
+                    {availableReaders.map((reader) => (
+                        <option key={reader.id} value={reader.id}>{reader.username}</option>
+                    ))}
+                </select>
                 <button className="primary-btn" onClick={submitMember}>Add Member</button>
             </div>
 
@@ -1409,18 +1508,29 @@ function ReaderGroupsTab({
                         <th>Member</th>
                         <th>Joined</th>
                         <th>Status</th>
+                        <th>Access</th>
                     </tr>
                 </thead>
                 <tbody>
                     {(activeGroup?.memberList ?? []).length === 0 ? (
                         <tr>
-                            <td colSpan={3}>No members in this group yet.</td>
+                            <td colSpan={4}>No members in this group yet.</td>
                         </tr>
                     ) : (activeGroup?.memberList ?? []).map((member) => (
                         <tr key={member.id ?? member.username}>
-                            <td>{member.username}</td>
+                            <td>{member.user?.username ?? member.username}</td>
                             <td>{member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('en-GB') : "-"}</td>
                             <td><StatusPill label={member.status} /></td>
+                            <td>
+                                {member.id && activeGroup?.id && (
+                                    <button
+                                        className="secondary-btn"
+                                        onClick={() => onMemberStatus(activeGroup.id!, member.id!, member.status === "active" ? "removed" : "active")}
+                                    >
+                                        {member.status === "active" ? "Remove" : "Restore"}
+                                    </button>
+                                )}
+                            </td>
                         </tr>
                     ))}
                 </tbody>
@@ -1444,6 +1554,7 @@ function FeedbackTab({
     onCreateFeedback: (input: {
         channel: ReaderChannel;
         chapterNumber: number | null;
+        readerUserId?: number | null;
         readerUsername: string;
         comment: string;
     }) => void;
@@ -1451,30 +1562,30 @@ function FeedbackTab({
 }) {
     const [channel, setChannel] = useState<ReaderChannel>("alpha");
     const [chapterNumber, setChapterNumber] = useState<number | "">(selectedChapter?.chapterNumber ?? "");
-    const [readerUsername, setReaderUsername] = useState("");
+    const [readerUserId, setReaderUserId] = useState<number | "">("");
     const [comment, setComment] = useState("");
+    const selectedGroup = groups.find((group) => group.key === channel);
+    const activeMembers = (selectedGroup?.memberList ?? []).filter((member) => member.status === "active");
+    const selectedMember = activeMembers.find((member) => member.userId === readerUserId);
+
+    useEffect(() => {
+        setReaderUserId("");
+    }, [channel]);
 
     function submitFeedback() {
         onCreateFeedback({
             channel,
             chapterNumber: chapterNumber === "" ? null : chapterNumber,
-            readerUsername: readerUsername || "Reader",
+            readerUserId: selectedMember?.userId ?? null,
+            readerUsername: selectedMember?.user?.username ?? selectedMember?.username ?? "Reader",
             comment
         });
-        setReaderUsername("");
+        setReaderUserId("");
         setComment("");
     }
 
     return (
         <Panel step="8" title="Feedback" description="See reader feedback by chapter and reader group.">
-            <div className="feedback-toolbar">
-                <button className="tab active">All Feedback</button>
-                <button className="tab">By Chapter</button>
-                <button className="tab">By Reader Group</button>
-                <input placeholder="Search feedback..." />
-                <button className="secondary-btn">Filter</button>
-            </div>
-
             <div className="feedback-form">
                 <select value={channel} onChange={(e) => setChannel(e.target.value as ReaderChannel)}>
                     {groups.map((group) => (
@@ -1487,7 +1598,14 @@ function FeedbackTab({
                         <option key={chapter.chapterNumber} value={chapter.chapterNumber}>Chapter {chapter.chapterNumber}: {chapter.title}</option>
                     ))}
                 </select>
-                <input placeholder="Reader username" value={readerUsername} onChange={(e) => setReaderUsername(e.target.value)} />
+                <select value={readerUserId} onChange={(e) => setReaderUserId(e.target.value ? Number(e.target.value) : "")}>
+                    <option value="">Choose reader</option>
+                    {activeMembers.map((member) => (
+                        <option key={member.id ?? member.userId ?? member.username} value={member.userId ?? ""}>
+                            {member.user?.username ?? member.username}
+                        </option>
+                    ))}
+                </select>
                 <textarea placeholder="Feedback comment" value={comment} onChange={(e) => setComment(e.target.value)} />
                 <button className="primary-btn" onClick={submitFeedback}>Add Feedback</button>
             </div>

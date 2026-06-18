@@ -106,7 +106,6 @@ export async function apiFetch(input: RequestInfo | URL, init: ApiFetchInit = {}
 
   const shouldAttemptRefresh = !skipAuthRefresh
     && !requestUrl.includes('/api/users/login')
-    && !requestUrl.includes('/api/users/register')
     && !requestUrl.includes('/api/users/logout')
     && !requestUrl.includes('/api/users/refresh');
 

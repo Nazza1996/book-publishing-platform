@@ -4,12 +4,14 @@ const props = {
     closeFunction: () => {},
     submitFunction: () => {},
     username: '',
+    role: 'reader' as 'admin' | 'reader',
     password: '',
     setUsername: (_username: string) => {},
+    setRole: (_role: 'admin' | 'reader') => {},
     setPassword: (_password: string) => {}
 }
 
-export default function UserCreateModal({ closeFunction, submitFunction, username, password, setUsername, setPassword }: typeof props) {
+export default function UserCreateModal({ closeFunction, submitFunction, username, role, password, setUsername, setRole, setPassword }: typeof props) {
     return (
         <>
             <div
@@ -57,6 +59,19 @@ export default function UserCreateModal({ closeFunction, submitFunction, usernam
                                         onChange={(e) => setUsername(e.target.value)}
                                         required
                                     />
+                                </div>
+
+                                <div className="mb-3">
+                                    <label htmlFor="role" className="form-label">Role</label>
+                                    <select
+                                        className="form-control"
+                                        id="role"
+                                        value={role}
+                                        onChange={(e) => setRole(e.target.value as 'admin' | 'reader')}
+                                    >
+                                        <option value="reader">Reader</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
                                 </div>
 
                                 <div className="mb-3">

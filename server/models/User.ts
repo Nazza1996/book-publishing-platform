@@ -5,6 +5,8 @@ class User extends Model {
     public id!: number;
     public username!: string;
     public password_hash!: string;
+    public role!: "admin" | "reader";
+    public active!: boolean;
 }
 
 User.init(
@@ -22,6 +24,16 @@ User.init(
         password_hash: {
             type: DataTypes.STRING,
             allowNull: false,
+        },
+        role: {
+            type: DataTypes.ENUM("admin", "reader"),
+            allowNull: false,
+            defaultValue: "reader",
+        },
+        active: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: true,
         },
     },
     {

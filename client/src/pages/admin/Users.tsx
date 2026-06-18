@@ -4,7 +4,7 @@ import { AllCommunityModule, type ColDef, colorSchemeDarkBlue, themeQuartz } fro
 import { AgGridProvider, AgGridReact } from 'ag-grid-react';
 import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPencil, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faBan, faCheck, faPencil, faTrash } from '@fortawesome/free-solid-svg-icons';
 import UserCreateModal from './modals/UserCreate';
 import UserDeleteModal from './modals/UserDelete';
 import UserEditModal from './modals/UserEdit';
@@ -20,14 +20,25 @@ const modules = [
 
 const COLUMN_STATE_KEY = 'users-grid-column-state';
 
+type UserRole = 'admin' | 'reader';
+
+interface UserRow {
+    id: number;
+    username: string;
+    role: UserRole;
+    active: boolean;
+}
+
 export default function Users() {
     const gridRef = useRef<AgGridReact>(null);
-    const [rowData, setRowData] = useState([]);
+    const [rowData, setRowData] = useState<UserRow[]>([]);
 
     const [password, setPassword] = useState('');
 
-    const [selectedUserId, setSelectedUserId] = useState<string>('');
+    const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
     const [selectedUsername, setSelectedUsername] = useState<string>('');
+    const [selectedRole, setSelectedRole] = useState<UserRole>('reader');
+    const [selectedActive, setSelectedActive] = useState(true);
 
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
@@ -42,16 +53,29 @@ export default function Users() {
         const { user } = useAuth();
         const userId = params.data.id;
         const username = params.data.username;
+        const role = params.data.role;
+        const active = params.data.active;
+        const isCurrentUser = user?.id === userId;
 
         return (
             <div className="action-buttons">
                 <button onClick={() => {
                     setSelectedUserId(userId);
                     setSelectedUsername(username);
+                    setSelectedRole(role);
+                    setSelectedActive(active);
                     setEditModalOpen(true);
                 }}><FontAwesomeIcon icon={faPencil} /></button>
 
-                {user?.id === userId ? (
+                <button
+                    disabled={isCurrentUser}
+                    onClick={() => handleAccessChange(userId, !active)}
+                    title={active ? 'Revoke access' : 'Reactivate access'}
+                >
+                    <FontAwesomeIcon icon={active ? faBan : faCheck} />
+                </button>
+
+                {isCurrentUser ? (
                     <button disabled><FontAwesomeIcon icon={faTrash} className='red' /></button>
                 ) : (
                     <button onClick={() => {
@@ -67,7 +91,9 @@ export default function Users() {
     const [columnDefs] = useState<ColDef[]>([
         { field: 'id', headerName: 'ID', sortable: true, filter: true, width: 40 },
         { field: 'username', headerName: 'Username', sortable: true, filter: true },
-        { cellRenderer: actionCellRenderer, width: 40, sortable: false, filter: false }
+        { field: 'role', headerName: 'Role', sortable: true, filter: true, width: 110, cellRenderer: (params: any) => params.value.charAt(0).toUpperCase() + params.value.slice(1) },
+        { field: 'active', headerName: 'Active', sortable: true, filter: true, width: 120, cellRenderer: (params: any) => params.value ? 'Yes' : 'No' },
+        { cellRenderer: actionCellRenderer, width: 120, sortable: false, filter: false }
     ]);
 
     const loadUsers = () => {
@@ -106,6 +132,7 @@ export default function Users() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 username: selectedUsername,
+                role: selectedRole,
                 password: password
             })
         });
@@ -123,7 +150,9 @@ export default function Users() {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                username: selectedUsername
+                username: selectedUsername,
+                role: selectedRole,
+                active: selectedActive,
             })
         });
 
@@ -152,9 +181,24 @@ export default function Users() {
         setCreateModalOpen(false);
         setEditModalOpen(false);
         setDeleteModalOpen(false);
-        setSelectedUserId('');
+        setSelectedUserId(null);
         setSelectedUsername('');
+        setSelectedRole('reader');
+        setSelectedActive(true);
         setPassword('');
+    }
+
+    const handleAccessChange = async (userId: number, active: boolean) => {
+        const res = await apiFetch(`/api/users/${userId}/access`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ active })
+        });
+
+        if (res.ok) {
+            toast.success(active ? 'User access restored' : 'User access deactivated');
+            loadUsers();
+        }
     }
 
     return (
@@ -192,8 +236,10 @@ export default function Users() {
                         closeFunction={resetModals}
                         submitFunction={handleCreateUser}
                         username={selectedUsername}
+                        role={selectedRole}
                         password={password}
                         setUsername={setSelectedUsername}
+                        setRole={setSelectedRole}
                         setPassword={setPassword}
                     />
                 )}
@@ -202,7 +248,9 @@ export default function Users() {
                         closeFunction={resetModals}
                         submitFunction={handleEditUser}
                         username={selectedUsername}
+                        role={selectedRole}
                         setUsername={setSelectedUsername}
+                        setRole={setSelectedRole}
                     />
                 )}
                 {deleteModalOpen && (

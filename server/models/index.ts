@@ -30,9 +30,13 @@ Book.hasMany(ReaderGroup, { foreignKey: 'bookId', as: 'readerGroups' });
 ReaderGroup.belongsTo(Book, { foreignKey: 'bookId' });
 ReaderGroup.hasMany(ReaderGroupMember, { foreignKey: 'readerGroupId', as: 'members' });
 ReaderGroupMember.belongsTo(ReaderGroup, { foreignKey: 'readerGroupId' });
+User.hasMany(ReaderGroupMember, { foreignKey: 'userId', as: 'readerMemberships' });
+ReaderGroupMember.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 Book.hasMany(ReaderFeedback, { foreignKey: 'bookId', as: 'feedback' });
 ReaderFeedback.belongsTo(Book, { foreignKey: 'bookId' });
+User.hasMany(ReaderFeedback, { foreignKey: 'readerUserId', as: 'readerFeedback' });
+ReaderFeedback.belongsTo(User, { foreignKey: 'readerUserId', as: 'reader' });
 
 // Book -> chapter revision snapshots
 Book.hasMany(ChapterRevision, { foreignKey: 'bookId', as: 'chapterRevisions' });

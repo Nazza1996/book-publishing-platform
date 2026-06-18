@@ -7,9 +7,11 @@ class ReaderFeedback extends Model {
     public bookId!: number;
     public channel!: ReaderChannel;
     public chapterNumber!: number | null;
+    public readerUserId!: number | null;
     public readerUsername!: string;
     public comment!: string;
     public status!: "open" | "reviewed" | "resolved";
+    public readonly reader?: any;
 }
 
 ReaderFeedback.init(
@@ -18,6 +20,7 @@ ReaderFeedback.init(
         bookId: { type: DataTypes.INTEGER, allowNull: false },
         channel: { type: DataTypes.ENUM("alpha", "beta", "public"), allowNull: false },
         chapterNumber: { type: DataTypes.INTEGER, allowNull: true },
+        readerUserId: { type: DataTypes.INTEGER, allowNull: true },
         readerUsername: { type: DataTypes.STRING, allowNull: false, defaultValue: "Reader" },
         comment: { type: DataTypes.TEXT, allowNull: false },
         status: { type: DataTypes.ENUM("open", "reviewed", "resolved"), allowNull: false, defaultValue: "open" },
