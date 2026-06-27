@@ -1,5 +1,7 @@
+@use '../variables' as v;
+
 #allBooksHeader {
-    margin-bottom: 40px;
+    margin-bottom: 1.25rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -55,6 +57,48 @@
         }
     }
     
+}
+
+.books-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+}
+
+.books-summary-card {
+    display: grid;
+    gap: 0.35rem;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: v.$radius-md;
+    background: var(--surface-elevated-color);
+    text-decoration: none;
+    transition: border-color 0.2s, background-color 0.2s, transform 0.2s;
+
+    &.linked:hover,
+    &.linked:focus-visible {
+        border-color: var(--orange);
+        background: var(--surface-color);
+        outline: none;
+        transform: translateY(-1px);
+    }
+
+    span {
+        color: var(--secondary-text-color);
+        font-size: 0.85rem;
+    }
+
+    strong {
+        color: var(--body-text-color);
+        font-size: 1.45rem;
+    }
+}
+
+@media (max-width: 920px) {
+    .books-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 720px) {

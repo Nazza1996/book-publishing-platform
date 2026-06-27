@@ -14,6 +14,10 @@ interface BookSummary {
     title: string;
     status?: BookStatus;
     updatedAt: string;
+    releaseSummary?: Record<string, {
+        released: number;
+        scheduled: number;
+    }>;
     nextRelease?: {
         channel: string;
         chapterNumber: number;
@@ -84,6 +88,23 @@ export default function AllBooks() {
         );
     }, [books, searchTerm]);
 
+    const summary = useMemo(() => {
+        return filteredBooks.reduce(
+            (current, book) => {
+                const status = book.status ?? "in_progress";
+
+                return {
+                    total: current.total + 1,
+                    inProgress: current.inProgress + (status === "in_progress" ? 1 : 0),
+                    publishedChapters: current.publishedChapters + (book.releaseSummary?.public?.released ?? 0),
+                    scheduledReleases: current.scheduledReleases + Object.values(book.releaseSummary ?? {})
+                        .reduce((total, channel) => total + channel.scheduled, 0),
+                };
+            },
+            { total: 0, inProgress: 0, publishedChapters: 0, scheduledReleases: 0 }
+        );
+    }, [filteredBooks]);
+
     return (
         <div id="adminView">
             <AdminNav />
@@ -110,18 +131,46 @@ export default function AllBooks() {
                 ) : error ? (
                     <div className="admin-state error">{error}</div>
                 ) : (
-                    <BooksTable
-                        books={filteredBooks}
-                        onStatusChange={(bookId, status) => {
-                            setBooks((current) => current.map((book) =>
-                                book.id === bookId ? { ...book, status } : book
-                            ));
-                        }}
-                    />
+                    <>
+                        <div className="books-summary-grid">
+                            <SummaryCard label="Total Books" value={summary.total.toLocaleString()} />
+                            <SummaryCard label="In Progress" value={summary.inProgress.toLocaleString()} />
+                            <SummaryCard label="Published Chapters" value={summary.publishedChapters.toLocaleString()} to="/admin/chapters" />
+                            <SummaryCard label="Scheduled Releases" value={summary.scheduledReleases.toLocaleString()} to="/admin/schedule" />
+                        </div>
+
+                        <BooksTable
+                            books={filteredBooks}
+                            onStatusChange={(bookId, status) => {
+                                setBooks((current) => current.map((book) =>
+                                    book.id === bookId ? { ...book, status } : book
+                                ));
+                            }}
+                        />
+                    </>
                 )}
             </section>
         </div>
     )
+}
+
+function SummaryCard({ label, value, to }: { label: string; value: string; to?: string }) {
+    const content = (
+        <>
+            <span>{label}</span>
+            <strong>{value}</strong>
+        </>
+    );
+
+    return to ? (
+        <Link to={to} className="books-summary-card linked">
+            {content}
+        </Link>
+    ) : (
+        <div className="books-summary-card">
+            {content}
+        </div>
+    );
 }
 
 function BooksTable({

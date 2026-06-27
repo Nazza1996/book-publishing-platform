@@ -118,7 +118,7 @@ const EMPTY_BOOK: BookEditorState = {
     chapterRevisions: []
 };
 
-const tabs = ["overview", "details", "chapters", "history", "releases", "reader-groups", "feedback", "settings"];
+const tabs = ["overview", "details", "chapters", "history", "releases", "reader-groups", "feedback"];
 
 const readerGroups: ReaderGroup[] = [
     { key: "alpha", label: "Alpha Readers", shortLabel: "A", members: 0, tone: "purple" },
@@ -850,9 +850,6 @@ export default function ManageBook() {
                                     onCreateFeedback={handleCreateFeedback}
                                     onFeedbackStatus={handleFeedbackStatus}
                                 />
-                            )}
-                            {currentTab === "settings" && (
-                                <SettingsTab book={book} />
                             )}
                         </div>
                     </>
@@ -1616,27 +1613,6 @@ function FeedbackTab({
                 selectedChapter={selectedChapter}
                 onFeedbackStatus={onFeedbackStatus}
             />
-        </Panel>
-    );
-}
-
-function SettingsTab({ book }: { book: BookEditorState }) {
-    return (
-        <Panel title="Settings" description="Book-level controls for this workspace.">
-            <div className="settings-grid">
-                <div>
-                    <strong>Book ID</strong>
-                    <span>{book.id ?? "Unsaved"}</span>
-                </div>
-                <div>
-                    <strong>Slug</strong>
-                    <span>{book.slug || "Generated after save"}</span>
-                </div>
-                <div>
-                    <strong>Release Availability</strong>
-                    <span>{getBookReleaseAvailability(book.releases)}</span>
-                </div>
-            </div>
         </Panel>
     );
 }

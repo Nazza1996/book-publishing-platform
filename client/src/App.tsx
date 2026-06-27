@@ -16,6 +16,7 @@ import AdminView from './pages/newAdmin/AdminView';
 import AllBooks from './pages/newAdmin/AllBooks';
 import ManageBook from './pages/newAdmin/ManageBook';
 import AdminPlaceholder from './pages/newAdmin/AdminPlaceholder';
+import Chapters from './pages/newAdmin/Chapters';
 
 function App() {
   return (
@@ -35,7 +36,7 @@ function App() {
               <Route path='/admin/all-books' element={<PrivateRoute><AllBooks /></PrivateRoute>} />
               <Route path='/admin/new-book' element={<PrivateRoute><ManageBook /></PrivateRoute>} />
               <Route path='/admin/book/:slug' element={<PrivateRoute><ManageBook /></PrivateRoute>} />
-              <Route path='/admin/chapters' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
+              <Route path='/admin/chapters' element={<PrivateRoute><Chapters /></PrivateRoute>} />
               <Route path='/admin/versions' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
               <Route path='/admin/reader-groups' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
               <Route path='/admin/releases' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
