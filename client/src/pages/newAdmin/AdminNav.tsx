@@ -14,7 +14,6 @@ export default function AdminNav() {
                 <span className="admin-nav-section-title">BOOKS</span>
                 <NavLink to="/admin/all-books">All Books</NavLink>
                 <NavLink to="/admin/new-book">New Book</NavLink>
-                <NavLink to="/admin/series">Series</NavLink>
             </div>
 
             <div className="admin-nav-section">
