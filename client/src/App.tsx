@@ -18,6 +18,8 @@ import ManageBook from './pages/newAdmin/ManageBook';
 import AdminPlaceholder from './pages/newAdmin/AdminPlaceholder';
 import Chapters from './pages/newAdmin/Chapters';
 import Versions from './pages/newAdmin/Versions';
+import Releases from './pages/newAdmin/Releases';
+import Schedule from './pages/newAdmin/Schedule';
 
 function App() {
   return (
@@ -39,8 +41,8 @@ function App() {
               <Route path='/admin/book/:slug' element={<PrivateRoute><ManageBook /></PrivateRoute>} />
               <Route path='/admin/chapters' element={<PrivateRoute><Chapters /></PrivateRoute>} />
               <Route path='/admin/versions' element={<PrivateRoute><Versions /></PrivateRoute>} />
-              <Route path='/admin/releases' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
-              <Route path='/admin/schedule' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
+              <Route path='/admin/releases' element={<PrivateRoute><Releases /></PrivateRoute>} />
+              <Route path='/admin/schedule' element={<PrivateRoute><Schedule /></PrivateRoute>} />
               <Route path='/admin/alpha-readers' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
               <Route path='/admin/beta-readers' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
               <Route path='/admin/feedback' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
