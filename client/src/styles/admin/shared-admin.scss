@@ -15,10 +15,10 @@
     display: flex;
     flex: 1;
     flex-direction: row;
+    background-color: var(--surface-color);
 
     .admin-section {
         flex: 1;
-        background-color: var(--surface-color);
         padding: 1.5rem;
         border-top-right-radius: v.$radius-md;
         border-bottom-right-radius: v.$radius-md;
@@ -46,8 +46,8 @@
     flex-direction: column;
     background: linear-gradient(180deg, #07182d 0%, #0b1f38 100%);
     padding: 1rem;
-    border-top-left-radius: v.$radius-md;
-    border-bottom-left-radius: v.$radius-md;
+    border-top-right-radius: v.$radius-md;
+    border-bottom-right-radius: v.$radius-md;
     flex: 0 0 210px;
     min-height: calc(100vh - 2rem);
 

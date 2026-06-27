@@ -4,6 +4,7 @@ import { apiFetch, setPageTitle } from "../../helpers";
 import '../../styles/admin/shared-admin.scss';
 import '../../styles/admin/all-books.scss';
 import AdminNav from "./AdminNav";
+import Datatable, { type DatatableColumn } from "./Datatable";
 
 type BookStatus = "not_started" | "in_progress" | "on_hold" | "finished" | "cancelled";
 
@@ -82,10 +83,6 @@ export default function AllBooks() {
             book.title.toLowerCase().includes(normalizedSearch)
         );
     }, [books, searchTerm]);
-
-    useEffect(() => {
-        setPageTitle("All Books");
-    }, []);
 
     return (
         <div id="adminView">
@@ -183,85 +180,91 @@ function BooksTable({
         }
     }
 
-    return (
-        <div id="books-table-wrapper">
-            <div id="books-table-header">
-                <div id="books-table-title">All Books</div>
+    function renderStatusDropdown(book: BookSummary) {
+        return (
+            <div
+                className="status-dropdown"
+                onBlur={(event) => {
+                    if (!event.currentTarget.contains(event.relatedTarget)) {
+                        setOpenStatusId(null);
+                    }
+                }}
+            >
+                <button
+                    type="button"
+                    className="status-dropdown-trigger"
+                    onClick={() => setOpenStatusId(openStatusId === book.id ? null : book.id)}
+                    disabled={savingStatusId === book.id}
+                    aria-haspopup="listbox"
+                    aria-expanded={openStatusId === book.id}
+                    aria-label={`Change status for ${book.title}`}
+                >
+                    <span className={`status-pill ${statusClassName(getStatus(book))}`}>{statusLabels[getStatus(book)]}</span>
+                </button>
+
+                {openStatusId === book.id && (
+                    <div className="status-dropdown-menu" role="listbox" aria-label={`Status options for ${book.title}`}>
+                        {Object.entries(statusLabels).map(([value, label]) => {
+                            const status = value as BookStatus;
+
+                            return (
+                                <button
+                                    key={value}
+                                    type="button"
+                                    className={`status-dropdown-option ${getStatus(book) === status ? 'active' : ''}`}
+                                    onMouseDown={(event) => event.preventDefault()}
+                                    onClick={() => {
+                                        setOpenStatusId(null);
+                                        handleStatusChange(book, status);
+                                    }}
+                                    role="option"
+                                    aria-selected={getStatus(book) === status}
+                                >
+                                    <span className={`status-pill ${statusClassName(status)}`}>{label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
+        );
+    }
 
-            {books.length === 0 ? (
-                <div className="admin-empty-state">No books found.</div>
-            ) : (
-                <table id="books-table">
-                    <thead>
-                        <tr>
-                            <th>Title</th>
-                            <th>Status</th>
-                            <th>Last Updated</th>
-                            <th>Next Release</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {books.map((book) => (
-                            <tr key={book.id}>
-                                <td><Link to={`/admin/book/${book.slug}`} className="book-link">{book.title}</Link></td>
-                                <td>
-                                    <div
-                                        className="status-dropdown"
-                                        onBlur={(event) => {
-                                            if (!event.currentTarget.contains(event.relatedTarget)) {
-                                                setOpenStatusId(null);
-                                            }
-                                        }}
-                                    >
-                                        <button
-                                            type="button"
-                                            className="status-dropdown-trigger"
-                                            onClick={() => setOpenStatusId(openStatusId === book.id ? null : book.id)}
-                                            disabled={savingStatusId === book.id}
-                                            aria-haspopup="listbox"
-                                            aria-expanded={openStatusId === book.id}
-                                            aria-label={`Change status for ${book.title}`}
-                                        >
-                                            <span className={`status-pill ${statusClassName(getStatus(book))}`}>{statusLabels[getStatus(book)]}</span>
-                                        </button>
+    const columns: DatatableColumn<BookSummary>[] = [
+        {
+            key: "title",
+            header: "Title",
+            render: (book) => <Link to={`/admin/book/${book.slug}`} className="datatable-link">{book.title}</Link>,
+        },
+        {
+            key: "status",
+            header: "Status",
+            render: renderStatusDropdown,
+        },
+        {
+            key: "updatedAt",
+            header: "Last Updated",
+            render: (book) => <span title={formatDateTitle(book.updatedAt)}>{formatDate(book.updatedAt)}</span>,
+        },
+        {
+            key: "nextRelease",
+            header: "Next Release",
+            render: (book) => (
+                <span title={book.nextRelease ? formatDateTitle(book.nextRelease.releaseAt) : undefined}>
+                    {book.nextRelease ? formatDate(book.nextRelease.releaseAt) : "-"}
+                </span>
+            ),
+        },
+    ];
 
-                                        {openStatusId === book.id && (
-                                            <div className="status-dropdown-menu" role="listbox" aria-label={`Status options for ${book.title}`}>
-                                                {Object.entries(statusLabels).map(([value, label]) => {
-                                                    const status = value as BookStatus;
-
-                                                    return (
-                                                        <button
-                                                            key={value}
-                                                            type="button"
-                                                            className={`status-dropdown-option ${getStatus(book) === status ? 'active' : ''}`}
-                                                            onMouseDown={(event) => event.preventDefault()}
-                                                            onClick={() => {
-                                                                setOpenStatusId(null);
-                                                                handleStatusChange(book, status);
-                                                            }}
-                                                            role="option"
-                                                            aria-selected={getStatus(book) === status}
-                                                        >
-                                                            <span className={`status-pill ${statusClassName(status)}`}>{label}</span>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                </td>
-                                <td title={formatDateTitle(book.updatedAt)}>{formatDate(book.updatedAt)}</td>
-                                <td title={book.nextRelease ? formatDateTitle(book.nextRelease.releaseAt) : undefined}>
-                                    {book.nextRelease ? formatDate(book.nextRelease.releaseAt) : "-"}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
-        </div>
+    return (
+        <Datatable
+            title="All Books"
+            columns={columns}
+            rows={books}
+            getRowKey={(book) => book.id}
+            emptyMessage="No books found."
+        />
     )
 }
 

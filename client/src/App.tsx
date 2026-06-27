@@ -11,7 +11,7 @@ import NotFound from './pages/404';
 import Book from './pages/Book';
 import { PrivateRoute } from './components/PrivateRoute';
 import Login from './pages/Login';
-import Users from './pages/admin/Users';
+import Users from './pages/newAdmin/Users';
 import AdminView from './pages/newAdmin/AdminView';
 import AllBooks from './pages/newAdmin/AllBooks';
 import ManageBook from './pages/newAdmin/ManageBook';
@@ -41,11 +41,9 @@ function App() {
               <Route path='/admin/reader-groups' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
               <Route path='/admin/releases' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
               <Route path='/admin/schedule' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
-              <Route path='/admin/announcements' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
               <Route path='/admin/alpha-readers' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
               <Route path='/admin/beta-readers' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
               <Route path='/admin/feedback' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
-              <Route path='/admin/settings' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
             </Routes>
             <Footer />
           </Router>

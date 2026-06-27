@@ -7,6 +7,7 @@ export default function AdminNav() {
 
             <div className="admin-nav-section">
                 <NavLink to="/admin" end>Dashboard</NavLink>
+                <NavLink to="/admin/users">Users</NavLink>
             </div>
 
             <div className="admin-nav-section">
@@ -27,7 +28,6 @@ export default function AdminNav() {
                 <span className="admin-nav-section-title">PUBLISH & SCHEDULE</span>
                 <NavLink to="/admin/releases">Releases</NavLink>
                 <NavLink to="/admin/schedule">Schedule</NavLink>
-                <NavLink to="/admin/announcements">Announcements</NavLink>
             </div>
 
             <div className="admin-nav-section">
@@ -35,12 +35,6 @@ export default function AdminNav() {
                 <NavLink to="/admin/alpha-readers">Alpha Readers</NavLink>
                 <NavLink to="/admin/beta-readers">Beta Readers</NavLink>
                 <NavLink to="/admin/feedback">Feedback</NavLink>
-            </div>
-
-            <div className="admin-nav-section">
-                <span className="admin-nav-section-title">SETTINGS</span>
-                <NavLink to="/admin/users">Users</NavLink>
-                <NavLink to="/admin/settings">Settings</NavLink>
             </div>
         </div>
     )
