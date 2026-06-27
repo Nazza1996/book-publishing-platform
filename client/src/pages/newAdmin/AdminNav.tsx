@@ -20,7 +20,6 @@ export default function AdminNav() {
                 <span className="admin-nav-section-title">CONTENT</span>
                 <NavLink to="/admin/chapters">Chapters</NavLink>
                 <NavLink to="/admin/versions">Versions</NavLink>
-                <NavLink to="/admin/reader-groups">Reader Groups</NavLink>
             </div>
 
             <div className="admin-nav-section">

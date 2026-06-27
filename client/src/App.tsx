@@ -39,7 +39,6 @@ function App() {
               <Route path='/admin/book/:slug' element={<PrivateRoute><ManageBook /></PrivateRoute>} />
               <Route path='/admin/chapters' element={<PrivateRoute><Chapters /></PrivateRoute>} />
               <Route path='/admin/versions' element={<PrivateRoute><Versions /></PrivateRoute>} />
-              <Route path='/admin/reader-groups' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
               <Route path='/admin/releases' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
               <Route path='/admin/schedule' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
               <Route path='/admin/alpha-readers' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
