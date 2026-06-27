@@ -24,10 +24,12 @@
         color: var(--body-text-color);
     }
 
-    .admin-empty-state {
-        border: 0;
+    .datatable-empty-state {
         border-radius: 0 0 v.$radius-md v.$radius-md;
-        background: transparent;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-top: none;
+        background: var(--surface-color);
     }
 }
 

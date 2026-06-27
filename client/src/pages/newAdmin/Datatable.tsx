@@ -38,7 +38,7 @@ export default function Datatable<T>({
             )}
 
             {rows.length === 0 ? (
-                <div className="admin-empty-state">{emptyMessage}</div>
+                <div className="datatable-empty-state">{emptyMessage}</div>
             ) : (
                 <table className="datatable">
                     <colgroup>
