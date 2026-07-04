@@ -594,7 +594,9 @@
         background: transparent;
         color: var(--body-text-color);
         cursor: pointer;
-        padding: 0 0.65rem;
+        min-width: 34px;
+        padding: 0 0.55rem;
+        font-weight: 700;
 
         &:hover {
             background: var(--background-secondary-color);
