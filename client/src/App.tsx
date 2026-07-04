@@ -15,11 +15,12 @@ import Users from './pages/newAdmin/Users';
 import AdminView from './pages/newAdmin/AdminView';
 import AllBooks from './pages/newAdmin/AllBooks';
 import ManageBook from './pages/newAdmin/ManageBook';
-import AdminPlaceholder from './pages/newAdmin/AdminPlaceholder';
 import Chapters from './pages/newAdmin/Chapters';
 import Versions from './pages/newAdmin/Versions';
 import Releases from './pages/newAdmin/Releases';
 import Schedule from './pages/newAdmin/Schedule';
+import ReaderGroups from './pages/newAdmin/ReaderGroups';
+import Feedback from './pages/newAdmin/Feedback';
 
 function App() {
   return (
@@ -43,9 +44,9 @@ function App() {
               <Route path='/admin/versions' element={<PrivateRoute><Versions /></PrivateRoute>} />
               <Route path='/admin/releases' element={<PrivateRoute><Releases /></PrivateRoute>} />
               <Route path='/admin/schedule' element={<PrivateRoute><Schedule /></PrivateRoute>} />
-              <Route path='/admin/alpha-readers' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
-              <Route path='/admin/beta-readers' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
-              <Route path='/admin/feedback' element={<PrivateRoute><AdminPlaceholder /></PrivateRoute>} />
+              <Route path='/admin/alpha-readers' element={<PrivateRoute><ReaderGroups channel="alpha" /></PrivateRoute>} />
+              <Route path='/admin/beta-readers' element={<PrivateRoute><ReaderGroups channel="beta" /></PrivateRoute>} />
+              <Route path='/admin/feedback' element={<PrivateRoute><Feedback /></PrivateRoute>} />
             </Routes>
             <Footer />
           </Router>

@@ -67,7 +67,7 @@ interface ReaderGroupMember {
     readerGroupId: number;
     userId: number | null;
     username: string;
-    status: "active" | "invited" | "removed";
+    status: "active" | "removed";
     joinedAt: string | null;
     user?: ReaderAccount | null;
 }
@@ -639,7 +639,7 @@ export default function ManageBook() {
             return;
         }
 
-        const member = await res.json();
+        const member = normalizeReaderGroupMember(await res.json());
         setBook((current) => ({
             ...current,
             readerGroups: current.readerGroups.map((group) => {
@@ -678,7 +678,7 @@ export default function ManageBook() {
             return;
         }
 
-        const member = await res.json();
+        const member = normalizeReaderGroupMember(await res.json());
         setBook((current) => ({
             ...current,
             readerGroups: current.readerGroups.map((group) => {
@@ -697,36 +697,6 @@ export default function ManageBook() {
             })
         }));
         toast.success(status === "active" ? "Reader access restored" : "Reader access removed");
-    }
-
-    async function handleCreateFeedback(input: {
-        channel: ReaderChannel;
-        chapterNumber: number | null;
-        readerUserId?: number | null;
-        readerUsername: string;
-        comment: string;
-    }) {
-        if (!book.id) {
-            toast.error("Save this book before adding feedback");
-            return;
-        }
-
-        const res = await apiFetch(`/api/books/${book.id}/feedback`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(input)
-        });
-
-        if (!res.ok) {
-            return;
-        }
-
-        const feedback = await res.json();
-        setBook((current) => ({
-            ...current,
-            feedback: [feedback, ...current.feedback]
-        }));
-        toast.success("Feedback added");
     }
 
     async function handleFeedbackStatus(feedbackId: number, status: ReaderFeedbackItem["status"]) {
@@ -749,6 +719,7 @@ export default function ManageBook() {
             ...current,
             feedback: current.feedback.map((item) => item.id === feedback.id ? feedback : item)
         }));
+        toast.success(status === "open" ? "Feedback marked as unread" : "Feedback marked as read");
     }
 
     return (
@@ -847,7 +818,6 @@ export default function ManageBook() {
                                     chapters={book.chapters}
                                     feedback={book.feedback}
                                     selectedChapter={selectedChapter}
-                                    onCreateFeedback={handleCreateFeedback}
                                     onFeedbackStatus={handleFeedbackStatus}
                                 />
                             )}
@@ -1536,80 +1506,111 @@ function ReaderGroupsTab({
     );
 }
 
+function feedbackReaderKey(readerUserId: number | null | undefined, readerUsername: string) {
+    return readerUserId ? `id:${readerUserId}` : `name:${readerUsername.toLowerCase()}`;
+}
+
 function FeedbackTab({
     groups,
     chapters,
     feedback,
     selectedChapter,
-    onCreateFeedback,
     onFeedbackStatus
 }: {
     groups: ReaderGroup[];
     chapters: Chapter[];
     feedback: ReaderFeedbackItem[];
     selectedChapter?: Chapter;
-    onCreateFeedback: (input: {
-        channel: ReaderChannel;
-        chapterNumber: number | null;
-        readerUserId?: number | null;
-        readerUsername: string;
-        comment: string;
-    }) => void;
     onFeedbackStatus: (feedbackId: number, status: ReaderFeedbackItem["status"]) => void;
 }) {
-    const [channel, setChannel] = useState<ReaderChannel>("alpha");
-    const [chapterNumber, setChapterNumber] = useState<number | "">(selectedChapter?.chapterNumber ?? "");
-    const [readerUserId, setReaderUserId] = useState<number | "">("");
-    const [comment, setComment] = useState("");
-    const selectedGroup = groups.find((group) => group.key === channel);
-    const activeMembers = (selectedGroup?.memberList ?? []).filter((member) => member.status === "active");
-    const selectedMember = activeMembers.find((member) => member.userId === readerUserId);
+    const [channel, setChannel] = useState<"all" | ReaderChannel>("all");
+    const [chapterNumber, setChapterNumber] = useState<"all" | "book" | number>(
+        selectedChapter?.chapterNumber ?? "all"
+    );
+    const [readerFilter, setReaderFilter] = useState("all");
+    const visibleGroups = useMemo(
+        () => channel === "all" ? groups : groups.filter((group) => group.key === channel),
+        [channel, groups]
+    );
+    const readerOptions = useMemo(() => {
+        const options = new Map<string, string>();
+
+        visibleGroups
+            .flatMap((group) => group.memberList ?? [])
+            .filter((member) => member.status === "active")
+            .forEach((member) => {
+                const key = feedbackReaderKey(member.userId, member.user?.username ?? member.username);
+                options.set(key, member.user?.username ?? member.username);
+            });
+
+        feedback
+            .filter((item) => channel === "all" || item.channel === channel)
+            .forEach((item) => {
+                options.set(feedbackReaderKey(item.readerUserId ?? null, item.reader?.username ?? item.readerUsername), item.reader?.username ?? item.readerUsername);
+            });
+
+        return Array.from(options, ([value, label]) => ({ value, label }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+    }, [channel, feedback, visibleGroups]);
+
+    const filteredFeedback = useMemo(() => {
+        return feedback.filter((item) => {
+            if (channel !== "all" && item.channel !== channel) {
+                return false;
+            }
+
+            if (chapterNumber === "book" && item.chapterNumber !== null) {
+                return false;
+            }
+
+            if (typeof chapterNumber === "number" && item.chapterNumber !== chapterNumber) {
+                return false;
+            }
+
+            if (readerFilter !== "all" && feedbackReaderKey(item.readerUserId ?? null, item.reader?.username ?? item.readerUsername) !== readerFilter) {
+                return false;
+            }
+
+            return true;
+        });
+    }, [channel, chapterNumber, feedback, readerFilter]);
 
     useEffect(() => {
-        setReaderUserId("");
+        setReaderFilter("all");
     }, [channel]);
-
-    function submitFeedback() {
-        onCreateFeedback({
-            channel,
-            chapterNumber: chapterNumber === "" ? null : chapterNumber,
-            readerUserId: selectedMember?.userId ?? null,
-            readerUsername: selectedMember?.user?.username ?? selectedMember?.username ?? "Reader",
-            comment
-        });
-        setReaderUserId("");
-        setComment("");
-    }
 
     return (
         <Panel step="8" title="Feedback" description="See reader feedback by chapter and reader group.">
             <div className="feedback-form">
-                <select value={channel} onChange={(e) => setChannel(e.target.value as ReaderChannel)}>
+                <select value={channel} onChange={(e) => setChannel(e.target.value as "all" | ReaderChannel)}>
+                    <option value="all">All reader groups</option>
                     {groups.map((group) => (
                         <option key={group.key} value={group.key}>{group.label}</option>
                     ))}
                 </select>
-                <select value={chapterNumber} onChange={(e) => setChapterNumber(e.target.value === "" ? "" : Number(e.target.value))}>
-                    <option value="">Whole book</option>
+                <select
+                    value={chapterNumber}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        setChapterNumber(value === "all" || value === "book" ? value : Number(value));
+                    }}
+                >
+                    <option value="all">All chapters</option>
                     {chapters.map((chapter) => (
                         <option key={chapter.chapterNumber} value={chapter.chapterNumber}>Chapter {chapter.chapterNumber}: {chapter.title}</option>
                     ))}
                 </select>
-                <select value={readerUserId} onChange={(e) => setReaderUserId(e.target.value ? Number(e.target.value) : "")}>
-                    <option value="">Choose reader</option>
-                    {activeMembers.map((member) => (
-                        <option key={member.id ?? member.userId ?? member.username} value={member.userId ?? ""}>
-                            {member.user?.username ?? member.username}
-                        </option>
+                <select value={readerFilter} onChange={(e) => setReaderFilter(e.target.value)}>
+                    <option value="all">All readers</option>
+                    {readerOptions.map((reader) => (
+                        <option key={reader.value} value={reader.value}>{reader.label}</option>
                     ))}
                 </select>
-                <textarea placeholder="Feedback comment" value={comment} onChange={(e) => setComment(e.target.value)} />
-                <button className="primary-btn" onClick={submitFeedback}>Add Feedback</button>
             </div>
 
             <FeedbackList
                 groups={groups}
-                feedback={feedback}
+                feedback={filteredFeedback}
                 selectedChapter={selectedChapter}
                 onFeedbackStatus={onFeedbackStatus}
             />
@@ -1782,14 +1783,18 @@ function FeedbackList({
                         <div className="feedback-card-header">
                             <strong>{item.readerUsername}</strong>
                             <StatusPill label={group.label} />
-                            <span>{item.chapterNumber ? `Chapter ${item.chapterNumber}` : selectedChapter?.title ?? "Whole book"}</span>
-                            <StatusPill label={item.status} />
+                            <span>{item.chapterNumber ? `Chapter ${item.chapterNumber}` : selectedChapter?.title}</span>
+                            <StatusPill label={feedbackReadLabel(item.status)} />
                         </div>
                         <p>{item.comment}</p>
                         {!compact && item.id && (
                             <div className="feedback-actions">
-                                <button className="secondary-btn" onClick={() => onFeedbackStatus?.(item.id!, "reviewed")}>Mark Reviewed</button>
-                                <button className="secondary-btn" onClick={() => onFeedbackStatus?.(item.id!, "resolved")}>Resolve</button>
+                                <button
+                                    className="secondary-btn"
+                                    onClick={() => onFeedbackStatus?.(item.id!, isFeedbackRead(item.status) ? "open" : "reviewed")}
+                                >
+                                    {isFeedbackRead(item.status) ? "Mark unread" : "Mark as read"}
+                                </button>
                             </div>
                         )}
                     </article>
@@ -1889,6 +1894,14 @@ function StatusPill({ label }: { label: string }) {
     return <span className={`status-pill ${normalized}`}>{label}</span>;
 }
 
+function isFeedbackRead(status: ReaderFeedbackItem["status"]) {
+    return status === "reviewed" || status === "resolved";
+}
+
+function feedbackReadLabel(status: ReaderFeedbackItem["status"]) {
+    return isFeedbackRead(status) ? "Read" : "Unread";
+}
+
 function formatTabLabel(tab: string) {
     if (tab === "history") {
         return "Chapter History";
@@ -1968,7 +1981,7 @@ function normalizeReaderGroups(groups: any[] = []): ReaderGroup[] {
     return groups.map((group) => {
         const channel = group.channel as ReaderChannel;
         const fallback = readerGroups.find((item) => item.key === channel) ?? readerGroups[0];
-        const memberList = group.members ?? [];
+        const memberList = (group.members ?? []).map(normalizeReaderGroupMember);
 
         return {
             id: group.id,
@@ -1984,6 +1997,13 @@ function normalizeReaderGroups(groups: any[] = []): ReaderGroup[] {
             memberList,
         };
     });
+}
+
+function normalizeReaderGroupMember(member: any): ReaderGroupMember {
+    return {
+        ...member,
+        status: member.status === "removed" ? "removed" : "active",
+    };
 }
 
 function countBookWords(book: BookEditorState) {

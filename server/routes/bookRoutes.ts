@@ -1008,10 +1008,15 @@ router.patch("/:id/reader-groups/:groupId/members/:memberId", async (req: Reques
 
 router.patch("/:id/feedback/:feedbackId", async (req: Request, res: Response) => {
     const { id, feedbackId } = req.params;
-    const { status } = req.body;
+    const requestedStatus = req.body.status;
+    const status = requestedStatus === "read"
+        ? "reviewed"
+        : requestedStatus === "unread"
+            ? "open"
+            : requestedStatus;
 
     if (!["open", "reviewed", "resolved"].includes(status)) {
-        return res.status(400).json({ error: "A valid feedback status is required" });
+        return res.status(400).json({ error: "A valid feedback read state is required" });
     }
 
     try {
