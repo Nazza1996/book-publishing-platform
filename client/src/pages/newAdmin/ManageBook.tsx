@@ -533,7 +533,7 @@ export default function ManageBook() {
                 release
             ]
         }));
-        toast.success(input.status === "released" ? "Chapter released" : "Release scheduled");
+        toast.success(release.status === "released" ? "Chapter released" : "Release scheduled");
     }
 
     async function handleDeleteRelease(releaseId: number) {

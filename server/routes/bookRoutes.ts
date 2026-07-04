@@ -11,6 +11,7 @@ import ReaderGroup from "../models/ReaderGroup.js";
 import ReaderGroupMember from "../models/ReaderGroupMember.js";
 import User from "../models/User.js";
 import { getCurrentActiveUser, requireAccessToken, requireAdmin, type AuthUser } from "../middleware/auth.js";
+import { promoteDueScheduledReleases } from "../services/releaseScheduler.js";
 
 const router = Router();
 const readerChannels: ReaderChannel[] = ["alpha", "beta", "public"];
@@ -118,6 +119,7 @@ async function ensureReaderGroups(bookId: number) {
 }
 
 async function getBookReleaseData(book: Book) {
+    await promoteDueScheduledReleases();
     await ensureBookChannelMetadata(book.id, book.description);
     await ensureReaderGroups(book.id);
 
@@ -170,6 +172,7 @@ async function getBookReleaseData(book: Book) {
 }
 
 async function getBookReleaseSummary(bookId: number) {
+    await promoteDueScheduledReleases();
     const releases = await ChapterRelease.findAll({
         where: { bookId },
         attributes: ["channel", "status", "chapterNumber"]
@@ -213,6 +216,7 @@ async function hasReaderChannelAccess(bookId: number, channel: ReaderChannel, us
 }
 
 async function getReleasedChaptersForChannel(bookId: number, channel: ReaderChannel) {
+    await promoteDueScheduledReleases();
     const releases = await ChapterRelease.findAll({
         where: {
             bookId,
@@ -339,6 +343,7 @@ router.get("/", async (req: Request, res: Response) => {
 });
 
 async function getReleasedPublicBooks() {
+    await promoteDueScheduledReleases();
     const releasedPublicRows = await ChapterRelease.findAll({
         where: { channel: "public", status: "released" },
         attributes: ["bookId"],
@@ -376,6 +381,7 @@ function addLibraryBook(
 }
 
 async function getReaderReleasedBooks(userId: number) {
+    await promoteDueScheduledReleases();
     const readerGroups = await ReaderGroup.findAll({
         where: { channel: { [Op.in]: ["alpha", "beta"] } },
         include: [{
@@ -448,6 +454,7 @@ router.get("/released", async (req: Request, res: Response) => {
 
 router.get("/featured", async (req: Request, res: Response) => {
     try {
+        await promoteDueScheduledReleases();
         const releasedPublicRows = await ChapterRelease.findAll({
             where: { channel: "public", status: "released" },
             attributes: ["bookId"],
@@ -747,6 +754,8 @@ router.post("/toggleFeatured", async (req: Request, res: Response) => {
             return res.status(404).json({ error: "Book not found" });
         }
 
+        await promoteDueScheduledReleases();
+
         const publicReleaseCount = await ChapterRelease.count({
             where: {
                 bookId: existingBook.id,
@@ -812,6 +821,17 @@ router.post("/:id/releases", async (req: Request, res: Response) => {
             return res.status(404).json({ error: "Book not found" });
         }
 
+        const normalizedReleaseAt = releaseAt ? new Date(releaseAt) : null;
+        if (normalizedReleaseAt && Number.isNaN(normalizedReleaseAt.getTime())) {
+            return res.status(400).json({ error: "A valid release date is required" });
+        }
+
+        const effectiveStatus = status === "scheduled"
+            && normalizedReleaseAt
+            && normalizedReleaseAt.getTime() <= Date.now()
+            ? "released"
+            : status;
+
         let snapshotTitle = typeof title === "string" ? title : "";
         let snapshotContent = typeof content === "string" ? content : "";
 
@@ -844,8 +864,8 @@ router.post("/:id/releases", async (req: Request, res: Response) => {
                 chapterNumber: normalizedChapterNumber,
                 title: snapshotTitle,
                 content: snapshotContent,
-                status,
-                releaseAt: releaseAt ? new Date(releaseAt) : null,
+                status: effectiveStatus,
+                releaseAt: normalizedReleaseAt,
             }
         });
 
@@ -853,8 +873,8 @@ router.post("/:id/releases", async (req: Request, res: Response) => {
             await release.update({
                 title: snapshotTitle,
                 content: snapshotContent,
-                status,
-                releaseAt: releaseAt ? new Date(releaseAt) : null,
+                status: effectiveStatus,
+                releaseAt: normalizedReleaseAt,
             });
         }
 
