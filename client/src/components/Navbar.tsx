@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 
 export default function Navbar() {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
 
     return (
@@ -17,6 +17,9 @@ export default function Navbar() {
                 <li><Link to="/library">Library</Link></li>
                 {user && user.role === "admin" && (
                     <li><Link to="/admin">Admin</Link></li>
+                )}
+                {user && user.role === "reader" && (
+                    <li><Link to="" onClick={logout}>Logout</Link></li>
                 )}
             </ul>
             <button
