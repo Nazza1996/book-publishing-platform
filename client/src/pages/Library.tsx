@@ -51,9 +51,9 @@ export default function Library() {
                     </div>
                 ) : (
                     <div className="books-grid">
-                        {books.map((book, index) => (
+                        {books.map((book) => (
                             book.availableChannels?.map((channel) => (
-                                <article key={index} className="book-card">
+                                <article key={`${book.id}-${channel}`} className="book-card">
                                     <div className="book-card-content">
                                         {channel && channel !== "public" && (
                                             <span className={`book-access-badge ${channel}`}>

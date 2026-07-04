@@ -429,16 +429,54 @@ async function getReaderReleasedBooks(userId: number) {
         .filter((item): item is { book: Book; channel: ReaderChannel } => Boolean(item));
 }
 
+async function getAdminReleasedBooks() {
+    await promoteDueScheduledReleases();
+
+    const releasedRows = await ChapterRelease.findAll({
+        where: {
+            status: "released",
+            channel: { [Op.in]: readerChannels },
+        },
+        attributes: ["bookId", "channel"],
+        group: ["bookId", "channel"],
+        order: [["bookId", "ASC"], ["channel", "ASC"]],
+    });
+
+    const bookIds = Array.from(new Set(releasedRows.map((release) => release.bookId)));
+    if (bookIds.length === 0) {
+        return [];
+    }
+
+    const books = await Book.findAll({
+        where: { id: { [Op.in]: bookIds } },
+    });
+    const booksById = new Map(books.map((book) => [book.id, book]));
+
+    return releasedRows
+        .map((release) => {
+            const book = booksById.get(release.bookId);
+            return book ? { book, channel: release.channel } : null;
+        })
+        .filter((item): item is { book: Book; channel: ReaderChannel } => Boolean(item));
+}
+
 router.get("/released", async (req: Request, res: Response) => {
     try {
         const entries = new Map<number, any>();
-        const publicBooks = await getReleasedPublicBooks();
+        const user = await getCurrentActiveUser(req);
 
-        for (const book of publicBooks) {
-            addLibraryBook(entries, book, "public");
+        if (user?.role === "admin") {
+            const adminBooks = await getAdminReleasedBooks();
+            for (const item of adminBooks) {
+                addLibraryBook(entries, item.book, item.channel);
+            }
+        } else {
+            const publicBooks = await getReleasedPublicBooks();
+            for (const book of publicBooks) {
+                addLibraryBook(entries, book, "public");
+            }
         }
 
-        const user = await getCurrentActiveUser(req);
         if (user?.role === "reader") {
             const readerBooks = await getReaderReleasedBooks(user.id);
             for (const item of readerBooks) {
