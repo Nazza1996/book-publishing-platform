@@ -5,6 +5,8 @@ import "../../styles/admin/shared-admin.scss";
 import "../../styles/admin/releases.scss";
 import AdminNav from "./AdminNav";
 import Datatable, { type DatatableColumn } from "./Datatable";
+import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 type ReaderChannel = "alpha" | "beta" | "public";
 
@@ -254,7 +256,10 @@ export default function Schedule() {
                         <section className="datatable-wrapper">
                             <div className="schedule-next-header">
                                 <span>Next Releases</span>
-                                <Link to="/admin/releases">View all releases</Link>
+                                <Link to="/admin/releases">
+                                    View all releases
+                                    <FontAwesomeIcon icon={faArrowRight} />
+                                </Link>
                             </div>
                             {nextItems.length === 0 ? (
                                 <div className="datatable-empty-state">No upcoming dated releases.</div>
