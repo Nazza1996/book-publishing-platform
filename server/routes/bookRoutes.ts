@@ -12,6 +12,7 @@ import ReaderGroupMember from "../models/ReaderGroupMember.js";
 import User from "../models/User.js";
 import { getCurrentActiveUser, requireAccessToken, requireAdmin, type AuthUser } from "../middleware/auth.js";
 import { promoteDueScheduledReleases } from "../services/releaseScheduler.js";
+import { sequelize } from "../utils/database.js";
 
 const router = Router();
 const readerChannels: ReaderChannel[] = ["alpha", "beta", "public"];
@@ -753,11 +754,6 @@ router.post("/saveDraft", async (req: Request, res: Response) => {
 });
 
 router.delete("/:id", async (req: Request, res: Response) => {
-    const token = req.cookies?.token;
-    if (!token) {
-        return res.status(401).json({ error: "Not authenticated" });
-    }
-
     const { id } = req.params;
 
     try {
@@ -766,11 +762,46 @@ router.delete("/:id", async (req: Request, res: Response) => {
             return res.status(404).json({ error: "Book not found" });
         }
 
-        // Cascade delete: BookVersion (which cascades to Chapter)
-        await BookVersion.destroy({ where: { bookId: existingBook.id } });
-        
-        // Delete the book
-        await existingBook.destroy();
+        await sequelize.transaction(async (transaction) => {
+            const bookVersions = await BookVersion.findAll({
+                where: { bookId: existingBook.id },
+                attributes: ["id"],
+                transaction,
+            });
+            const bookVersionIds = bookVersions.map((version) => version.id);
+
+            const readerGroups = await ReaderGroup.findAll({
+                where: { bookId: existingBook.id },
+                attributes: ["id"],
+                transaction,
+            });
+            const readerGroupIds = readerGroups.map((group) => group.id);
+
+            if (readerGroupIds.length) {
+                await ReaderGroupMember.destroy({
+                    where: { readerGroupId: { [Op.in]: readerGroupIds } },
+                    transaction,
+                });
+            }
+
+            if (bookVersionIds.length) {
+                await Chapter.destroy({
+                    where: { bookVersionId: { [Op.in]: bookVersionIds } },
+                    transaction,
+                });
+            }
+
+            await Promise.all([
+                BookChannelMetadata.destroy({ where: { bookId: existingBook.id }, transaction }),
+                ChapterRelease.destroy({ where: { bookId: existingBook.id }, transaction }),
+                ReaderFeedback.destroy({ where: { bookId: existingBook.id }, transaction }),
+                ChapterRevision.destroy({ where: { bookId: existingBook.id }, transaction }),
+                ReaderGroup.destroy({ where: { bookId: existingBook.id }, transaction }),
+                BookVersion.destroy({ where: { bookId: existingBook.id }, transaction }),
+            ]);
+
+            await existingBook.destroy({ transaction });
+        });
 
         res.json({ message: "Book deleted successfully" });
     } catch (error: any) {

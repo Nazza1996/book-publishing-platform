@@ -171,6 +171,8 @@ export default function ManageBook() {
     const [saving, setSaving] = useState(false);
     const [savingStatus, setSavingStatus] = useState(false);
     const [togglingSpotlight, setTogglingSpotlight] = useState(false);
+    const [deleteBookModalOpen, setDeleteBookModalOpen] = useState(false);
+    const [deletingBook, setDeletingBook] = useState(false);
     const [pendingReleaseDeleteIds, setPendingReleaseDeleteIds] = useState<number[]>([]);
     const [readerAccounts, setReaderAccounts] = useState<ReaderAccount[]>([]);
     const [error, setError] = useState("");
@@ -494,6 +496,30 @@ export default function ManageBook() {
         }
     }
 
+    async function handleDeleteBook() {
+        if (!book.id) {
+            toast.error("Save this book before deleting it");
+            return;
+        }
+
+        setDeletingBook(true);
+
+        try {
+            const res = await apiFetch(`/api/books/${book.id}`, {
+                method: 'DELETE'
+            });
+
+            if (!res.ok) {
+                return;
+            }
+
+            toast.success("Book deleted");
+            navigate('/admin/all-books', { replace: true });
+        } finally {
+            setDeletingBook(false);
+        }
+    }
+
     async function handleScheduleRelease(input: {
         channel: ReaderChannel;
         chapterNumber: number;
@@ -741,9 +767,11 @@ export default function ManageBook() {
                             saving={saving}
                             savingStatus={savingStatus}
                             togglingSpotlight={togglingSpotlight}
+                            deletingBook={deletingBook}
                             onSave={handleSaveDraft}
                             onStatusChange={updateBookStatus}
                             onToggleSpotlight={handleToggleSpotlight}
+                            onDeleteClick={() => setDeleteBookModalOpen(true)}
                         />
 
                         <Tablist activeTab={currentTab} />
@@ -824,6 +852,34 @@ export default function ManageBook() {
                                 />
                             )}
                         </div>
+
+                        {deleteBookModalOpen && (
+                            <div className="admin-modal-backdrop" role="presentation" onMouseDown={() => !deletingBook && setDeleteBookModalOpen(false)}>
+                                <div
+                                    className="admin-modal"
+                                    role="dialog"
+                                    aria-modal="true"
+                                    aria-labelledby="deleteBookModalTitle"
+                                    onMouseDown={(event) => event.stopPropagation()}
+                                >
+                                    <div className="admin-modal-header">
+                                        <h2 id="deleteBookModalTitle">Delete {book.title || "this book"}?</h2>
+                                        <button className="icon-btn" type="button" onClick={() => setDeleteBookModalOpen(false)} disabled={deletingBook} aria-label="Close delete book modal">x</button>
+                                    </div>
+                                    <div className="admin-modal-body">
+                                        <p>
+                                            This permanently deletes the book, draft chapters, releases, reader groups, feedback, and revision history.
+                                        </p>
+                                    </div>
+                                    <div className="admin-modal-actions">
+                                        <button className="secondary-btn" type="button" onClick={() => setDeleteBookModalOpen(false)} disabled={deletingBook}>Cancel</button>
+                                        <button className="danger-btn" type="button" onClick={handleDeleteBook} disabled={deletingBook}>
+                                            {deletingBook ? "Deleting..." : "Delete Book"}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </>
                 )}
             </section>
@@ -856,9 +912,11 @@ function BookWorkspaceHeader({
     saving,
     savingStatus,
     togglingSpotlight,
+    deletingBook,
     onSave,
     onStatusChange,
-    onToggleSpotlight
+    onToggleSpotlight,
+    onDeleteClick
 }: {
     book: BookEditorState;
     isNewBook: boolean;
@@ -866,9 +924,11 @@ function BookWorkspaceHeader({
     saving: boolean;
     savingStatus: boolean;
     togglingSpotlight: boolean;
+    deletingBook: boolean;
     onSave: () => void;
     onStatusChange: (status: BookStatus) => void;
     onToggleSpotlight: () => void;
+    onDeleteClick: () => void;
 }) {
     return (
         <div id="manageBookHeader">
@@ -902,6 +962,11 @@ function BookWorkspaceHeader({
                 >
                     {book.isFeatured && hasPublicRelease ? "Spotlight On" : "Spotlight Off"}
                 </button>
+                {!isNewBook && (
+                    <button className="danger-btn" type="button" onClick={onDeleteClick} disabled={deletingBook}>
+                        {deletingBook ? "Deleting..." : "Delete Book"}
+                    </button>
+                )}
                 <button className="primary-btn" type="button" onClick={onSave} disabled={saving}>
                     {saving ? "Saving..." : "Save Changes"}
                 </button>
