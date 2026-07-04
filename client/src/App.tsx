@@ -11,16 +11,16 @@ import NotFound from './pages/404';
 import Book from './pages/Book';
 import { PrivateRoute } from './components/PrivateRoute';
 import Login from './pages/Login';
-import Users from './pages/newAdmin/Users';
-import AdminView from './pages/newAdmin/AdminView';
-import AllBooks from './pages/newAdmin/AllBooks';
-import ManageBook from './pages/newAdmin/ManageBook';
-import Chapters from './pages/newAdmin/Chapters';
-import Versions from './pages/newAdmin/Versions';
-import Releases from './pages/newAdmin/Releases';
-import Schedule from './pages/newAdmin/Schedule';
-import ReaderGroups from './pages/newAdmin/ReaderGroups';
-import Feedback from './pages/newAdmin/Feedback';
+import Users from './pages/admin/Users';
+import AdminView from './pages/admin/AdminView';
+import AllBooks from './pages/admin/AllBooks';
+import ManageBook from './pages/admin/ManageBook';
+import Chapters from './pages/admin/Chapters';
+import Versions from './pages/admin/Versions';
+import Releases from './pages/admin/Releases';
+import Schedule from './pages/admin/Schedule';
+import ReaderGroups from './pages/admin/ReaderGroups';
+import Feedback from './pages/admin/Feedback';
 
 function App() {
   return (

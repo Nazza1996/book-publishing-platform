@@ -67,8 +67,8 @@ export default function UserEditModal({ closeFunction, submitFunction, username,
                                         value={role}
                                         onChange={(e) => setRole(e.target.value as 'admin' | 'reader')}
                                     >
-                                        <option value="reader">Reader</option>
                                         <option value="admin">Admin</option>
+                                        <option value="reader">Reader</option>
                                     </select>
                                 </div>
                         </div>
