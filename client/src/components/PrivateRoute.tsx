@@ -11,7 +11,8 @@ export const PrivateRoute = ({ children, role = "admin" }: PrivateRouteProps) =>
     const { user, loading } = useAuth();
 
     if (!loading && !user) {
-        return <Navigate to="/login" replace />;
+        const redirect = encodeURIComponent(`${location.pathname}${location.search}`);
+        return <Navigate to={`/login?redirect=${redirect}`} replace />;
     }
 
     if (!loading && user && user.role !== role) {

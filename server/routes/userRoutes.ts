@@ -70,6 +70,10 @@ router.post("/login", async (req: Request, res: Response) => {
         return res.status(403).json({ error: "This account no longer has access" });
     }
 
+    if (typeof password !== "string" || !password || password.length === 0) {
+        return res.status(401).json({ error: "Invalid credentials" });
+    }
+
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
         return res.status(401).json({ error: "Invalid credentials" });
@@ -92,7 +96,9 @@ router.post("/register", async (req: Request, res: Response) => {
             return res.status(requestingUser ? 403 : 401).json({ error: "Admin access required" });
         }
 
-        if (!username || !password) {
+        const displayUsername = String(username ?? "").trim();
+
+        if (!displayUsername || !password) {
             return res.status(400).json({ error: "Username and password are required" });
         }
 
@@ -105,7 +111,6 @@ router.post("/register", async (req: Request, res: Response) => {
         }
 
         const password_hash = await hash(password, 12);
-        const displayUsername = String(username).trim();
         const newUser = await User.create({
             username: displayUsername,
             password_hash,
@@ -230,7 +235,12 @@ router.put("/:id", async (req: Request, res: Response) => {
             return res.status(400).json({ error: "You cannot revoke or demote your own admin account" });
         }
 
-        user.username = username || user.username;
+        const nextUsername = username !== undefined ? String(username).trim() : user.username;
+        if (!nextUsername) {
+            return res.status(400).json({ error: "Username is required" });
+        }
+
+        user.username = nextUsername;
         user.role = role || user.role;
         user.active = active ?? user.active;
 
@@ -239,7 +249,7 @@ router.put("/:id", async (req: Request, res: Response) => {
             return res.status(400).json({ error: "Username already taken" });
         }
 
-        if (password) {
+        if (typeof password === "string" && password.trim()) {
             user.password_hash = await hash(password, 12);
         }
 

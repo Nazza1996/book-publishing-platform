@@ -24,7 +24,8 @@ export default function Login() {
 
     useEffect(() => {
         if (user) {
-            navigate(searchParams.get("redirect") || (user.role === "admin" ? "/admin" : "/library"), { replace: true });
+            const redirect = searchParams.get("redirect");
+            navigate(redirect?.startsWith("/") ? redirect : (user.role === "admin" ? "/admin" : "/library"), { replace: true });
         }
     }, [navigate, searchParams, user]);
 
