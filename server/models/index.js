@@ -11,9 +11,6 @@ BookVersion.belongsTo(Book, { foreignKey: 'bookId' });
 BookVersion.hasMany(Chapter, { foreignKey: 'bookVersionId', as: 'chapters' });
 Chapter.belongsTo(BookVersion, { foreignKey: 'bookVersionId' });
 
-// Book -> PublishedVersion relationship (for quick access)
-Book.belongsTo(BookVersion, { foreignKey: 'publishedVersionId', as: 'publishedVersion' });
-
 module.exports = {
   Book,
   BookVersion,

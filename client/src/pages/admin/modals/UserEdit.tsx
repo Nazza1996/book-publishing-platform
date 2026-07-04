@@ -4,10 +4,12 @@ const props = {
     closeFunction: () => {},
     submitFunction: () => {},
     username: '',
+    role: 'reader' as 'admin' | 'reader',
     setUsername: (_username: string) => {},
+    setRole: (_role: 'admin' | 'reader') => {},
 }
 
-export default function UserEditModal({ closeFunction, submitFunction, username, setUsername }: typeof props) {
+export default function UserEditModal({ closeFunction, submitFunction, username, role, setUsername, setRole }: typeof props) {
     return (
         <>
             <div
@@ -55,6 +57,19 @@ export default function UserEditModal({ closeFunction, submitFunction, username,
                                         onChange={(e) => setUsername(e.target.value)}
                                         required
                                     />
+                                </div>
+
+                                <div className="mb-3">
+                                    <label htmlFor="role" className="form-label">Role</label>
+                                    <select
+                                        className="form-control"
+                                        id="role"
+                                        value={role}
+                                        onChange={(e) => setRole(e.target.value as 'admin' | 'reader')}
+                                    >
+                                        <option value="admin">Admin</option>
+                                        <option value="reader">Reader</option>
+                                    </select>
                                 </div>
                         </div>
 

@@ -6,8 +6,10 @@ class Book extends Model {
     public slug!: string;
     public title!: string;
     public description!: string;
-    public publishedVersionId!: number | null;
+    public status!: "not_started" | "in_progress" | "on_hold" | "finished" | "cancelled";
 	public isFeatured!: boolean;
+    public readonly channelMetadata?: any[];
+    public readonly releases?: any[];
     public readonly chapters?: any[];
 }
 
@@ -32,13 +34,10 @@ Book.init(
             type: DataTypes.TEXT,
             allowNull: false,
         },
-        publishedVersionId: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-            references: {
-                model: 'book_versions',
-                key: 'id'
-            }
+        status: {
+            type: DataTypes.ENUM("not_started", "in_progress", "on_hold", "finished", "cancelled"),
+            allowNull: false,
+            defaultValue: "in_progress",
         },
         isFeatured: {
             type: DataTypes.BOOLEAN,

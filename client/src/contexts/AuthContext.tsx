@@ -2,8 +2,10 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { apiFetch } from "../helpers";
 
 interface User {
-    id: string;
+    id: number;
     username: string;
+    role: "admin" | "reader";
+    active: boolean;
 }
 
 interface AuthContextType {

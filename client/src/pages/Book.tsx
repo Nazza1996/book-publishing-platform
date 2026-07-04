@@ -5,15 +5,22 @@ import '../styles/books.scss';
 import '../styles/book-view.scss';
 import { apiFetch, markdownToHtml, setPageTitle } from "../helpers";
 import AccessibilityMenu from "../components/AccessibilityMenu";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Book() {
     const { slug } = useParams();
     const [bookLoading, setBookLoading] = useState(true);
     const [book, setBook] = useState<any>(null);
     const [currentChapter, setCurrentChapter] = useState<number>(1);
+    const [feedbackComment, setFeedbackComment] = useState("");
+    const [feedbackSending, setFeedbackSending] = useState(false);
 
     const navigate = useNavigate();
-    const isDraft = document.location.search.includes('version=draft');
+    const { user } = useAuth();
+    const searchParams = new URLSearchParams(document.location.search);
+    const requestedVersion = searchParams.get('version') ?? 'public';
+    const isPreview = requestedVersion === 'draft';
+    const readerChannel = requestedVersion === 'alpha' || requestedVersion === 'beta' ? requestedVersion : null;
 
     useEffect(() => {
         async function fetchBook() {
@@ -23,13 +30,18 @@ export default function Book() {
             }
 
             try {
-                const version = isDraft ? 'draft' : 'published';
+                const version = requestedVersion;
                 const res = await apiFetch(`/api/books/${slug}?version=${version}`, {
                     credentials: 'include',
                     toast: false,
                 });
 
                 if (!res.ok) {
+                    if (res.status === 401 && readerChannel) {
+                        navigate(`/login?redirect=${encodeURIComponent(`${document.location.pathname}${document.location.search}`)}`);
+                        return;
+                    }
+
                     navigate('/notFound');
                     return;
                 }
@@ -49,11 +61,19 @@ export default function Book() {
         }
         
         fetchBook();
-    }, [slug]);
+    }, [isPreview, navigate, readerChannel, requestedVersion, slug]);
 
     useEffect(() => {
         setPageTitle(book ? book.title : "Book");
     }, [book]);
+
+    useEffect(() => {
+        const firstChapter = book?.chapters?.[0];
+
+        if (firstChapter && !book.chapters.some((chapter: any) => chapter.chapterNumber === currentChapter)) {
+            setCurrentChapter(firstChapter.chapterNumber);
+        }
+    }, [book, currentChapter]);
 
     const selectChapter = (num: number, scrollIntoView: boolean = false) => {
         setCurrentChapter(num);
@@ -62,12 +82,39 @@ export default function Book() {
         }
     }
 
+    const submitFeedback = async () => {
+        if (!book?.id || !readerChannel || !feedbackComment.trim()) {
+            return;
+        }
+
+        setFeedbackSending(true);
+
+        try {
+            const res = await apiFetch(`/api/books/${book.id}/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    channel: readerChannel,
+                    chapterNumber: currentChapter,
+                    comment: feedbackComment,
+                }),
+            });
+
+            if (res.ok) {
+                setFeedbackComment("");
+            }
+        } finally {
+            setFeedbackSending(false);
+        }
+    }
+
     return (
         <main className="books-site-page">
                 <header className="books-site-hero">
                     <div>
                         <h1>{book?.title}</h1>
-                        {isDraft && <div className="book-badges"><span className="book-draft-badge">DRAFT</span></div>}
+                        {isPreview && <div className="book-badges"><span className="book-draft-badge">PREVIEW</span></div>}
                     </div>
                     <div className="book-controls">
                         <div className="back-to-library">
@@ -84,6 +131,20 @@ export default function Book() {
                 </header>
             
             <ChapterContent book={book} isLoading={bookLoading} currentChapter={currentChapter} />
+
+            {readerChannel && user?.role === "reader" && (
+                <section className="reader-feedback-panel">
+                    <h2>Feedback</h2>
+                    <textarea
+                        value={feedbackComment}
+                        onChange={(event) => setFeedbackComment(event.target.value)}
+                        placeholder={`Share feedback on chapter ${currentChapter}`}
+                    />
+                    <button type="button" onClick={submitFeedback} disabled={feedbackSending || !feedbackComment.trim()}>
+                        {feedbackSending ? "Sending..." : "Send Feedback"}
+                    </button>
+                </section>
+            )}
 
             <div className="books-site-footer">
                 <div className="book-controls">

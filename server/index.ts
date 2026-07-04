@@ -4,6 +4,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
 import { initializeDatabase } from './utils/database.js';
+import { startScheduledReleaseWorker } from './services/releaseScheduler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,6 +38,7 @@ app.get('/{*splat}', (req, res) => {
 async function start() {
   try {
     await initializeDatabase();
+    startScheduledReleaseWorker();
     
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -1,0 +1,89 @@
+@use '../variables' as v;
+
+.datatable-wrapper {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: var(--surface-elevated-color);
+    border-radius: v.$radius-md;
+    overflow: visible;
+
+    .datatable-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+        border-top-left-radius: v.$radius-md;
+        border-top-right-radius: v.$radius-md;
+    }
+
+    .datatable-title {
+        margin: 0;
+        font-size: 1.5rem;
+        color: var(--body-text-color);
+    }
+
+    .datatable-empty-state {
+        border-radius: 0 0 v.$radius-md v.$radius-md;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-top: none;
+        background: var(--surface-color);
+    }
+}
+
+.datatable {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: visible;
+
+    thead {
+        background-color: var(--surface-color);
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-size: 1rem;
+            color: var(--secondary-text-color);
+        }
+    }
+
+    tbody {
+        tr {
+            border-bottom: 1px solid var(--border-color);
+
+            &:hover {
+                background-color: var(--surface-color);
+            }
+
+            &:last-child {
+                border-bottom: 0;
+
+                td:first-child {
+                    border-bottom-left-radius: v.$radius-md;
+                }
+
+                td:last-child {
+                    border-bottom-right-radius: v.$radius-md;
+                }
+            }
+        }
+
+        td {
+            padding: 15px;
+            font-size: 0.95rem;
+            color: var(--body-text-color);
+            vertical-align: middle;
+        }
+    }
+}
+
+.datatable-link {
+    color: var(--body-text-color);
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}

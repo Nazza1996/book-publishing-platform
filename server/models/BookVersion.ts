@@ -4,7 +4,6 @@ import { sequelize } from "../utils/database.js";
 class BookVersion extends Model {
     public id!: number;
     public bookId!: number;
-    public status!: "draft" | "published";
     public isWorkingDraft!: boolean;
 }
 
@@ -18,11 +17,6 @@ BookVersion.init(
         bookId: {
             type: DataTypes.INTEGER,
             allowNull: false,
-        },
-        status: {
-            type: DataTypes.ENUM("draft", "published"),
-            allowNull: false,
-            defaultValue: "draft",
         },
         isWorkingDraft: {
             type: DataTypes.BOOLEAN,
