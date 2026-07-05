@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import Select, { type MultiValue } from "react-select";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAlignCenter, faAlignLeft, faAlignRight, faBold, faItalic, faUnderline } from "@fortawesome/free-solid-svg-icons";
 import { apiFetch, setPageTitle, toast } from "../../helpers";
@@ -24,6 +25,7 @@ interface BookEditorState {
     slug: string;
     title: string;
     description: string;
+    genres: string[];
     status: BookStatus;
     isFeatured: boolean;
     chapters: Chapter[];
@@ -109,6 +111,7 @@ const EMPTY_BOOK: BookEditorState = {
     slug: "",
     title: "",
     description: "",
+    genres: [],
     status: "in_progress",
     isFeatured: false,
     chapters: [
@@ -121,6 +124,31 @@ const EMPTY_BOOK: BookEditorState = {
 };
 
 const tabs = ["overview", "details", "chapters", "history", "releases", "reader-groups", "feedback"];
+
+const bookGenres = [
+    "Action",
+    "Adventure",
+    "Comedy",
+    "Crime",
+    "Detective",
+    "Drama",
+    "Dystopian",
+    "Fantasy",
+    "Historical Fiction",
+    "Horror",
+    "Literary",
+    "Mystery",
+    "Poetry",
+    "Religious",
+    "Romance",
+    "Science Fiction",
+    "Thriller",
+];
+
+const genreOptions = bookGenres.map((genre) => ({
+    value: genre,
+    label: genre,
+}));
 
 const readerGroups: ReaderGroup[] = [
     { key: "alpha", label: "Alpha Readers", shortLabel: "A", members: 0, tone: "purple" },
@@ -250,6 +278,7 @@ export default function ManageBook() {
                     slug: data.slug,
                     title: data.title ?? "",
                     description: data.description ?? "",
+                    genres: normalizeGenres(data.genres),
                     status: data.status ?? "in_progress",
                     isFeatured: Boolean(data.isFeatured),
                     chapters,
@@ -351,6 +380,10 @@ export default function ManageBook() {
 
     function updateBookField(field: "title" | "description", value: string) {
         setBook((current) => ({ ...current, [field]: value }));
+    }
+
+    function updateBookGenres(genres: string[]) {
+        setBook((current) => ({ ...current, genres }));
     }
 
     async function updateBookStatus(status: BookStatus) {
@@ -796,6 +829,7 @@ export default function ManageBook() {
                                     activeChannel={activeChannel}
                                     metadata={channelMetadata[activeChannel]}
                                     onBookFieldChange={updateBookField}
+                                    onBookGenresChange={updateBookGenres}
                                     onChannelChange={setActiveChannel}
                                     onChannelFieldChange={updateChannelField}
                                 />
@@ -1005,6 +1039,10 @@ function OverviewTab({
                         <strong>{book.title || "Untitled Book"}</strong>
                     </div>
                     <div>
+                        <span>Genres</span>
+                        <strong>{book.genres.length ? book.genres.join(", ") : "Not set"}</strong>
+                    </div>
+                    <div>
                         <span>Release Availability</span>
                         <strong>{getBookReleaseAvailability(book.releases)}</strong>
                     </div>
@@ -1050,6 +1088,7 @@ function DetailsTab({
     activeChannel,
     metadata,
     onBookFieldChange,
+    onBookGenresChange,
     onChannelChange,
     onChannelFieldChange
 }: {
@@ -1058,6 +1097,7 @@ function DetailsTab({
     activeChannel: ReaderChannel;
     metadata: ChannelMetadata;
     onBookFieldChange: (field: "title" | "description", value: string) => void;
+    onBookGenresChange: (genres: string[]) => void;
     onChannelChange: (channel: ReaderChannel) => void;
     onChannelFieldChange: (field: keyof ChannelMetadata, value: string | number) => void;
 }) {
@@ -1079,6 +1119,22 @@ function DetailsTab({
                             <div className="field">
                                 <label htmlFor="bookDescription">Default Description</label>
                                 <textarea id="bookDescription" value={book.description} onChange={(e) => onBookFieldChange("description", e.target.value)} />
+                            </div>
+                            <div className="field">
+                                <label htmlFor="bookGenres">Genres</label>
+                                <Select
+                                    inputId="bookGenres"
+                                    className="genre-select"
+                                    classNamePrefix="genre-select"
+                                    isMulti
+                                    options={genreOptions}
+                                    value={genreOptions.filter((option) => book.genres.includes(option.value))}
+                                    onChange={(selected: MultiValue<{ value: string; label: string }>) => {
+                                        onBookGenresChange(selected.map((option) => option.value));
+                                    }}
+                                    placeholder="Choose genres..."
+                                    closeMenuOnSelect={false}
+                                />
                             </div>
                             <div className="field-row">
                                 <div className="field">
@@ -2205,6 +2261,17 @@ function normalizeReaderGroupMember(member: any): ReaderGroupMember {
         ...member,
         status: member.status === "removed" ? "removed" : "active",
     };
+}
+
+function normalizeGenres(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value
+        .filter((genre): genre is string => typeof genre === "string")
+        .map((genre) => genre.trim())
+        .filter(Boolean);
 }
 
 function countBookWords(book: BookEditorState) {

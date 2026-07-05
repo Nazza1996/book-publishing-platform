@@ -115,6 +115,83 @@
         height: 300px;
         resize: vertical;
     }
+
+    .genre-select {
+        color: var(--body-text-color);
+
+        &__control {
+            min-height: 47px;
+            border-color: var(--border-color);
+            border-radius: v.$radius-sm;
+            background: var(--surface-color);
+            box-shadow: none;
+
+            &:hover {
+                border-color: var(--border-color);
+            }
+
+            &--is-focused {
+                border-color: var(--admin-purple);
+                box-shadow: 0 0 0 3px var(--admin-purple-soft);
+            }
+        }
+
+        &__value-container {
+            gap: 0.25rem;
+            padding: 0.35rem 0.55rem;
+        }
+
+        &__input-container,
+        &__single-value {
+            color: var(--body-text-color);
+        }
+
+        &__placeholder {
+            color: var(--secondary-text-color);
+        }
+
+        &__multi-value {
+            border-radius: v.$radius-sm;
+            background: var(--admin-purple-soft);
+        }
+
+        &__multi-value__label {
+            color: var(--admin-purple);
+            font-weight: 700;
+        }
+
+        &__multi-value__remove {
+            color: var(--admin-purple);
+            cursor: pointer;
+
+            &:hover {
+                color: #fff;
+                background: var(--admin-purple);
+            }
+        }
+
+        &__menu {
+            z-index: 20;
+            border: 1px solid var(--border-color);
+            border-radius: v.$radius-sm;
+            background: var(--surface-color);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+            overflow: hidden;
+        }
+
+        &__option {
+            cursor: pointer;
+
+            &--is-focused {
+                background: var(--admin-purple-soft);
+            }
+
+            &--is-selected {
+                color: #fff;
+                background: var(--admin-purple);
+            }
+        }
+    }
 }
 
 #manageBookDetailsTab {

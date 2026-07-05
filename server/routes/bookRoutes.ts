@@ -47,6 +47,19 @@ async function buildUniqueSlug(title: string, excludeBookId?: number) {
     }
 }
 
+function normalizeBookGenres(input: unknown) {
+    if (!Array.isArray(input)) {
+        return [];
+    }
+
+    return Array.from(new Set(
+        input
+            .filter((genre): genre is string => typeof genre === "string")
+            .map((genre) => genre.trim())
+            .filter(Boolean)
+    ));
+}
+
 async function getBookByIdentifier(identifier: string) {
     const bookBySlug = await Book.findOne({ where: { slug: identifier } });
 
@@ -661,6 +674,7 @@ router.post("/saveDraft", async (req: Request, res: Response) => {
                     slug,
                     title: book.title,
                     description: book.description,
+                    genres: normalizeBookGenres(book.genres),
                     status: book.status ?? existingBook.status,
                 });
                 await syncBookChannelMetadata(existingBook.id, channelMetadata ?? book.channelMetadata, book.description);
@@ -717,6 +731,7 @@ router.post("/saveDraft", async (req: Request, res: Response) => {
             slug,
             title: book.title,
             description: book.description,
+            genres: normalizeBookGenres(book.genres),
             status: book.status ?? "in_progress",
         });
         await syncBookChannelMetadata(newBook.id, channelMetadata ?? book.channelMetadata, book.description);

@@ -5,6 +5,7 @@ export interface DatatableColumn<T> {
     key: string;
     header: ReactNode;
     render: (row: T) => ReactNode;
+    title?: (row: T) => string;
     className?: string;
     headerClassName?: string;
     width?: number | string;
@@ -62,7 +63,7 @@ export default function Datatable<T>({
                         {rows.map((row) => (
                             <tr key={getRowKey(row)}>
                                 {columns.map((column) => (
-                                    <td key={column.key} className={column.className}>
+                                    <td key={column.key} className={column.className} title={column.title?.(row)}>
                                         {column.render(row)}
                                     </td>
                                 ))}

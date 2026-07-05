@@ -10,6 +10,7 @@ interface LibraryBook {
     slug?: string;
     title: string;
     description: string;
+    genres?: string[];
     libraryChannel?: LibraryChannel;
     availableChannels?: LibraryChannel[];
 }
@@ -61,6 +62,13 @@ export default function Library() {
                                             </span>
                                         )}
                                         <h3 className="book-card-title">{book.title}</h3>
+                                        {book.genres && book.genres.length > 0 && (
+                                            <div className="book-genre-list" aria-label="Genres">
+                                                {book.genres.map((genre) => (
+                                                    <span key={genre} className="book-genre-pill">{genre}</span>
+                                                ))}
+                                            </div>
+                                        )}
                                         <p className="book-card-excerpt">
                                             {book.description}
                                         </p>

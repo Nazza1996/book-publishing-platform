@@ -307,6 +307,11 @@
         }
     }
 
+    .chapter-selector {
+        width: fit-content;
+        justify-self: right;
+    }
+
     .chapter-select {
         min-width: 16rem;
         flex: 1;
@@ -360,6 +365,13 @@
                 color: var(--primary-text-color);
             }
         }
+    }
+}
+
+.books-site-footer {
+    .book-controls {
+        display: flex;
+        justify-content: space-between;
     }
 }
 
@@ -460,6 +472,11 @@
             &.mobile {
                 display: inline-block;
             }
+        }
+
+        .chapter-selector {
+            width: 100%;
+            justify-self: auto;
         }
     }
 }

@@ -164,21 +164,23 @@ export default function Book() {
 
 const ChapterSelector = ({ chapters, currentChapter, onSelect }: { chapters: any[], currentChapter: number, onSelect: (num: number) => void }) => {
     return (
-        <Select
-            options={chapters.map(chapter => ({ value: chapter.chapterNumber, label: chapter.title }))}
-            onChange={(selectedOption) => onSelect(selectedOption?.value!)}
-            value={chapters.find(ch => ch.chapterNumber === currentChapter) ? { value: currentChapter, label: chapters.find(chapter => chapter.chapterNumber === currentChapter)?.title } : null}
-            menuPlacement="auto"
-            classNamePrefix="chapter-select"
-            theme={(theme) => ({
-                ...theme,
-                colors: {
-                    ...theme.colors,
-                    primary: 'var(--primary-text-color)',
-                }
-            })}
-            isSearchable={false}
-        />
+        <div className="chapter-selector">
+            <Select
+                options={chapters.map(chapter => ({ value: chapter.chapterNumber, label: chapter.title }))}
+                onChange={(selectedOption) => onSelect(selectedOption?.value!)}
+                value={chapters.find(ch => ch.chapterNumber === currentChapter) ? { value: currentChapter, label: chapters.find(chapter => chapter.chapterNumber === currentChapter)?.title } : null}
+                menuPlacement="auto"
+                classNamePrefix="chapter-select"
+                theme={(theme) => ({
+                    ...theme,
+                    colors: {
+                        ...theme.colors,
+                        primary: 'var(--primary-text-color)',
+                    }
+                })}
+                isSearchable={false}
+            />
+        </div>
     );
 }
 
