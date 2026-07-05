@@ -1136,16 +1136,6 @@ function DetailsTab({
                                     closeMenuOnSelect={false}
                                 />
                             </div>
-                            <div className="field-row">
-                                <div className="field">
-                                    <label>Book Number</label>
-                                    <input type="text" value="1" readOnly />
-                                </div>
-                                <div className="field">
-                                    <label>Language</label>
-                                    <input type="text" value="English" readOnly />
-                                </div>
-                            </div>
                         </div>
                     </div>
 
