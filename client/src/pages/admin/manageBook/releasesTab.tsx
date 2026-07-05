@@ -1,0 +1,126 @@
+import { useState } from "react";
+import type { Chapter, ChapterRelease, ChannelMetadata, ReaderChannel, ReaderGroup } from "./types";
+import { Panel } from "./components/Panel";
+import { ReleasePreview } from "./components/ReleasePreview";
+import { StatusPill } from "./components/StatusPill";
+
+export function ReleasesTab({
+    groups,
+    metadata,
+    releases,
+    selectedChapter,
+    chapters,
+    onScheduleRelease,
+    onDeleteRelease
+}: {
+    groups: ReaderGroup[];
+    metadata: Record<ReaderChannel, ChannelMetadata>;
+    releases: ChapterRelease[];
+    selectedChapter?: Chapter;
+    chapters: Chapter[];
+    onScheduleRelease: (input: {
+        channel: ReaderChannel;
+        chapterNumber: number;
+        releaseAt: string | null;
+        status?: ChapterRelease["status"];
+    }) => void;
+    onDeleteRelease: (releaseId: number) => void;
+}) {
+    const [scheduleChannel, setScheduleChannel] = useState<ReaderChannel>("beta");
+    const [scheduleChapterNumber, setScheduleChapterNumber] = useState(selectedChapter?.chapterNumber ?? chapters[0]?.chapterNumber ?? 1);
+    const [releaseDate, setReleaseDate] = useState("");
+    const [releaseTime, setReleaseTime] = useState("10:00");
+
+    function submitSchedule() {
+        const releaseAt = releaseDate ? `${releaseDate}T${releaseTime || "10:00"}:00` : null;
+
+        onScheduleRelease({
+            channel: scheduleChannel,
+            chapterNumber: scheduleChapterNumber,
+            releaseAt
+        });
+    }
+
+    function releaseNow() {
+        onScheduleRelease({
+            channel: scheduleChannel,
+            chapterNumber: scheduleChapterNumber,
+            releaseAt: new Date().toISOString(),
+            status: "released"
+        });
+    }
+
+    return (
+        <div className="release-grid">
+            <Panel step="5" title="Release Preview" description="See how this chapter is released to each reader group.">
+                <ReleasePreview groups={groups} metadata={metadata} releases={releases} />
+            </Panel>
+
+            <Panel step="6" title="Schedule Release" description="Plan when chapters go live for each reader group.">
+                <div className="schedule-form">
+                    <label>
+                        Reader Group
+                        <select value={scheduleChannel} onChange={(e) => setScheduleChannel(e.target.value as ReaderChannel)}>
+                            {groups.map((group) => (
+                                <option value={group.key} key={group.key}>{group.label}</option>
+                            ))}
+                        </select>
+                    </label>
+                    <label>
+                        Release Chapter
+                        <select value={scheduleChapterNumber} onChange={(e) => setScheduleChapterNumber(Number(e.target.value))}>
+                            {chapters.map((chapter) => (
+                                <option key={chapter.chapterNumber} value={chapter.chapterNumber}>
+                                    Chapter {chapter.chapterNumber}: {chapter.title}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                    <label>
+                        Release Date
+                        <input type="date" value={releaseDate} onChange={(e) => setReleaseDate(e.target.value)} />
+                    </label>
+                    <label>
+                        Release Time
+                        <input type="time" value={releaseTime} onChange={(e) => setReleaseTime(e.target.value)} />
+                    </label>
+                    <button className="primary-btn" onClick={submitSchedule}>Schedule Release</button>
+                    <button className="secondary-btn" onClick={releaseNow}>Release Now</button>
+                </div>
+            </Panel>
+
+            <Panel title="Schedule">
+                <div className="schedule-list">
+                    {releases.length === 0 ? (
+                        <div className="admin-empty-state">No releases scheduled yet.</div>
+                    ) : (
+                        releases.map((release) => {
+                            const group = groups.find((item) => item.key === release.channel);
+                            const chapter = chapters.find((item) => item.chapterNumber === release.chapterNumber);
+                            const date = release.releaseAt ? new Date(release.releaseAt) : null;
+
+                            return (
+                                <div className="schedule-item" key={release.id ?? `${release.channel}-${release.chapterNumber}`}>
+                                    <div className="schedule-date">
+                                        <span>{date ? date.toLocaleString('en-GB', { month: 'short' }).toUpperCase() : "TBD"}</span>
+                                        <strong>{date ? date.getDate() : "-"}</strong>
+                                    </div>
+                                    <div>
+                                        <strong>{chapter?.title ?? `Chapter ${release.chapterNumber}`}</strong>
+                                        <span>{group?.label ?? release.channel} {date ? `at ${date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : ""}</span>
+                                    </div>
+                                    <StatusPill label={release.status} />
+                                    {release.id && (
+                                        <button className="danger-btn" onClick={() => onDeleteRelease(release.id!)}>
+                                            {release.status === "scheduled" ? "Cancel" : "Revert"}
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            </Panel>
+        </div>
+    );
+}
