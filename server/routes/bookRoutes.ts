@@ -48,16 +48,35 @@ async function buildUniqueSlug(title: string, excludeBookId?: number) {
 }
 
 function normalizeBookGenres(input: unknown) {
-    if (!Array.isArray(input)) {
+    const genres = typeof input === "string" ? parseJsonGenres(input) : input;
+
+    if (!Array.isArray(genres)) {
         return [];
     }
 
     return Array.from(new Set(
-        input
+        genres
             .filter((genre): genre is string => typeof genre === "string")
             .map((genre) => genre.trim())
             .filter(Boolean)
     ));
+}
+
+function parseJsonGenres(input: string) {
+    try {
+        return JSON.parse(input);
+    } catch {
+        return [];
+    }
+}
+
+function serializeBook(book: Book) {
+    const values = book.get({ plain: true }) as any;
+
+    return {
+        ...values,
+        genres: normalizeBookGenres(values.genres),
+    };
 }
 
 async function getBookByIdentifier(identifier: string) {
@@ -343,7 +362,7 @@ router.get("/", async (req: Request, res: Response) => {
                 });
                 
                 return {
-                    ...book.dataValues,
+                    ...serializeBook(book),
                     releaseSummary,
                     nextRelease
                 };
@@ -383,7 +402,7 @@ function addLibraryBook(
 
     if (!existing) {
         entries.set(book.id, {
-            ...book.dataValues,
+            ...serializeBook(book),
             availableChannels: [channel],
         });
         return;
@@ -524,7 +543,7 @@ router.get("/featured", async (req: Request, res: Response) => {
                 id: { [Op.in]: bookIds }
             }
         });
-        res.json(books);
+        res.json(books.map(serializeBook));
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch featured books" });
     }
@@ -556,7 +575,7 @@ router.get("/:slug", async (req: Request, res: Response) => {
             const releaseData = await getBookReleaseData(book);
 
             res.json({
-                ...book.dataValues,
+                ...serializeBook(book),
                 ...releaseData,
                 version: { ...draftVersion.dataValues, chapters },
                 versionStatus: 'working_draft'
@@ -579,7 +598,7 @@ router.get("/:slug", async (req: Request, res: Response) => {
             const releaseData = await getBookReleaseData(book);
 
             res.json({
-                ...book.dataValues,
+                ...serializeBook(book),
                 ...releaseData,
                 version: { chapters },
                 versionStatus: `${channel}_release`,
@@ -595,7 +614,7 @@ router.get("/:slug", async (req: Request, res: Response) => {
             const releaseData = await getBookReleaseData(book);
 
             res.json({
-                ...book.dataValues,
+                ...serializeBook(book),
                 ...releaseData,
                 version: { chapters },
                 versionStatus: 'public_release'
@@ -876,7 +895,7 @@ router.patch("/:id/status", async (req: Request, res: Response) => {
         }
 
         await existingBook.update({ status });
-        res.json(existingBook);
+        res.json(serializeBook(existingBook));
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
     }
