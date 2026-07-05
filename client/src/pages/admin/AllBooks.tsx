@@ -12,6 +12,7 @@ interface BookSummary {
     id: number;
     slug: string;
     title: string;
+    genres?: string[];
     status?: BookStatus;
     updatedAt: string;
     releaseSummary?: Record<string, {
@@ -286,6 +287,19 @@ function BooksTable({
             render: (book) => <Link to={`/admin/book/${book.slug}`} className="datatable-link">{book.title}</Link>,
         },
         {
+            key: "genres",
+            header: "Genres",
+            render: (book) => {
+                const genres = book.genres || [];
+                const genreString = genres.length > 0 ? genres.join(", ") : "-";
+                return genreString.length > 50 ? genreString.slice(0, 50) + "..." : genreString;
+            },
+            title: (book) => {
+                const genres = book.genres || [];
+                return genres.length > 0 ? genres.join(", ") : "";
+            }
+        },
+        {
             key: "status",
             header: "Status",
             render: renderStatusDropdown,
@@ -293,16 +307,14 @@ function BooksTable({
         {
             key: "updatedAt",
             header: "Last Updated",
-            render: (book) => <span title={formatDateTitle(book.updatedAt)}>{formatDate(book.updatedAt)}</span>,
+            render: (book) => formatDate(book.updatedAt),
+            title: (book) => formatDateTitle(book.updatedAt),
         },
         {
             key: "nextRelease",
             header: "Next Release",
-            render: (book) => (
-                <span title={book.nextRelease ? formatDateTitle(book.nextRelease.releaseAt) : undefined}>
-                    {book.nextRelease ? formatDate(book.nextRelease.releaseAt) : "-"}
-                </span>
-            ),
+            render: (book) => book.nextRelease ? formatDate(book.nextRelease.releaseAt) : "-",
+            title: (book) => book.nextRelease ? formatDateTitle(book.nextRelease.releaseAt) : "",
         },
     ];
 

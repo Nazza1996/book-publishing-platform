@@ -6,6 +6,7 @@ class Book extends Model {
     public slug!: string;
     public title!: string;
     public description!: string;
+    public genres?: string[];
     public status!: "not_started" | "in_progress" | "on_hold" | "finished" | "cancelled";
 	public isFeatured!: boolean;
     public readonly channelMetadata?: any[];
@@ -38,6 +39,10 @@ Book.init(
             type: DataTypes.ENUM("not_started", "in_progress", "on_hold", "finished", "cancelled"),
             allowNull: false,
             defaultValue: "in_progress",
+        },
+        genres: {
+            type: DataTypes.JSON,
+            allowNull: true,
         },
         isFeatured: {
             type: DataTypes.BOOLEAN,
