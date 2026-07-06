@@ -30,8 +30,16 @@ app.use('/api/users', userRoutes);
 app.use('/api/books', bookRoutes);
 
 // Serve React static files
+app.use(
+  '/assets',
+  express.static(path.join(clientDistPath, 'assets'), {
+    immutable: true,
+    maxAge: '1y',
+  })
+);
 app.use(express.static(clientDistPath));
 app.get('/{*splat}', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
