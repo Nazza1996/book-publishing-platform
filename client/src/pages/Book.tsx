@@ -19,7 +19,6 @@ export default function Book() {
     const { user } = useAuth();
     const searchParams = new URLSearchParams(document.location.search);
     const requestedVersion = searchParams.get('version') ?? 'public';
-    const isPreview = requestedVersion === 'draft';
     const readerChannel = requestedVersion === 'alpha' || requestedVersion === 'beta' ? requestedVersion : null;
 
     useEffect(() => {
@@ -61,7 +60,7 @@ export default function Book() {
         }
         
         fetchBook();
-    }, [isPreview, navigate, readerChannel, requestedVersion, slug]);
+    }, [navigate, readerChannel, requestedVersion, slug]);
 
     useEffect(() => {
         setPageTitle(book ? book.title : "Book");
@@ -114,7 +113,13 @@ export default function Book() {
                 <header className="books-site-hero">
                     <div>
                         <h1>{book?.title}</h1>
-                        {isPreview && <div className="book-badges"><span className="book-draft-badge">PREVIEW</span></div>}
+                        {requestedVersion !== 'public' && (
+                            <div className="book-badges">
+                                {requestedVersion === 'draft' && <span className="status-badge draft-badge">DRAFT</span>}
+                                {requestedVersion === 'alpha' && <span className="status-badge alpha-badge">ALPHA</span>}
+                                {requestedVersion === 'beta' && <span className="status-badge beta-badge">BETA</span>}
+                            </div>
+                        )}
                     </div>
                     <div className="book-controls">
                         <div className="back-to-library">

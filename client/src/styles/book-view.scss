@@ -395,19 +395,31 @@
     width: 100%;
     margin: 0 auto 1.5rem;
     justify-content: center;
+    
+    .status-badge {
+        display: inline-block;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        width: 60px;
+        text-align: center;
+
+        &.draft-badge {
+            background: #df3535;
+        }
+
+        &.alpha-badge {
+            background: #6d4be7;
+        }
+
+        &.beta-badge {
+            background: #2877e6;
+        }
+    }
 }
 
-.book-draft-badge {
-    display: inline-block;
-    background: #df3535;
-    color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    width: 60px;
-    text-align: center;
-}
 
 /* Text Size Scaling */
 :root[data-text-size='small'] {
