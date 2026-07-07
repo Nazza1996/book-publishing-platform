@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Select from 'react-select';
 import { Link, useNavigate, useParams } from "react-router-dom";
 import '../styles/books.scss';
@@ -19,7 +19,6 @@ export default function Book() {
     const { user } = useAuth();
     const searchParams = new URLSearchParams(document.location.search);
     const requestedVersion = searchParams.get('version') ?? 'public';
-    const isPreview = requestedVersion === 'draft';
     const readerChannel = requestedVersion === 'alpha' || requestedVersion === 'beta' ? requestedVersion : null;
 
     useEffect(() => {
@@ -61,7 +60,7 @@ export default function Book() {
         }
         
         fetchBook();
-    }, [isPreview, navigate, readerChannel, requestedVersion, slug]);
+    }, [navigate, readerChannel, requestedVersion, slug]);
 
     useEffect(() => {
         setPageTitle(book ? book.title : "Book");
@@ -114,7 +113,13 @@ export default function Book() {
                 <header className="books-site-hero">
                     <div>
                         <h1>{book?.title}</h1>
-                        {isPreview && <div className="book-badges"><span className="book-draft-badge">PREVIEW</span></div>}
+                        {requestedVersion !== 'public' && (
+                            <div className="book-badges">
+                                {requestedVersion === 'draft' && <span className="status-badge draft-badge">DRAFT</span>}
+                                {requestedVersion === 'alpha' && <span className="status-badge alpha-badge">ALPHA</span>}
+                                {requestedVersion === 'beta' && <span className="status-badge beta-badge">BETA</span>}
+                            </div>
+                        )}
                     </div>
                     <div className="book-controls">
                         <div className="back-to-library">
@@ -184,16 +189,97 @@ const ChapterSelector = ({ chapters, currentChapter, onSelect }: { chapters: any
     );
 }
 
+function selectionTouchesElement(selection: Selection, element: HTMLElement) {
+    for (let index = 0; index < selection.rangeCount; index += 1) {
+        const range = selection.getRangeAt(index);
+
+        if (
+            element.contains(range.commonAncestorContainer)
+            || element.contains(range.startContainer)
+            || element.contains(range.endContainer)
+            || range.intersectsNode(element)
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 const ChapterContent = ({ isLoading, book, currentChapter }: { book: any, isLoading: boolean, currentChapter: number }) => {
+    const chapterContentRef = useRef<HTMLDivElement>(null);
+    const currentChapterData = book?.chapters?.find((ch: any) => ch.chapterNumber === currentChapter);
+
+    useEffect(() => {
+        const chapterContent = chapterContentRef.current;
+
+        if (!chapterContent) {
+            return;
+        }
+
+        const preventSelectionAction = (event: Event) => {
+            event.preventDefault();
+        };
+
+        const preventPrimaryButtonSelection = (event: MouseEvent) => {
+            if (event.button === 0) {
+                event.preventDefault();
+            }
+        };
+
+        const selectionIncludesChapterContent = () => {
+            const selection = window.getSelection();
+            return Boolean(selection && selectionTouchesElement(selection, chapterContent));
+        };
+
+        const clearChapterSelection = () => {
+            if (selectionIncludesChapterContent()) {
+                window.getSelection()?.removeAllRanges();
+            }
+        };
+
+        const blockChapterClipboard = (event: ClipboardEvent) => {
+            const target = event.target instanceof Node ? event.target : null;
+            const startedInChapterContent = Boolean(target && chapterContent.contains(target));
+
+            if (!startedInChapterContent && !selectionIncludesChapterContent()) {
+                return;
+            }
+
+            event.preventDefault();
+            event.clipboardData?.clearData();
+        };
+
+        chapterContent.addEventListener("dragstart", preventSelectionAction);
+        chapterContent.addEventListener("mousedown", preventPrimaryButtonSelection);
+        chapterContent.addEventListener("selectstart", preventSelectionAction);
+        document.addEventListener("copy", blockChapterClipboard);
+        document.addEventListener("cut", blockChapterClipboard);
+        document.addEventListener("selectionchange", clearChapterSelection);
+
+        return () => {
+            chapterContent.removeEventListener("dragstart", preventSelectionAction);
+            chapterContent.removeEventListener("mousedown", preventPrimaryButtonSelection);
+            chapterContent.removeEventListener("selectstart", preventSelectionAction);
+            document.removeEventListener("copy", blockChapterClipboard);
+            document.removeEventListener("cut", blockChapterClipboard);
+            document.removeEventListener("selectionchange", clearChapterSelection);
+        };
+    }, [currentChapter, currentChapterData]);
+
     return (
         <article className="book-viewer">
             {isLoading ? (
                 <p>Loading...</p>
             ) : (
                 <div>
-                    <h1 style={{ textAlign: "center" }}>{book?.chapters?.find((ch: any) => ch.chapterNumber === currentChapter)?.title}</h1>
-                    <div className="chapter-content">
-                        <span dangerouslySetInnerHTML={{ __html: markdownToHtml(book?.chapters?.find((ch: any) => ch.chapterNumber === currentChapter)?.content) }} />
+                    <h1 style={{ textAlign: "center" }}>{currentChapterData?.title}</h1>
+                    <div
+                        ref={chapterContentRef}
+                        className="chapter-content"
+                        aria-label="Chapter content"
+                    >
+                        <span dangerouslySetInnerHTML={{ __html: markdownToHtml(currentChapterData?.content) }} />
                     </div>
                 </div>
             )}
