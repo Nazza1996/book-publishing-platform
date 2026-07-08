@@ -9,7 +9,7 @@ class ChapterRevision extends Model {
     public title!: string;
     public content!: string | null;
     public sourceBookVersionId!: number | null;
-    public createdByLabel!: string;
+    public createdBy!: number;
 }
 
 ChapterRevision.init(
@@ -21,7 +21,7 @@ ChapterRevision.init(
         title: { type: DataTypes.STRING, allowNull: false },
         content: { type: DataTypes.TEXT("medium"), allowNull: true },
         sourceBookVersionId: { type: DataTypes.INTEGER, allowNull: true },
-        createdByLabel: { type: DataTypes.STRING, allowNull: false, defaultValue: "Admin" },
+        createdBy: { type: DataTypes.INTEGER, allowNull: false },
     },
     {
         sequelize,

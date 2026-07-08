@@ -1167,6 +1167,11 @@ router.post("/:id/chapters/:chapterNumber/revisions", async (req: Request, res: 
     }
 
     try {
+        const currentUser = await getCurrentActiveUser(req);
+        if (!currentUser) {
+            return res.status(401).json({ error: "Not authenticated" });
+        }
+
         const existingBook = await Book.findOne({ where: { id } });
         if (!existingBook) {
             return res.status(404).json({ error: "Book not found" });
@@ -1197,7 +1202,7 @@ router.post("/:id/chapters/:chapterNumber/revisions", async (req: Request, res: 
             title: chapter.title,
             content: chapter.content,
             sourceBookVersionId: draftVersion.id,
-            createdByLabel: "Admin",
+            createdBy: currentUser?.id,
         });
 
         res.json(revision);

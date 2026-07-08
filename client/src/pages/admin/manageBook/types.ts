@@ -91,6 +91,6 @@ export interface ChapterRevision {
     title: string;
     content: string | null;
     sourceBookVersionId: number | null;
-    createdByLabel: string;
+    createdBy: any;
     createdAt?: string;
 }

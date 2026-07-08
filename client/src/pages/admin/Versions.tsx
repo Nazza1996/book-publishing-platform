@@ -12,6 +12,13 @@ interface BookSummary {
     title: string;
 }
 
+interface User {
+    id: number;
+    username: string;
+    role: 'admin' | 'reader';
+    active: boolean;
+}
+
 interface ChapterRevision {
     id?: number;
     chapterNumber: number;
@@ -19,7 +26,7 @@ interface ChapterRevision {
     title: string;
     content: string | null;
     sourceBookVersionId: number | null;
-    createdByLabel: string;
+    createdBy: User;
     createdAt?: string;
 }
 
@@ -37,7 +44,7 @@ interface VersionRow {
     title: string;
     content: string | null;
     sourceBookVersionId: number | null;
-    createdByLabel: string;
+    createdBy: User;
     createdAt?: string;
     wordCount: number;
     isLatestForChapter: boolean;
@@ -126,7 +133,7 @@ export default function Versions() {
 
             return version.title.toLowerCase().includes(normalizedSearch)
                 || version.bookTitle.toLowerCase().includes(normalizedSearch)
-                || version.createdByLabel.toLowerCase().includes(normalizedSearch)
+                || version.createdBy?.username.toLowerCase().includes(normalizedSearch)
                 || String(version.chapterNumber).includes(normalizedSearch)
                 || String(version.revisionNumber).includes(normalizedSearch);
         });
@@ -167,7 +174,7 @@ export default function Versions() {
         {
             key: "createdBy",
             header: "Created By",
-            render: (version) => version.createdByLabel,
+            render: (version) => version.createdBy?.username || "Unknown User",
             width: 140,
         },
         {
@@ -254,7 +261,7 @@ function toVersionRows(book: DraftBookResponse): VersionRow[] {
         title: revision.title,
         content: revision.content,
         sourceBookVersionId: revision.sourceBookVersionId,
-        createdByLabel: revision.createdByLabel,
+        createdBy: revision.createdBy,
         createdAt: revision.createdAt,
         wordCount: countWords(revision.content ?? ""),
         isLatestForChapter: latestRevisionByChapter.get(revision.chapterNumber) === revision.revisionNumber,

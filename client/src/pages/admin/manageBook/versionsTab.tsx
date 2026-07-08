@@ -55,7 +55,7 @@ export function VersionsTab({
                             <div className="revision-preview-header">
                                 <div>
                                     <h3>{selectedRevision.title}</h3>
-                                    <p>Revision {selectedRevision.revisionNumber} by {selectedRevision.createdByLabel}</p>
+                                    <p>Revision {selectedRevision.revisionNumber} by {selectedRevision.createdBy?.username || "Unknown User"}</p>
                                 </div>
                                 <button className="primary-btn" onClick={() => onRestoreRevision(selectedRevision)}>
                                     Restore to Working Copy
