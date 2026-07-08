@@ -79,6 +79,35 @@ function serializeBook(book: Book) {
     };
 }
 
+function serializeRevisionCreator(user: User | AuthUser | null | undefined) {
+    if (!user) {
+        return null;
+    }
+
+    const values = typeof (user as any).get === "function"
+        ? (user as any).get({ plain: true })
+        : user;
+
+    return {
+        id: values.id,
+        username: values.username,
+        role: values.role,
+        active: values.active,
+    };
+}
+
+function serializeChapterRevision(revision: ChapterRevision, creatorOverride?: User | AuthUser | null) {
+    const values = revision.get({ plain: true }) as any;
+    const { creator, ...revisionValues } = values;
+    const revisionCreator = creatorOverride !== undefined ? creatorOverride : creator;
+
+    return {
+        ...revisionValues,
+        createdById: revisionValues.createdBy ?? null,
+        createdBy: serializeRevisionCreator(revisionCreator),
+    };
+}
+
 async function getBookByIdentifier(identifier: string) {
     const bookBySlug = await Book.findOne({ where: { slug: identifier } });
 
@@ -192,7 +221,12 @@ async function getBookReleaseData(book: Book) {
 
     const chapterRevisions = await ChapterRevision.findAll({
         where: { bookId: book.id },
-        order: [["chapterNumber", "ASC"], ["revisionNumber", "DESC"]]
+        order: [["chapterNumber", "ASC"], ["revisionNumber", "DESC"]],
+        include: [{
+            model: User,
+            as: "creator",
+            attributes: ["id", "username", "role", "active"],
+        }]
     });
 
     return {
@@ -200,7 +234,7 @@ async function getBookReleaseData(book: Book) {
         releases,
         readerGroups,
         feedback,
-        chapterRevisions
+        chapterRevisions: chapterRevisions.map((revision) => serializeChapterRevision(revision))
     };
 }
 
@@ -1205,7 +1239,7 @@ router.post("/:id/chapters/:chapterNumber/revisions", async (req: Request, res: 
             createdBy: currentUser?.id,
         });
 
-        res.json(revision);
+        res.json(serializeChapterRevision(revision, currentUser));
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
     }

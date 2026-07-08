@@ -9,7 +9,7 @@ class ChapterRevision extends Model {
     public title!: string;
     public content!: string | null;
     public sourceBookVersionId!: number | null;
-    public createdBy!: number;
+    public createdBy!: number | null;
 }
 
 ChapterRevision.init(
@@ -21,13 +21,13 @@ ChapterRevision.init(
         title: { type: DataTypes.STRING, allowNull: false },
         content: { type: DataTypes.TEXT("medium"), allowNull: true },
         sourceBookVersionId: { type: DataTypes.INTEGER, allowNull: true },
-        createdBy: { type: DataTypes.INTEGER, allowNull: false },
+        createdBy: { type: DataTypes.INTEGER, allowNull: true },
     },
     {
         sequelize,
         tableName: "chapter_revisions",
         timestamps: true,
-        indexes: [{ unique: true, fields: ["bookId", "chapterNumber", "revisionNumber"] }],
+        indexes: [{ unique: true, fields: ["bookId", "chapterNumber", "revisionNumber", "createdBy"] }],
     }
 );
 
