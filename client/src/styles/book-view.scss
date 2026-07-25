@@ -321,6 +321,7 @@
             background-color: var(--surface-color) !important;
             border-color: var(--border-color) !important;
             box-shadow: none !important;
+            cursor: pointer;
 
             &:hover {
                 border-color: var(--primary-text-color) !important;
@@ -342,6 +343,7 @@
         &__option {
             background-color: var(--surface-color);
             color: var(--body-text-color);
+            cursor: pointer;
 
             &--is-focused {
                 background-color: var(--background-secondary-color);
