@@ -641,6 +641,20 @@
     min-width: 0;
     padding: 1rem;
     border-right: 1px solid var(--border-color);
+    display: flex;
+
+    .admin-panel {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .admin-panel-body {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
 }
 
 .release-sidebar {
@@ -688,6 +702,7 @@
     border-radius: 0 0 v.$radius-sm v.$radius-sm !important;
     box-sizing: border-box;
     line-height: 1.75;
+    flex: 1;
 }
 
 .editor-footer {

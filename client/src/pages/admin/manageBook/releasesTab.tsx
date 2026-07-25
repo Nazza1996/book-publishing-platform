@@ -88,7 +88,7 @@ export function ReleasesTab({
                 </div>
             </Panel>
 
-            <Panel title="Schedule">
+            <Panel title="Schedule" style={{ maxHeight: 600, overflowY: "auto" }}>
                 <div className="schedule-list">
                     {releases.length === 0 ? (
                         <div className="admin-empty-state">No releases scheduled yet.</div>
@@ -108,7 +108,7 @@ export function ReleasesTab({
                                         <strong>{chapter?.title ?? `Chapter ${release.chapterNumber}`}</strong>
                                         <span>{group?.label ?? release.channel} {date ? `at ${date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : ""}</span>
                                     </div>
-                                    <StatusPill label={release.status} />
+                                    <StatusPill label={release.status.charAt(0).toUpperCase() + release.status.slice(1)} />
                                     {release.id && (
                                         <button className="danger-btn" onClick={() => onDeleteRelease(release.id!)}>
                                             {release.status === "scheduled" ? "Cancel" : "Revert"}
