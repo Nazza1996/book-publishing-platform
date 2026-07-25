@@ -655,6 +655,29 @@
         flex: 1;
         min-height: 0;
     }
+
+    &.fullscreen {
+        position: fixed;
+        inset: 1rem;
+        z-index: 120;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: v.$radius-md;
+        background: var(--surface-color);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+
+        .admin-panel-header, .field-row, .editor-footer .danger-btn {
+            display: none !important;
+        }
+
+        .chapter-body-editor {
+            min-height: 0;
+        }
+
+        .editor-toolbar {
+            margin-top: 0;
+        }
+    }
 }
 
 .release-sidebar {

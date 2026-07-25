@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faAlignCenter, faAlignLeft, faAlignRight, faBold, faItalic, faUnderline } from "@fortawesome/free-solid-svg-icons";
+import { faAlignCenter, faAlignLeft, faAlignRight, faBold, faCompress, faExpand, faItalic, faUnderline } from "@fortawesome/free-solid-svg-icons";
 import { countWords } from "./helpers";
 import type { BookEditorState, Chapter, ChapterRelease, ChannelMetadata, ReaderChannel, ReaderGroup } from "./types";
 import { Panel } from "./components/Panel";
@@ -35,6 +35,7 @@ export function ChaptersTab({
     const pendingSelectionRef = useRef<{ start: number; end: number } | null>(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [deletingChapter, setDeletingChapter] = useState(false);
+    const [editorFullscreen, setEditorFullscreen] = useState(false);
     const selectedChapterReleases = selectedChapter
         ? releases.filter((release) => release.chapterNumber === selectedChapter.chapterNumber)
         : [];
@@ -51,6 +52,28 @@ export function ChaptersTab({
         editor.setSelectionRange(pendingSelection.start, pendingSelection.end);
         pendingSelectionRef.current = null;
     }, [selectedChapter?.content]);
+
+    useEffect(() => {
+        if (!editorFullscreen) {
+            return;
+        }
+
+        const previousOverflow = document.documentElement.style.overflow;
+        document.documentElement.style.overflow = "hidden";
+
+        function closeOnEscape(event: KeyboardEvent) {
+            if (event.key === "Escape") {
+                setEditorFullscreen(false);
+            }
+        }
+
+        window.addEventListener("keydown", closeOnEscape);
+
+        return () => {
+            document.documentElement.style.overflow = previousOverflow;
+            window.removeEventListener("keydown", closeOnEscape);
+        };
+    }, [editorFullscreen]);
 
     async function confirmDeleteChapter() {
         setDeletingChapter(true);
@@ -172,6 +195,11 @@ export function ChaptersTab({
         });
     }
 
+    function toggleFullscreenEditor() {
+        setEditorFullscreen((isFullscreen) => !isFullscreen);
+        window.requestAnimationFrame(() => editorRef.current?.focus());
+    }
+
     return (
         <div className="chapter-workspace">
             <aside className="chapter-sidebar">
@@ -195,7 +223,7 @@ export function ChaptersTab({
             </aside>
 
             <div className="chapter-editor-shell">
-                <div className="chapter-editor-main">
+                <div className={editorFullscreen ? "chapter-editor-main fullscreen" : "chapter-editor-main"}>
                     <Panel title={selectedChapter ? `Chapter ${selectedChapter.chapterNumber}: ${selectedChapter.title}` : "Chapter Editor"} description="Write and edit chapter content.">
                         {selectedChapter && (
                             <>
@@ -230,6 +258,9 @@ export function ChaptersTab({
                                     </button>
                                     <button type="button" onClick={() => applyAlignmentFormat("right")} aria-label="Align right" title="Align right">
                                         <FontAwesomeIcon icon={faAlignRight} />
+                                    </button>
+                                    <button type="button" onClick={toggleFullscreenEditor} aria-label="Fullscreen editor" title={`${editorFullscreen ? "Exit" : "Enter"} fullscreen editor`}>
+                                        <FontAwesomeIcon icon={editorFullscreen ? faCompress : faExpand} />
                                     </button>
                                 </div>
 
