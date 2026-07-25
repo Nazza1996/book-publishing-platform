@@ -225,6 +225,7 @@ export default function Schedule() {
                             options={[{ value: "all", label: "All Books" }, ...books.map((book) => ({ value: book.slug, label: book.title }))]}
                             onSelect={setSelectedBookSlug}
                             currentOption={selectedBookSlug}
+                            width={350}
                         />
                         <SelectPicker
                             options={[{ value: "all", label: "All Channels" }, ...Object.entries(channelLabels).map(([channel, label]) => ({ value: channel, label }))]}

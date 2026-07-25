@@ -309,6 +309,7 @@ export default function ReaderGroups({ channel }: { channel: "alpha" | "beta" })
                             options={[{ value: "all", label: "All Books" }, ...books.map((book) => ({ value: book.slug, label: book.title }))]}
                             onSelect={setSelectedBookSlug}
                             currentOption={selectedBookSlug}
+                            width={350}
                         />
                         <SelectPicker
                             options={[{ value: "all", label: "All Member Statuses" }, { value: "active", label: "Active" }, { value: "removed", label: "Removed" }]}

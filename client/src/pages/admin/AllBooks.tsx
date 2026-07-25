@@ -122,7 +122,7 @@ export default function AllBooks() {
                             setSearchTerm={setSearchTerm}
                             placeholder="Search books..."
                         />
-                        <button id="newBookButton" onClick={() => navigate('/admin/new-book')}>New Book</button>
+                        <button className="primary-btn" onClick={() => navigate('/admin/new-book')}>New Book</button>
                     </div>
                 </div>
 

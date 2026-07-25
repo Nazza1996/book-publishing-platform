@@ -231,6 +231,7 @@ export default function Chapters() {
                             options={[{ value: "all", label: "All Books" }, ...books.map((book) => ({ value: book.slug, label: book.title }))]}
                             onSelect={setSelectedBookSlug}
                             currentOption={selectedBookSlug}
+                            width={350}
                         />
                         <SelectPicker
                             options={[{ value: "all", label: "All Statuses" }, ...Object.entries(bookStatusLabels).map(([status, label]) => ({ value: status, label }))]}

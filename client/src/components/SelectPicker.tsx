@@ -3,12 +3,15 @@ import Select from 'react-select';
 export function SelectPicker({
     options,
     onSelect,
-    currentOption
+    currentOption,
+    width
 }: {
     options:{ value: string | number, label: string }[],
-    onSelect: any, currentOption: string | number
+    onSelect: any,
+    currentOption: string | number,
+    width?: string | number
 }) {
-    return <div className="selectpicker-containter">
+    return <div className="selectpicker-containter" style={{ width: width }}>
         <Select
             options={options}
             onChange={(selectedOption) => onSelect(selectedOption?.value!)}

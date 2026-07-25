@@ -208,6 +208,7 @@ export default function Versions() {
                             options={[{ value: "all", label: "All Books" }, ...books.map((book) => ({ value: book.slug, label: book.title }))]}
                             onSelect={setSelectedBookSlug}
                             currentOption={selectedBookSlug}
+                            width={350}
                         />
                     </div>
                 </div>
