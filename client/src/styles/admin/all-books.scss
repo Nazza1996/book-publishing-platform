@@ -28,20 +28,6 @@
         justify-content: flex-end;
         gap: 15px;
 
-        #searchBooksInput {
-            padding: 10px 15px;
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            font-size: 0.95rem;
-            color: var(--body-text-color);
-            background-color: var(--surface-color);
-            
-            &:focus {
-                outline: none;
-                border-color: var(--orange);
-            }
-        }
-
         #newBookButton {
             padding: 10px 20px;
             background-color: var(--orange);
@@ -109,11 +95,6 @@
 
         #booksHeaderRight {
             justify-content: stretch;
-
-            #searchBooksInput {
-                flex: 1;
-                min-width: 0;
-            }
         }
     }
 }

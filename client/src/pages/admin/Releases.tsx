@@ -6,6 +6,7 @@ import "../../styles/admin/releases.scss";
 import AdminNav from "./AdminNav";
 import Datatable, { type DatatableColumn } from "./Datatable";
 import { SelectPicker } from "../../components/SelectPicker";
+import { Search } from "../../components/Search";
 
 type ReaderChannel = "alpha" | "beta" | "public";
 type ReleaseStatus = "scheduled" | "released";
@@ -217,11 +218,10 @@ export default function Releases() {
                         <div>Browse every chapter snapshot released or queued across reader channels.</div>
                     </div>
                     <div className="release-page-header-right">
-                        <input
-                            type="text"
+                        <Search
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
                             placeholder="Search releases..."
-                            value={searchTerm}
-                            onChange={(event) => setSearchTerm(event.target.value)}
                         />
                         <SelectPicker
                             options={[{ value: "all", label: "All Books" }, ...books.map((book) => ({ value: book.slug, label: book.title }))]}

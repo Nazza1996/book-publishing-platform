@@ -1,4 +1,4 @@
-@use './variables.scss';
+@use './variables.scss' as v;
 @use './navbar.scss';
 @use './intro.scss';
 @use './stories.scss';
@@ -51,6 +51,24 @@ body > * {
 
 code, pre code {
     font-family: ui-monospace, SFMono-Regular, Consolas, 'SF Mono', Menlo, 'Liberation Mono', monospace;
+}
+
+.search-field {
+    padding: 10px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: v.$radius-sm;
+    font-size: 0.95rem;
+    color: var(--body-text-color);
+    background-color: var(--surface-color);
+
+    &:focus {
+        outline: none;
+        border-color: var(--primary-text-color);
+    }
+
+    &::placeholder {
+        color: #93a0ac;
+    }
 }
 
 .selectpicker-containter {    

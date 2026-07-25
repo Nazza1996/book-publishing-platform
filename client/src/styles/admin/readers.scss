@@ -33,16 +33,6 @@
         input,
         select {
             padding: 10px 15px;
-            border: 1px solid var(--border-color);
-            border-radius: v.$radius-sm;
-            font-size: 0.95rem;
-            color: var(--body-text-color);
-            background-color: var(--surface-color);
-
-            &:focus {
-                outline: none;
-                border-color: var(--orange);
-            }
         }
     }
 }

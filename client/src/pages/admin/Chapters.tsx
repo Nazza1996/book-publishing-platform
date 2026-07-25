@@ -6,6 +6,7 @@ import "../../styles/admin/chapters.scss";
 import AdminNav from "./AdminNav";
 import Datatable, { type DatatableColumn } from "./Datatable";
 import { SelectPicker } from "../../components/SelectPicker";
+import { Search } from "../../components/Search";
 
 type BookStatus = "not_started" | "in_progress" | "on_hold" | "finished" | "cancelled";
 type ReleaseStatus = "scheduled" | "released";
@@ -221,12 +222,10 @@ export default function Chapters() {
                         <div>Review draft chapters across every book.</div>
                     </div>
                     <div id="chaptersHeaderRight">
-                        <input
-                            id="searchChaptersInput"
-                            type="text"
+                        <Search
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
                             placeholder="Search chapters..."
-                            value={searchTerm}
-                            onChange={(event) => setSearchTerm(event.target.value)}
                         />
                         <SelectPicker
                             options={[{ value: "all", label: "All Books" }, ...books.map((book) => ({ value: book.slug, label: book.title }))]}

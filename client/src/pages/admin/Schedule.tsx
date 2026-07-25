@@ -8,6 +8,7 @@ import Datatable, { type DatatableColumn } from "./Datatable";
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SelectPicker } from "../../components/SelectPicker";
+import { Search } from "../../components/Search";
 
 type ReaderChannel = "alpha" | "beta" | "public";
 
@@ -215,11 +216,10 @@ export default function Schedule() {
                         <div>Track queued chapter releases by date, reader channel and book.</div>
                     </div>
                     <div className="release-page-header-right">
-                        <input
-                            type="text"
+                        <Search
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
                             placeholder="Search schedule..."
-                            value={searchTerm}
-                            onChange={(event) => setSearchTerm(event.target.value)}
                         />
                         <SelectPicker
                             options={[{ value: "all", label: "All Books" }, ...books.map((book) => ({ value: book.slug, label: book.title }))]}

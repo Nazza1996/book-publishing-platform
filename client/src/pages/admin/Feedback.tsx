@@ -6,6 +6,7 @@ import "../../styles/admin/readers.scss";
 import AdminNav from "./AdminNav";
 import Datatable, { type DatatableColumn } from "./Datatable";
 import { SelectPicker } from "../../components/SelectPicker";
+import { Search } from "../../components/Search";
 
 type ReaderChannel = "alpha" | "beta" | "public";
 type FeedbackStatus = "open" | "reviewed" | "resolved";
@@ -283,11 +284,10 @@ export default function Feedback() {
                         <div>Track reader comments across books, chapters and release channels.</div>
                     </div>
                     <div className="reader-page-header-right">
-                        <input
-                            type="text"
+                        <Search
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
                             placeholder="Search feedback..."
-                            value={searchTerm}
-                            onChange={(event) => setSearchTerm(event.target.value)}
                         />
                         <SelectPicker
                             options={[{ value: "all", label: "All Books" }, ...books.map((book) => ({ value: book.slug, label: book.title }))]}

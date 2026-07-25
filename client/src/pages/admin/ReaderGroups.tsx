@@ -6,6 +6,7 @@ import "../../styles/admin/readers.scss";
 import AdminNav from "./AdminNav";
 import Datatable, { type DatatableColumn } from "./Datatable";
 import { SelectPicker } from "../../components/SelectPicker";
+import { Search } from "../../components/Search";
 
 type ReaderChannel = "alpha" | "beta" | "public";
 type MemberStatus = "active" | "removed";
@@ -299,11 +300,10 @@ export default function ReaderGroups({ channel }: { channel: "alpha" | "beta" })
                         <div>Review reader access groups and member status across every book.</div>
                     </div>
                     <div className="reader-page-header-right">
-                        <input
-                            type="text"
+                        <Search
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
                             placeholder="Search readers..."
-                            value={searchTerm}
-                            onChange={(event) => setSearchTerm(event.target.value)}
                         />
                         <SelectPicker
                             options={[{ value: "all", label: "All Books" }, ...books.map((book) => ({ value: book.slug, label: book.title }))]}
