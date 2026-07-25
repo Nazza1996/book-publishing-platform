@@ -5,6 +5,7 @@ import "../../styles/admin/shared-admin.scss";
 import "../../styles/admin/chapters.scss";
 import AdminNav from "./AdminNav";
 import Datatable, { type DatatableColumn } from "./Datatable";
+import { SelectPicker } from "../../components/SelectPicker";
 
 type BookStatus = "not_started" | "in_progress" | "on_hold" | "finished" | "cancelled";
 type ReleaseStatus = "scheduled" | "released";
@@ -227,18 +228,16 @@ export default function Chapters() {
                             value={searchTerm}
                             onChange={(event) => setSearchTerm(event.target.value)}
                         />
-                        <select value={selectedBookSlug} onChange={(event) => setSelectedBookSlug(event.target.value)}>
-                            <option value="all">All Books</option>
-                            {books.map((book) => (
-                                <option key={book.id} value={book.slug}>{book.title}</option>
-                            ))}
-                        </select>
-                        <select value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value as "all" | BookStatus)}>
-                            <option value="all">All Statuses</option>
-                            {Object.entries(bookStatusLabels).map(([status, label]) => (
-                                <option key={status} value={status}>{label}</option>
-                            ))}
-                        </select>
+                        <SelectPicker
+                            options={[{ value: "all", label: "All Books" }, ...books.map((book) => ({ value: book.slug, label: book.title }))]}
+                            onSelect={setSelectedBookSlug}
+                            currentOption={selectedBookSlug}
+                        />
+                        <SelectPicker
+                            options={[{ value: "all", label: "All Statuses" }, ...Object.entries(bookStatusLabels).map(([status, label]) => ({ value: status, label }))]}
+                            onSelect={setSelectedStatus}
+                            currentOption={selectedStatus}
+                        />
                     </div>
                 </div>
 

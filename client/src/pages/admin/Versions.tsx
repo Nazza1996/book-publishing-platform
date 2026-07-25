@@ -5,6 +5,7 @@ import "../../styles/admin/shared-admin.scss";
 import "../../styles/admin/versions.scss";
 import AdminNav from "./AdminNav";
 import Datatable, { type DatatableColumn } from "./Datatable";
+import { SelectPicker } from "../../components/SelectPicker";
 
 interface BookSummary {
     id: number;
@@ -204,12 +205,11 @@ export default function Versions() {
                             value={searchTerm}
                             onChange={(event) => setSearchTerm(event.target.value)}
                         />
-                        <select value={selectedBookSlug} onChange={(event) => setSelectedBookSlug(event.target.value)}>
-                            <option value="all">All Books</option>
-                            {books.map((book) => (
-                                <option key={book.id} value={book.slug}>{book.title}</option>
-                            ))}
-                        </select>
+                        <SelectPicker
+                            options={[{ value: "all", label: "All Books" }, ...books.map((book) => ({ value: book.slug, label: book.title }))]}
+                            onSelect={setSelectedBookSlug}
+                            currentOption={selectedBookSlug}
+                        />
                     </div>
                 </div>
 

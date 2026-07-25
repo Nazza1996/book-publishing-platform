@@ -52,3 +52,62 @@ body > * {
 code, pre code {
     font-family: ui-monospace, SFMono-Regular, Consolas, 'SF Mono', Menlo, 'Liberation Mono', monospace;
 }
+
+.selectpicker-containter {    
+    .selectpicker {
+        min-width: 16rem;
+        flex: 1;
+        min-width: 200px;
+    
+        &__control {
+            background-color: var(--surface-color) !important;
+            border-color: var(--border-color) !important;
+            box-shadow: none !important;
+            cursor: pointer;
+    
+            &:hover {
+                border-color: var(--primary-text-color) !important;
+            }
+        }
+    
+        &__single-value,
+        &__input-container,
+        &__placeholder {
+            color: var(--primary-text-color) !important;
+        }
+    
+        &__menu {
+            background-color: var(--surface-color) !important;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
+        }
+    
+        &__option {
+            background-color: var(--surface-color);
+            color: var(--body-text-color);
+            cursor: pointer;
+    
+            &--is-focused {
+                background-color: var(--background-secondary-color);
+            }
+    
+            &--is-selected {
+                background-color: var(--primary-text-color);
+                color: var(--background-color);
+            }
+        }
+    
+        &__indicator-separator {
+            background-color: var(--border-color);
+        }
+    
+        &__dropdown-indicator,
+        &__clear-indicator {
+            color: var(--secondary-text-color);
+    
+            &:hover {
+                color: var(--primary-text-color);
+            }
+        }
+    }
+}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Chapter, ReaderChannel, ReaderFeedbackItem, ReaderGroup } from "./types";
 import { FeedbackList } from "./components/FeedbackList";
 import { Panel } from "./components/Panel";
+import { SelectPicker } from "../../../components/SelectPicker";
 
 export function FeedbackTab({
     groups,
@@ -75,30 +76,22 @@ export function FeedbackTab({
     return (
         <Panel step="8" title="Feedback" description="See reader feedback by chapter and reader group.">
             <div className="feedback-form">
-                <select value={channel} onChange={(e) => setChannel(e.target.value as "all" | ReaderChannel)}>
-                    <option value="all">All reader groups</option>
-                    {groups.map((group) => (
-                        <option key={group.key} value={group.key}>{group.label}</option>
-                    ))}
-                </select>
-                <select
-                    value={chapterNumber}
-                    onChange={(e) => {
-                        const value = e.target.value;
-                        setChapterNumber(value === "all" || value === "book" ? value : Number(value));
-                    }}
-                >
-                    <option value="all">All chapters</option>
-                    {chapters.map((chapter) => (
-                        <option key={chapter.chapterNumber} value={chapter.chapterNumber}>Chapter {chapter.chapterNumber}: {chapter.title}</option>
-                    ))}
-                </select>
-                <select value={readerFilter} onChange={(e) => setReaderFilter(e.target.value)}>
-                    <option value="all">All readers</option>
-                    {readerOptions.map((reader) => (
-                        <option key={reader.value} value={reader.value}>{reader.label}</option>
-                    ))}
-                </select>
+                <SelectPicker
+                    options={[{ value: "all", label: "All reader groups" }, ...groups.map((group) => ({ value: group.key, label: group.label }))]}
+                    onSelect={setChannel}
+                    currentOption={channel}
+                
+                />
+                <SelectPicker
+                    options={[{ value: "all", label: "All chapters" }, ...chapters.map((chapter) => ({ value: chapter.chapterNumber, label: `Chapter ${chapter.chapterNumber}: ${chapter.title}` }))]}
+                    onSelect={(value: string) => setChapterNumber(value === "all" || value === "book" ? value : Number(value))}
+                    currentOption={chapterNumber}
+                />
+                <SelectPicker
+                    options={[{ value: "all", label: "All readers" }, ...readerOptions]}
+                    onSelect={setReaderFilter}
+                    currentOption={readerFilter}
+                />
             </div>
 
             <FeedbackList
