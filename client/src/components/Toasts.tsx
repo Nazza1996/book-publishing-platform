@@ -3,6 +3,13 @@ import { subscribeToasts, toast, type ToastItem } from '../helpers';
 
 const AUTO_DISMISS_MS = 4500;
 
+function isIrrelevantScriptError(event: ErrorEvent) {
+    return event.message === 'Script error.'
+        && !event.error
+        && event.lineno === 0
+        && event.colno === 0;
+}
+
 export default function Toasts() {
     const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -28,6 +35,11 @@ export default function Toasts() {
 
     useEffect(() => {
         const onWindowError = (event: ErrorEvent) => {
+            if (isIrrelevantScriptError(event)) {
+                console.warn('Suppressed opaque browser script error.', event);
+                return;
+            }
+
             const message = event.error instanceof Error
                 ? event.error.message
                 : event.message || 'Unexpected error';
