@@ -18,6 +18,7 @@ const clientDistPath = isProd
 // Import routes after sequelize is exported
 import userRoutes from './routes/userRoutes.js';
 import bookRoutes from './routes/bookRoutes.js';
+import releasesRoutes from './routes/releasesRoutes.js';
 
 const app = express();
 app.use(cors({ credentials: true, origin: true }));
@@ -28,6 +29,7 @@ app.use(cookieParser());
 
 app.use('/api/users', userRoutes);
 app.use('/api/books', bookRoutes);
+app.use('/api/releases', releasesRoutes);
 
 // Serve React static files
 app.use(
