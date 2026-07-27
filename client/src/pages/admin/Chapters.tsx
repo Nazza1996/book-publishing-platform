@@ -87,7 +87,7 @@ export default function Chapters() {
             setPartialErrorCount(0);
 
             try {
-                const booksRes = await apiFetch("/api/books", { toast: false });
+                const booksRes = await apiFetch("/api/books/dropdown", { toast: false });
                 if (!booksRes.ok) {
                     setError("Could not load chapters.");
                     return;

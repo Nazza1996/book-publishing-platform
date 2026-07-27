@@ -61,7 +61,7 @@ export default function Schedule() {
             setError("");
 
             try {
-                const booksRes = await apiFetch("/api/books", { toast: false });
+                const booksRes = await apiFetch("/api/books/dropdown", { toast: false });
                 if (!booksRes.ok) {
                     setError("Could not load schedule.");
                     return;

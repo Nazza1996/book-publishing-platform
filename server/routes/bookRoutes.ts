@@ -60,6 +60,13 @@ router.get("/", async (req: Request, res: Response) => {
     }
 });
 
+router.get("/dropdown", async (req: Request, res: Response) => {
+    const books = await Book.findAll({
+        attributes: ["id", "title", "slug"]
+    });
+    return res.json(books);
+});
+
 router.get("/released", async (req: Request, res: Response) => {
     try {
         const entries = new Map<number, any>();

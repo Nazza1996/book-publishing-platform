@@ -111,7 +111,7 @@ export default function ReaderGroups({ channel }: { channel: "alpha" | "beta" })
             setPartialErrorCount(0);
 
             try {
-                const booksRes = await apiFetch("/api/books", { toast: false });
+                const booksRes = await apiFetch("/api/books/dropdown", { toast: false });
                 if (!booksRes.ok) {
                     setError(`Could not load ${title.toLowerCase()}.`);
                     return;
