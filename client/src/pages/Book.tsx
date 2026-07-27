@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import Select from 'react-select';
 import { Link, useNavigate, useParams } from "react-router-dom";
 import '../styles/books.scss';
 import '../styles/book-view.scss';
 import { apiFetch, markdownToHtml, setPageTitle } from "../helpers";
 import AccessibilityMenu from "../components/AccessibilityMenu";
 import { useAuth } from "../contexts/AuthContext";
+import { SelectPicker } from "../components/SelectPicker";
 
 export default function Book() {
     const { slug } = useParams();
@@ -170,20 +170,10 @@ export default function Book() {
 const ChapterSelector = ({ chapters, currentChapter, onSelect }: { chapters: any[], currentChapter: number, onSelect: (num: number) => void }) => {
     return (
         <div className="chapter-selector">
-            <Select
-                options={chapters.map(chapter => ({ value: chapter.chapterNumber, label: chapter.title }))}
-                onChange={(selectedOption) => onSelect(selectedOption?.value!)}
-                value={chapters.find(ch => ch.chapterNumber === currentChapter) ? { value: currentChapter, label: chapters.find(chapter => chapter.chapterNumber === currentChapter)?.title } : null}
-                menuPlacement="auto"
-                classNamePrefix="chapter-select"
-                theme={(theme) => ({
-                    ...theme,
-                    colors: {
-                        ...theme.colors,
-                        primary: 'var(--primary-text-color)',
-                    }
-                })}
-                isSearchable={false}
+            <SelectPicker
+                options={chapters.map((chapter) => ({ value: chapter.chapterNumber, label: chapter.title }))}
+                onSelect={onSelect}
+                currentOption={chapters.find(ch => ch.chapterNumber === currentChapter) ? currentChapter : ""}
             />
         </div>
     );

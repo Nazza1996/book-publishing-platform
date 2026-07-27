@@ -5,6 +5,8 @@ import "../../styles/admin/shared-admin.scss";
 import "../../styles/admin/versions.scss";
 import AdminNav from "./AdminNav";
 import Datatable, { type DatatableColumn } from "./Datatable";
+import { SelectPicker } from "../../components/SelectPicker";
+import { Search } from "../../components/Search";
 
 interface BookSummary {
     id: number;
@@ -197,19 +199,17 @@ export default function Versions() {
                         <div>Browse chapter revision snapshots across every book.</div>
                     </div>
                     <div id="versionsHeaderRight">
-                        <input
-                            id="searchVersionsInput"
-                            type="text"
+                        <Search
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
                             placeholder="Search versions..."
-                            value={searchTerm}
-                            onChange={(event) => setSearchTerm(event.target.value)}
                         />
-                        <select value={selectedBookSlug} onChange={(event) => setSelectedBookSlug(event.target.value)}>
-                            <option value="all">All Books</option>
-                            {books.map((book) => (
-                                <option key={book.id} value={book.slug}>{book.title}</option>
-                            ))}
-                        </select>
+                        <SelectPicker
+                            options={[{ value: "all", label: "All Books" }, ...books.map((book) => ({ value: book.slug, label: book.title }))]}
+                            onSelect={setSelectedBookSlug}
+                            currentOption={selectedBookSlug}
+                            width={350}
+                        />
                     </div>
                 </div>
 

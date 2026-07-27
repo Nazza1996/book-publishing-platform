@@ -3,6 +3,7 @@ import type { Chapter, ChapterRelease, ChannelMetadata, ReaderChannel, ReaderGro
 import { Panel } from "./components/Panel";
 import { ReleasePreview } from "./components/ReleasePreview";
 import { StatusPill } from "./components/StatusPill";
+import { SelectPicker } from "../../../components/SelectPicker";
 
 export function ReleasesTab({
     groups,
@@ -60,21 +61,19 @@ export function ReleasesTab({
                 <div className="schedule-form">
                     <label>
                         Reader Group
-                        <select value={scheduleChannel} onChange={(e) => setScheduleChannel(e.target.value as ReaderChannel)}>
-                            {groups.map((group) => (
-                                <option value={group.key} key={group.key}>{group.label}</option>
-                            ))}
-                        </select>
+                        <SelectPicker
+                            options={groups.map((group) => ({ value: group.key, label: group.label }))}
+                            onSelect={setScheduleChannel}
+                            currentOption={scheduleChannel}
+                        />
                     </label>
                     <label>
                         Release Chapter
-                        <select value={scheduleChapterNumber} onChange={(e) => setScheduleChapterNumber(Number(e.target.value))}>
-                            {chapters.map((chapter) => (
-                                <option key={chapter.chapterNumber} value={chapter.chapterNumber}>
-                                    Chapter {chapter.chapterNumber}: {chapter.title}
-                                </option>
-                            ))}
-                        </select>
+                        <SelectPicker
+                            options={chapters.map((chapter) => ({ value: chapter.chapterNumber, label: `Chapter ${chapter.chapterNumber}: ${chapter.title}` }))}
+                            onSelect={setScheduleChapterNumber}
+                            currentOption={scheduleChapterNumber}
+                        />
                     </label>
                     <label>
                         Release Date
@@ -89,7 +88,7 @@ export function ReleasesTab({
                 </div>
             </Panel>
 
-            <Panel title="Schedule">
+            <Panel title="Schedule" style={{ maxHeight: 600, overflowY: "auto" }}>
                 <div className="schedule-list">
                     {releases.length === 0 ? (
                         <div className="admin-empty-state">No releases scheduled yet.</div>
@@ -109,7 +108,7 @@ export function ReleasesTab({
                                         <strong>{chapter?.title ?? `Chapter ${release.chapterNumber}`}</strong>
                                         <span>{group?.label ?? release.channel} {date ? `at ${date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : ""}</span>
                                     </div>
-                                    <StatusPill label={release.status} />
+                                    <StatusPill label={release.status.charAt(0).toUpperCase() + release.status.slice(1)} />
                                     {release.id && (
                                         <button className="danger-btn" onClick={() => onDeleteRelease(release.id!)}>
                                             {release.status === "scheduled" ? "Cancel" : "Revert"}
