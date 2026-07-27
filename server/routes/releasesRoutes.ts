@@ -8,6 +8,8 @@ const router = Router();
 
 router.use(requireAdmin);
 
+//#region Routes
+
 router.get("/", async (req: Request, res: Response) => {
     try {
         const releases = await ChapterRelease.findAll({

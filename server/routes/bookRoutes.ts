@@ -22,356 +22,7 @@ const readerChannelLabels: Record<ReaderChannel, string> = {
     public: "Public Readers",
 };
 
-function slugifyTitle(title: string): string {
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'book';
-}
-
-async function buildUniqueSlug(title: string, excludeBookId?: number) {
-    const baseSlug = slugifyTitle(title);
-    let slug = baseSlug;
-    let suffix = 2;
-
-    while (true) {
-        const existingBook = await Book.findOne({ where: { slug } });
-
-        if (!existingBook || (excludeBookId && existingBook.id === excludeBookId)) {
-            return slug;
-        }
-
-        slug = `${baseSlug}-${suffix}`;
-        suffix += 1;
-    }
-}
-
-function normalizeBookGenres(input: unknown) {
-    const genres = typeof input === "string" ? parseJsonGenres(input) : input;
-
-    if (!Array.isArray(genres)) {
-        return [];
-    }
-
-    return Array.from(new Set(
-        genres
-            .filter((genre): genre is string => typeof genre === "string")
-            .map((genre) => genre.trim())
-            .filter(Boolean)
-    ));
-}
-
-function parseJsonGenres(input: string) {
-    try {
-        return JSON.parse(input);
-    } catch {
-        return [];
-    }
-}
-
-function serializeBook(book: Book) {
-    const values = book.get({ plain: true }) as any;
-
-    return {
-        ...values,
-        genres: normalizeBookGenres(values.genres),
-    };
-}
-
-function serializeRevisionCreator(user: User | AuthUser | null | undefined) {
-    if (!user) {
-        return null;
-    }
-
-    const values = typeof (user as any).get === "function"
-        ? (user as any).get({ plain: true })
-        : user;
-
-    return {
-        id: values.id,
-        username: values.username,
-        role: values.role,
-        active: values.active,
-    };
-}
-
-function serializeChapterRevision(revision: ChapterRevision, creatorOverride?: User | AuthUser | null) {
-    const values = revision.get({ plain: true }) as any;
-    const { creator, ...revisionValues } = values;
-    const revisionCreator = creatorOverride !== undefined ? creatorOverride : creator;
-
-    return {
-        ...revisionValues,
-        createdById: revisionValues.createdBy ?? null,
-        createdBy: serializeRevisionCreator(revisionCreator),
-    };
-}
-
-async function getBookByIdentifier(identifier: string) {
-    const bookBySlug = await Book.findOne({ where: { slug: identifier } });
-
-    if (bookBySlug) {
-        return bookBySlug;
-    }
-
-    const numericId = Number(identifier);
-    if (!Number.isNaN(numericId)) {
-        return Book.findOne({ where: { id: numericId } });
-    }
-
-    return null;
-}
-
-function serializeChannelMetadata(rows: BookChannelMetadata[]) {
-    return readerChannels.reduce((metadata, channel) => {
-        const row = rows.find((item) => item.channel === channel);
-
-        metadata[channel] = {
-            description: row?.description ?? "",
-            authorNote: row?.authorNote ?? "",
-            releaseLimit: row?.releaseLimit ?? 0,
-            nextRelease: row?.nextRelease ?? "",
-        };
-
-        return metadata;
-    }, {} as Record<ReaderChannel, {
-        description: string;
-        authorNote: string;
-        releaseLimit: number;
-        nextRelease: string;
-    }>);
-}
-
-async function ensureBookChannelMetadata(bookId: number, fallbackDescription = "") {
-    for (const channel of readerChannels) {
-        const existing = await BookChannelMetadata.findOne({
-            where: { bookId, channel }
-        });
-
-        if (!existing) {
-            await BookChannelMetadata.create({
-                bookId,
-                channel,
-                description: fallbackDescription,
-                authorNote: "",
-                releaseLimit: 0,
-                nextRelease: "",
-            });
-        }
-    }
-}
-
-async function ensureReaderGroups(bookId: number) {
-    for (const channel of readerChannels) {
-        const existing = await ReaderGroup.findOne({
-            where: { bookId, channel }
-        });
-
-        if (!existing) {
-            await ReaderGroup.create({
-                bookId,
-                channel,
-                name: readerChannelLabels[channel],
-                description: "",
-                memberCount: 0,
-            });
-        }
-    }
-}
-
-async function getBookReleaseData(book: Book) {
-    await promoteDueScheduledReleases();
-    await ensureBookChannelMetadata(book.id, book.description);
-    await ensureReaderGroups(book.id);
-
-    const channelMetadataRows = await BookChannelMetadata.findAll({
-        where: { bookId: book.id },
-        order: [["channel", "ASC"]]
-    });
-
-    const releases = await ChapterRelease.findAll({
-        where: { bookId: book.id },
-        order: [["releaseAt", "ASC"], ["chapterNumber", "ASC"]]
-    });
-
-    const readerGroups = await ReaderGroup.findAll({
-        where: { bookId: book.id },
-        include: [{
-            model: ReaderGroupMember,
-            as: "members",
-            include: [{
-                model: User,
-                as: "user",
-                attributes: ["id", "username", "role", "active"],
-            }],
-        }],
-        order: [["channel", "ASC"]]
-    });
-
-    const feedback = await ReaderFeedback.findAll({
-        where: { bookId: book.id },
-        include: [{
-            model: User,
-            as: "reader",
-            attributes: ["id", "username", "role", "active"],
-        }],
-        order: [["createdAt", "DESC"]]
-    });
-
-    const chapterRevisions = await ChapterRevision.findAll({
-        where: { bookId: book.id },
-        order: [["chapterNumber", "ASC"], ["revisionNumber", "DESC"]],
-        include: [{
-            model: User,
-            as: "creator",
-            attributes: ["id", "username", "role", "active"],
-        }]
-    });
-
-    return {
-        channelMetadata: serializeChannelMetadata(channelMetadataRows),
-        releases,
-        readerGroups,
-        feedback,
-        chapterRevisions: chapterRevisions.map((revision) => serializeChapterRevision(revision))
-    };
-}
-
-async function getBookReleaseSummary(bookId: number) {
-    await promoteDueScheduledReleases();
-    const releases = await ChapterRelease.findAll({
-        where: { bookId },
-        attributes: ["channel", "status", "chapterNumber"]
-    });
-
-    return readerChannels.reduce((summary, channel) => {
-        const channelReleases = releases.filter((release) => release.channel === channel);
-
-        summary[channel] = {
-            released: channelReleases.filter((release) => release.status === "released").length,
-            scheduled: channelReleases.filter((release) => release.status === "scheduled").length,
-        };
-
-        return summary;
-    }, {} as Record<ReaderChannel, { released: number; scheduled: number }>);
-}
-
-async function hasReaderChannelAccess(bookId: number, channel: ReaderChannel, user: AuthUser | null) {
-    if (!user?.active) {
-        return false;
-    }
-
-    if (user.role === "admin") {
-        return true;
-    }
-
-    const group = await ReaderGroup.findOne({ where: { bookId, channel } });
-    if (!group) {
-        return false;
-    }
-
-    const membership = await ReaderGroupMember.findOne({
-        where: {
-            readerGroupId: group.id,
-            userId: user.id,
-            status: "active",
-        },
-    });
-
-    return Boolean(membership);
-}
-
-async function getReleasedChaptersForChannel(bookId: number, channel: ReaderChannel) {
-    await promoteDueScheduledReleases();
-    const releases = await ChapterRelease.findAll({
-        where: {
-            bookId,
-            channel,
-            status: "released"
-        },
-        order: [["chapterNumber", "ASC"]]
-    });
-
-    return releases.map((release) => ({
-        id: release.id,
-        chapterNumber: release.chapterNumber,
-        title: release.title,
-        content: release.content,
-        updatedAt: release.updatedAt,
-    }));
-}
-
-async function syncBookChannelMetadata(bookId: number, input: any, fallbackDescription: string) {
-    await ensureBookChannelMetadata(bookId, fallbackDescription);
-
-    if (!input || typeof input !== "object") {
-        return;
-    }
-
-    for (const channel of readerChannels) {
-        const metadata = input[channel];
-
-        if (!metadata || typeof metadata !== "object") {
-            continue;
-        }
-
-        await BookChannelMetadata.update(
-            {
-                description: metadata.description ?? fallbackDescription,
-                authorNote: metadata.authorNote ?? "",
-                releaseLimit: Number.isFinite(Number(metadata.releaseLimit)) ? Number(metadata.releaseLimit) : 0,
-                nextRelease: metadata.nextRelease ?? "",
-            },
-            {
-                where: { bookId, channel }
-            }
-        );
-    }
-}
-
-async function ensureWorkingDraftVersion(book: Book) {
-    let draftVersion = await BookVersion.findOne({
-        where: { bookId: book.id, isWorkingDraft: true }
-    });
-
-    if (draftVersion) {
-        return draftVersion;
-    }
-
-    draftVersion = await BookVersion.create({
-        bookId: book.id,
-        isWorkingDraft: true
-    });
-
-    const sourceVersion = await BookVersion.findOne({
-        where: { bookId: book.id },
-        order: [
-            ["isWorkingDraft", "DESC"],
-            ["updatedAt", "DESC"]
-        ]
-    });
-
-    if (!sourceVersion) {
-        return draftVersion;
-    }
-
-    const sourceChapters = await Chapter.findAll({
-        where: { bookVersionId: sourceVersion.id },
-        order: [["chapterNumber", "ASC"]]
-    });
-
-    if (sourceChapters.length > 0) {
-        await Chapter.bulkCreate(sourceChapters.map((chapter: any) => ({
-            bookVersionId: draftVersion!.id,
-            chapterNumber: chapter.chapterNumber,
-            title: chapter.title,
-            content: chapter.content,
-        })));
-    }
-
-    return draftVersion;
-}
+//#region Routes
 
 router.get("/", async (req: Request, res: Response) => {
     const user = await getCurrentActiveUser(req);
@@ -408,124 +59,6 @@ router.get("/", async (req: Request, res: Response) => {
         return res.status(500).json({ error: error.message });
     }
 });
-
-async function getReleasedPublicBooks() {
-    await promoteDueScheduledReleases();
-    const releasedPublicRows = await ChapterRelease.findAll({
-        where: { channel: "public", status: "released" },
-        attributes: ["bookId"],
-        group: ["bookId"]
-    });
-    const bookIds = releasedPublicRows.map((release) => release.bookId);
-
-    if (bookIds.length === 0) {
-        return [];
-    }
-
-    return Book.findAll({
-        where: { id: { [Op.in]: bookIds } }
-    });
-}
-
-function addLibraryBook(
-    entries: Map<number, any>,
-    book: Book,
-    channel: ReaderChannel,
-) {
-    const existing = entries.get(book.id);
-
-    if (!existing) {
-        entries.set(book.id, {
-            ...serializeBook(book),
-            availableChannels: [channel],
-        });
-        return;
-    }
-
-    if (!existing.availableChannels.includes(channel)) {
-        existing.availableChannels.push(channel);
-    }
-}
-
-async function getReaderReleasedBooks(userId: number) {
-    await promoteDueScheduledReleases();
-    const readerGroups = await ReaderGroup.findAll({
-        where: { channel: { [Op.in]: ["alpha", "beta"] } },
-        include: [{
-            model: ReaderGroupMember,
-            as: "members",
-            where: { userId, status: "active" },
-            required: true,
-        }],
-        attributes: ["bookId", "channel"],
-    });
-
-    const accessPairs = readerGroups.map((group) => ({
-        bookId: group.bookId,
-        channel: group.channel,
-    }));
-
-    if (accessPairs.length === 0) {
-        return [];
-    }
-
-    const releasedRows = await ChapterRelease.findAll({
-        where: {
-            status: "released",
-            [Op.or]: accessPairs,
-        },
-        attributes: ["bookId", "channel"],
-        group: ["bookId", "channel"],
-    });
-
-    const bookIds = Array.from(new Set(releasedRows.map((release) => release.bookId)));
-    if (bookIds.length === 0) {
-        return [];
-    }
-
-    const books = await Book.findAll({
-        where: { id: { [Op.in]: bookIds } },
-    });
-    const booksById = new Map(books.map((book) => [book.id, book]));
-
-    return releasedRows
-        .map((release) => {
-            const book = booksById.get(release.bookId);
-            return book ? { book, channel: release.channel } : null;
-        })
-        .filter((item): item is { book: Book; channel: ReaderChannel } => Boolean(item));
-}
-
-async function getAdminReleasedBooks() {
-    await promoteDueScheduledReleases();
-
-    const releasedRows = await ChapterRelease.findAll({
-        where: {
-            status: "released",
-            channel: { [Op.in]: readerChannels },
-        },
-        attributes: ["bookId", "channel"],
-        group: ["bookId", "channel"],
-        order: [["bookId", "ASC"], ["channel", "ASC"]],
-    });
-
-    const bookIds = Array.from(new Set(releasedRows.map((release) => release.bookId)));
-    if (bookIds.length === 0) {
-        return [];
-    }
-
-    const books = await Book.findAll({
-        where: { id: { [Op.in]: bookIds } },
-    });
-    const booksById = new Map(books.map((book) => [book.id, book]));
-
-    return releasedRows
-        .map((release) => {
-            const book = booksById.get(release.bookId);
-            return book ? { book, channel: release.channel } : null;
-        })
-        .filter((item): item is { book: Book; channel: ReaderChannel } => Boolean(item));
-}
 
 router.get("/released", async (req: Request, res: Response) => {
     try {
@@ -1298,5 +831,476 @@ router.post("/:id/chapters/:chapterNumber/revisions/:revisionId/restore", async 
         return res.status(500).json({ error: error.message });
     }
 });
+
+//#region Functions
+
+function slugifyTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'book';
+}
+
+async function buildUniqueSlug(title: string, excludeBookId?: number) {
+    const baseSlug = slugifyTitle(title);
+    let slug = baseSlug;
+    let suffix = 2;
+
+    while (true) {
+        const existingBook = await Book.findOne({ where: { slug } });
+
+        if (!existingBook || (excludeBookId && existingBook.id === excludeBookId)) {
+            return slug;
+        }
+
+        slug = `${baseSlug}-${suffix}`;
+        suffix += 1;
+    }
+}
+
+function normalizeBookGenres(input: unknown) {
+    const genres = typeof input === "string" ? parseJsonGenres(input) : input;
+
+    if (!Array.isArray(genres)) {
+        return [];
+    }
+
+    return Array.from(new Set(
+        genres
+            .filter((genre): genre is string => typeof genre === "string")
+            .map((genre) => genre.trim())
+            .filter(Boolean)
+    ));
+}
+
+function parseJsonGenres(input: string) {
+    try {
+        return JSON.parse(input);
+    } catch {
+        return [];
+    }
+}
+
+function serializeBook(book: Book) {
+    const values = book.get({ plain: true }) as any;
+
+    return {
+        ...values,
+        genres: normalizeBookGenres(values.genres),
+    };
+}
+
+function serializeRevisionCreator(user: User | AuthUser | null | undefined) {
+    if (!user) {
+        return null;
+    }
+
+    const values = typeof (user as any).get === "function"
+        ? (user as any).get({ plain: true })
+        : user;
+
+    return {
+        id: values.id,
+        username: values.username,
+        role: values.role,
+        active: values.active,
+    };
+}
+
+function serializeChapterRevision(revision: ChapterRevision, creatorOverride?: User | AuthUser | null) {
+    const values = revision.get({ plain: true }) as any;
+    const { creator, ...revisionValues } = values;
+    const revisionCreator = creatorOverride !== undefined ? creatorOverride : creator;
+
+    return {
+        ...revisionValues,
+        createdById: revisionValues.createdBy ?? null,
+        createdBy: serializeRevisionCreator(revisionCreator),
+    };
+}
+
+async function getBookByIdentifier(identifier: string) {
+    const bookBySlug = await Book.findOne({ where: { slug: identifier } });
+
+    if (bookBySlug) {
+        return bookBySlug;
+    }
+
+    const numericId = Number(identifier);
+    if (!Number.isNaN(numericId)) {
+        return Book.findOne({ where: { id: numericId } });
+    }
+
+    return null;
+}
+
+function serializeChannelMetadata(rows: BookChannelMetadata[]) {
+    return readerChannels.reduce((metadata, channel) => {
+        const row = rows.find((item) => item.channel === channel);
+
+        metadata[channel] = {
+            description: row?.description ?? "",
+            authorNote: row?.authorNote ?? "",
+            releaseLimit: row?.releaseLimit ?? 0,
+            nextRelease: row?.nextRelease ?? "",
+        };
+
+        return metadata;
+    }, {} as Record<ReaderChannel, {
+        description: string;
+        authorNote: string;
+        releaseLimit: number;
+        nextRelease: string;
+    }>);
+}
+
+async function ensureBookChannelMetadata(bookId: number, fallbackDescription = "") {
+    for (const channel of readerChannels) {
+        const existing = await BookChannelMetadata.findOne({
+            where: { bookId, channel }
+        });
+
+        if (!existing) {
+            await BookChannelMetadata.create({
+                bookId,
+                channel,
+                description: fallbackDescription,
+                authorNote: "",
+                releaseLimit: 0,
+                nextRelease: "",
+            });
+        }
+    }
+}
+
+async function ensureReaderGroups(bookId: number) {
+    for (const channel of readerChannels) {
+        const existing = await ReaderGroup.findOne({
+            where: { bookId, channel }
+        });
+
+        if (!existing) {
+            await ReaderGroup.create({
+                bookId,
+                channel,
+                name: readerChannelLabels[channel],
+                description: "",
+                memberCount: 0,
+            });
+        }
+    }
+}
+
+async function getBookReleaseData(book: Book) {
+    await promoteDueScheduledReleases();
+    await ensureBookChannelMetadata(book.id, book.description);
+    await ensureReaderGroups(book.id);
+
+    const channelMetadataRows = await BookChannelMetadata.findAll({
+        where: { bookId: book.id },
+        order: [["channel", "ASC"]]
+    });
+
+    const releases = await ChapterRelease.findAll({
+        where: { bookId: book.id },
+        order: [["releaseAt", "ASC"], ["chapterNumber", "ASC"]]
+    });
+
+    const readerGroups = await ReaderGroup.findAll({
+        where: { bookId: book.id },
+        include: [{
+            model: ReaderGroupMember,
+            as: "members",
+            include: [{
+                model: User,
+                as: "user",
+                attributes: ["id", "username", "role", "active"],
+            }],
+        }],
+        order: [["channel", "ASC"]]
+    });
+
+    const feedback = await ReaderFeedback.findAll({
+        where: { bookId: book.id },
+        include: [{
+            model: User,
+            as: "reader",
+            attributes: ["id", "username", "role", "active"],
+        }],
+        order: [["createdAt", "DESC"]]
+    });
+
+    const chapterRevisions = await ChapterRevision.findAll({
+        where: { bookId: book.id },
+        order: [["chapterNumber", "ASC"], ["revisionNumber", "DESC"]],
+        include: [{
+            model: User,
+            as: "creator",
+            attributes: ["id", "username", "role", "active"],
+        }]
+    });
+
+    return {
+        channelMetadata: serializeChannelMetadata(channelMetadataRows),
+        releases,
+        readerGroups,
+        feedback,
+        chapterRevisions: chapterRevisions.map((revision) => serializeChapterRevision(revision))
+    };
+}
+
+async function getBookReleaseSummary(bookId: number) {
+    await promoteDueScheduledReleases();
+    const releases = await ChapterRelease.findAll({
+        where: { bookId },
+        attributes: ["channel", "status", "chapterNumber"]
+    });
+
+    return readerChannels.reduce((summary, channel) => {
+        const channelReleases = releases.filter((release) => release.channel === channel);
+
+        summary[channel] = {
+            released: channelReleases.filter((release) => release.status === "released").length,
+            scheduled: channelReleases.filter((release) => release.status === "scheduled").length,
+        };
+
+        return summary;
+    }, {} as Record<ReaderChannel, { released: number; scheduled: number }>);
+}
+
+async function hasReaderChannelAccess(bookId: number, channel: ReaderChannel, user: AuthUser | null) {
+    if (!user?.active) {
+        return false;
+    }
+
+    if (user.role === "admin") {
+        return true;
+    }
+
+    const group = await ReaderGroup.findOne({ where: { bookId, channel } });
+    if (!group) {
+        return false;
+    }
+
+    const membership = await ReaderGroupMember.findOne({
+        where: {
+            readerGroupId: group.id,
+            userId: user.id,
+            status: "active",
+        },
+    });
+
+    return Boolean(membership);
+}
+
+async function getReleasedChaptersForChannel(bookId: number, channel: ReaderChannel) {
+    await promoteDueScheduledReleases();
+    const releases = await ChapterRelease.findAll({
+        where: {
+            bookId,
+            channel,
+            status: "released"
+        },
+        order: [["chapterNumber", "ASC"]]
+    });
+
+    return releases.map((release) => ({
+        id: release.id,
+        chapterNumber: release.chapterNumber,
+        title: release.title,
+        content: release.content,
+        updatedAt: release.updatedAt,
+    }));
+}
+
+async function syncBookChannelMetadata(bookId: number, input: any, fallbackDescription: string) {
+    await ensureBookChannelMetadata(bookId, fallbackDescription);
+
+    if (!input || typeof input !== "object") {
+        return;
+    }
+
+    for (const channel of readerChannels) {
+        const metadata = input[channel];
+
+        if (!metadata || typeof metadata !== "object") {
+            continue;
+        }
+
+        await BookChannelMetadata.update(
+            {
+                description: metadata.description ?? fallbackDescription,
+                authorNote: metadata.authorNote ?? "",
+                releaseLimit: Number.isFinite(Number(metadata.releaseLimit)) ? Number(metadata.releaseLimit) : 0,
+                nextRelease: metadata.nextRelease ?? "",
+            },
+            {
+                where: { bookId, channel }
+            }
+        );
+    }
+}
+
+async function ensureWorkingDraftVersion(book: Book) {
+    let draftVersion = await BookVersion.findOne({
+        where: { bookId: book.id, isWorkingDraft: true }
+    });
+
+    if (draftVersion) {
+        return draftVersion;
+    }
+
+    draftVersion = await BookVersion.create({
+        bookId: book.id,
+        isWorkingDraft: true
+    });
+
+    const sourceVersion = await BookVersion.findOne({
+        where: { bookId: book.id },
+        order: [
+            ["isWorkingDraft", "DESC"],
+            ["updatedAt", "DESC"]
+        ]
+    });
+
+    if (!sourceVersion) {
+        return draftVersion;
+    }
+
+    const sourceChapters = await Chapter.findAll({
+        where: { bookVersionId: sourceVersion.id },
+        order: [["chapterNumber", "ASC"]]
+    });
+
+    if (sourceChapters.length > 0) {
+        await Chapter.bulkCreate(sourceChapters.map((chapter: any) => ({
+            bookVersionId: draftVersion!.id,
+            chapterNumber: chapter.chapterNumber,
+            title: chapter.title,
+            content: chapter.content,
+        })));
+    }
+
+    return draftVersion;
+}
+
+async function getReleasedPublicBooks() {
+    await promoteDueScheduledReleases();
+    const releasedPublicRows = await ChapterRelease.findAll({
+        where: { channel: "public", status: "released" },
+        attributes: ["bookId"],
+        group: ["bookId"]
+    });
+    const bookIds = releasedPublicRows.map((release) => release.bookId);
+
+    if (bookIds.length === 0) {
+        return [];
+    }
+
+    return Book.findAll({
+        where: { id: { [Op.in]: bookIds } }
+    });
+}
+
+function addLibraryBook(
+    entries: Map<number, any>,
+    book: Book,
+    channel: ReaderChannel,
+) {
+    const existing = entries.get(book.id);
+
+    if (!existing) {
+        entries.set(book.id, {
+            ...serializeBook(book),
+            availableChannels: [channel],
+        });
+        return;
+    }
+
+    if (!existing.availableChannels.includes(channel)) {
+        existing.availableChannels.push(channel);
+    }
+}
+
+async function getReaderReleasedBooks(userId: number) {
+    await promoteDueScheduledReleases();
+    const readerGroups = await ReaderGroup.findAll({
+        where: { channel: { [Op.in]: ["alpha", "beta"] } },
+        include: [{
+            model: ReaderGroupMember,
+            as: "members",
+            where: { userId, status: "active" },
+            required: true,
+        }],
+        attributes: ["bookId", "channel"],
+    });
+
+    const accessPairs = readerGroups.map((group) => ({
+        bookId: group.bookId,
+        channel: group.channel,
+    }));
+
+    if (accessPairs.length === 0) {
+        return [];
+    }
+
+    const releasedRows = await ChapterRelease.findAll({
+        where: {
+            status: "released",
+            [Op.or]: accessPairs,
+        },
+        attributes: ["bookId", "channel"],
+        group: ["bookId", "channel"],
+    });
+
+    const bookIds = Array.from(new Set(releasedRows.map((release) => release.bookId)));
+    if (bookIds.length === 0) {
+        return [];
+    }
+
+    const books = await Book.findAll({
+        where: { id: { [Op.in]: bookIds } },
+    });
+    const booksById = new Map(books.map((book) => [book.id, book]));
+
+    return releasedRows
+        .map((release) => {
+            const book = booksById.get(release.bookId);
+            return book ? { book, channel: release.channel } : null;
+        })
+        .filter((item): item is { book: Book; channel: ReaderChannel } => Boolean(item));
+}
+
+async function getAdminReleasedBooks() {
+    await promoteDueScheduledReleases();
+
+    const releasedRows = await ChapterRelease.findAll({
+        where: {
+            status: "released",
+            channel: { [Op.in]: readerChannels },
+        },
+        attributes: ["bookId", "channel"],
+        group: ["bookId", "channel"],
+        order: [["bookId", "ASC"], ["channel", "ASC"]],
+    });
+
+    const bookIds = Array.from(new Set(releasedRows.map((release) => release.bookId)));
+    if (bookIds.length === 0) {
+        return [];
+    }
+
+    const books = await Book.findAll({
+        where: { id: { [Op.in]: bookIds } },
+    });
+    const booksById = new Map(books.map((book) => [book.id, book]));
+
+    return releasedRows
+        .map((release) => {
+            const book = booksById.get(release.bookId);
+            return book ? { book, channel: release.channel } : null;
+        })
+        .filter((item): item is { book: Book; channel: ReaderChannel } => Boolean(item));
+}
 
 export default router;
