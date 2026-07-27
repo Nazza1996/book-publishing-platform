@@ -4,6 +4,7 @@ import type { ReaderAccount, ReaderGroup, ReaderGroupMember } from "./types";
 import { Panel } from "./components/Panel";
 import { ReaderGroupCards } from "./components/ReaderGroupCards";
 import { StatusPill } from "./components/StatusPill";
+import { SelectPicker } from "../../../components/SelectPicker";
 
 export function ReaderGroupsTab({
     groups,
@@ -52,12 +53,11 @@ export function ReaderGroupsTab({
             <ReaderGroupCards groups={groups} activeGroupId={activeGroup?.id} onSelect={setActiveGroupId} />
 
             <div className="reader-member-form">
-                <select value={selectedUserId} onChange={(e) => setSelectedUserId(e.target.value ? Number(e.target.value) : "")}>
-                    <option value="">Choose reader account</option>
-                    {availableReaders.map((reader) => (
-                        <option key={reader.id} value={reader.id}>{reader.username}</option>
-                    ))}
-                </select>
+                <SelectPicker
+                    options={[{ value: "", label: "Choose reader account" }, ...availableReaders.map((reader) => ({ value: reader.id, label: reader.username }))]}
+                    onSelect={(value: number | "") => setSelectedUserId(value)}
+                    currentOption={selectedUserId}
+                />
                 <button className="primary-btn" onClick={submitMember}>Add Member</button>
             </div>
 

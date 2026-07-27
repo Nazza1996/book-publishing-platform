@@ -5,6 +5,8 @@ import "../../styles/admin/shared-admin.scss";
 import "../../styles/admin/readers.scss";
 import AdminNav from "./AdminNav";
 import Datatable, { type DatatableColumn } from "./Datatable";
+import { SelectPicker } from "../../components/SelectPicker";
+import { Search } from "../../components/Search";
 
 type ReaderChannel = "alpha" | "beta" | "public";
 type FeedbackStatus = "open" | "reviewed" | "resolved";
@@ -282,29 +284,27 @@ export default function Feedback() {
                         <div>Track reader comments across books, chapters and release channels.</div>
                     </div>
                     <div className="reader-page-header-right">
-                        <input
-                            type="text"
+                        <Search
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
                             placeholder="Search feedback..."
-                            value={searchTerm}
-                            onChange={(event) => setSearchTerm(event.target.value)}
                         />
-                        <select value={selectedBookSlug} onChange={(event) => setSelectedBookSlug(event.target.value)}>
-                            <option value="all">All Books</option>
-                            {books.map((book) => (
-                                <option key={book.id} value={book.slug}>{book.title}</option>
-                            ))}
-                        </select>
-                        <select value={selectedChannel} onChange={(event) => setSelectedChannel(event.target.value as "all" | ReaderChannel)}>
-                            <option value="all">All Channels</option>
-                            {Object.entries(channelLabels).map(([channel, label]) => (
-                                <option key={channel} value={channel}>{label}</option>
-                            ))}
-                        </select>
-                        <select value={selectedReadFilter} onChange={(event) => setSelectedReadFilter(event.target.value as FeedbackReadFilter)}>
-                            <option value="all">All Feedback</option>
-                            <option value="unread">Unread</option>
-                            <option value="read">Read</option>
-                        </select>
+                        <SelectPicker
+                            options={[{ value: "all", label: "All Books" }, ...books.map((book) => ({ value: book.slug, label: book.title }))]}
+                            onSelect={setSelectedBookSlug}
+                            currentOption={selectedBookSlug}
+                            width={350}
+                        />
+                        <SelectPicker
+                            options={[{ value: "all", label: "All Channels" }, ...Object.entries(channelLabels).map(([channel, label]) => ({ value: channel, label }))]}
+                            onSelect={setSelectedChannel}
+                            currentOption={selectedChannel}
+                        />
+                        <SelectPicker
+                            options={[{ value: "all", label: "All Feedback" }, { value: "unread", label: "Unread" }, { value: "read", label: "Read" }]}
+                            onSelect={setSelectedReadFilter}
+                            currentOption={selectedReadFilter}
+                        />
                     </div>
                 </div>
 

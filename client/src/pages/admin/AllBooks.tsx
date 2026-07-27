@@ -5,6 +5,7 @@ import '../../styles/admin/shared-admin.scss';
 import '../../styles/admin/all-books.scss';
 import AdminNav from "./AdminNav";
 import Datatable, { type DatatableColumn } from "./Datatable";
+import { Search } from "../../components/Search";
 
 type BookStatus = "not_started" | "in_progress" | "on_hold" | "finished" | "cancelled";
 
@@ -116,14 +117,12 @@ export default function AllBooks() {
                         <div>Create, manage and publish your books.</div>
                     </div>
                     <div id="booksHeaderRight">
-                        <input
-                            id="searchBooksInput"
-                            type="text"
+                        <Search
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
                             placeholder="Search books..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                        <button id="newBookButton" onClick={() => navigate('/admin/new-book')}>New Book</button>
+                        <button className="primary-btn" onClick={() => navigate('/admin/new-book')}>New Book</button>
                     </div>
                 </div>
 

@@ -4,15 +4,17 @@ export function Panel({
     step,
     title,
     description,
-    children
+    children,
+    style
 }: {
     step?: string;
     title: string;
     description?: string;
     children: ReactNode;
+    style?: React.CSSProperties
 }) {
     return (
-        <section className="admin-panel">
+        <section className="admin-panel" style={style}>
             <div className="admin-panel-header">
                 {step && <span className="step-badge">{step}</span>}
                 <div>

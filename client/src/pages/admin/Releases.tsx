@@ -5,6 +5,8 @@ import "../../styles/admin/shared-admin.scss";
 import "../../styles/admin/releases.scss";
 import AdminNav from "./AdminNav";
 import Datatable, { type DatatableColumn } from "./Datatable";
+import { SelectPicker } from "../../components/SelectPicker";
+import { Search } from "../../components/Search";
 
 type ReaderChannel = "alpha" | "beta" | "public";
 type ReleaseStatus = "scheduled" | "released";
@@ -184,29 +186,27 @@ export default function Releases() {
                         <div>Browse every chapter snapshot released or queued across reader channels.</div>
                     </div>
                     <div className="release-page-header-right">
-                        <input
-                            type="text"
+                        <Search
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
                             placeholder="Search releases..."
-                            value={searchTerm}
-                            onChange={(event) => setSearchTerm(event.target.value)}
                         />
-                        <select value={selectedBookSlug} onChange={(event) => setSelectedBookSlug(event.target.value)}>
-                            <option value="all">All Books</option>
-                            {books.map((book) => (
-                                <option key={book.id} value={book.slug}>{book.title}</option>
-                            ))}
-                        </select>
-                        <select value={selectedChannel} onChange={(event) => setSelectedChannel(event.target.value as "all" | ReaderChannel)}>
-                            <option value="all">All Channels</option>
-                            {Object.entries(channelLabels).map(([channel, label]) => (
-                                <option key={channel} value={channel}>{label}</option>
-                            ))}
-                        </select>
-                        <select value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value as "all" | ReleaseStatus)}>
-                            <option value="all">All Statuses</option>
-                            <option value="released">Released</option>
-                            <option value="scheduled">Scheduled</option>
-                        </select>
+                        <SelectPicker
+                            options={[{ value: "all", label: "All Books" }, ...books.map((book) => ({ value: book.slug, label: book.title }))]}
+                            onSelect={setSelectedBookSlug}
+                            currentOption={selectedBookSlug}
+                            width={350}
+                        />
+                        <SelectPicker
+                            options={[{ value: "all", label: "All Channels" }, ...Object.entries(channelLabels).map(([channel, label]) => ({ value: channel, label }))]}
+                            onSelect={setSelectedChannel}
+                            currentOption={selectedChannel}
+                        />
+                        <SelectPicker
+                            options={[{ value: "all", label: "All Statuses" }, { value: "released", label: "Released" }, { value: "scheduled", label: "Scheduled" }]}
+                            onSelect={setSelectedStatus}
+                            currentOption={selectedStatus}
+                        />
                     </div>
                 </div>
 

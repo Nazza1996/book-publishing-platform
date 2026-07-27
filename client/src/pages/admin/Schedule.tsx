@@ -7,6 +7,8 @@ import AdminNav from "./AdminNav";
 import Datatable, { type DatatableColumn } from "./Datatable";
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { SelectPicker } from "../../components/SelectPicker";
+import { Search } from "../../components/Search";
 
 type ReaderChannel = "alpha" | "beta" | "public";
 
@@ -185,30 +187,27 @@ export default function Schedule() {
                         <div>Track queued chapter releases by date, reader channel and book.</div>
                     </div>
                     <div className="release-page-header-right">
-                        <input
-                            type="text"
+                        <Search
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
                             placeholder="Search schedule..."
-                            value={searchTerm}
-                            onChange={(event) => setSearchTerm(event.target.value)}
                         />
-                        <select value={selectedBookSlug} onChange={(event) => setSelectedBookSlug(event.target.value)}>
-                            <option value="all">All Books</option>
-                            {books.map((book) => (
-                                <option key={book.id} value={book.slug}>{book.title}</option>
-                            ))}
-                        </select>
-                        <select value={selectedChannel} onChange={(event) => setSelectedChannel(event.target.value as "all" | ReaderChannel)}>
-                            <option value="all">All Channels</option>
-                            {Object.entries(channelLabels).map(([channel, label]) => (
-                                <option key={channel} value={channel}>{label}</option>
-                            ))}
-                        </select>
-                        <select value={selectedTiming} onChange={(event) => setSelectedTiming(event.target.value as "all" | "upcoming" | "overdue" | "undated")}>
-                            <option value="all">All Timing</option>
-                            <option value="upcoming">Upcoming</option>
-                            <option value="overdue">Overdue</option>
-                            <option value="undated">No Date</option>
-                        </select>
+                        <SelectPicker
+                            options={[{ value: "all", label: "All Books" }, ...books.map((book) => ({ value: book.slug, label: book.title }))]}
+                            onSelect={setSelectedBookSlug}
+                            currentOption={selectedBookSlug}
+                            width={350}
+                        />
+                        <SelectPicker
+                            options={[{ value: "all", label: "All Channels" }, ...Object.entries(channelLabels).map(([channel, label]) => ({ value: channel, label }))]}
+                            onSelect={setSelectedChannel}
+                            currentOption={selectedChannel}
+                        />
+                        <SelectPicker
+                            options={[{ value: "all", label: "All Timing" }, { value: "upcoming", label: "Upcoming" }, { value: "overdue", label: "Overdue" }, { value: "undated", label: "No Date" }]}
+                            onSelect={setSelectedTiming}
+                            currentOption={selectedTiming}
+                        />
                     </div>
                 </div>
 
