@@ -28,38 +28,20 @@ interface ChapterRevision {
     title: string;
     content: string | null;
     sourceBookVersionId: number | null;
-    createdBy: User;
+    createdBy: number;
     createdAt?: string;
-}
-
-interface DraftBookResponse extends BookSummary {
-    chapterRevisions?: ChapterRevision[];
-}
-
-interface VersionRow {
-    id: string;
     bookId: number;
-    bookSlug: string;
-    bookTitle: string;
-    chapterNumber: number;
-    revisionNumber: number;
-    title: string;
-    content: string | null;
-    sourceBookVersionId: number | null;
-    createdBy: User;
-    createdAt?: string;
-    wordCount: number;
-    isLatestForChapter: boolean;
+    book: BookSummary;
+    creator: User;
 }
 
 export default function Versions() {
-    const [versions, setVersions] = useState<VersionRow[]>([]);
+    const [versions, setVersions] = useState<ChapterRevision[]>([]);
     const [books, setBooks] = useState<BookSummary[]>([]);
     const [selectedBookSlug, setSelectedBookSlug] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [partialErrorCount, setPartialErrorCount] = useState(0);
 
     useEffect(() => {
         setPageTitle("Versions");
@@ -71,7 +53,6 @@ export default function Versions() {
         async function fetchVersions() {
             setLoading(true);
             setError("");
-            setPartialErrorCount(0);
 
             try {
                 const booksRes = await apiFetch("/api/books/dropdown", { toast: false });
@@ -81,28 +62,16 @@ export default function Versions() {
                 }
 
                 const bookList = await booksRes.json() as BookSummary[];
-                const settledBooks = await Promise.allSettled(
-                    bookList.map(async (book) => {
-                        const res = await apiFetch(`/api/books/${book.slug}?version=draft`, { toast: false });
-                        if (!res.ok) {
-                            throw new Error(`Could not load ${book.title}`);
-                        }
-
-                        return await res.json() as DraftBookResponse;
-                    })
-                );
 
                 if (!isMounted) {
                     return;
                 }
 
-                const loadedBooks = settledBooks
-                    .filter((result): result is PromiseFulfilledResult<DraftBookResponse> => result.status === "fulfilled")
-                    .map((result) => result.value);
+                const chapterRevisionsRes = await apiFetch("/api/revisions", { toast: false });
+                const chapterRevisions = await chapterRevisionsRes.json();
 
                 setBooks(bookList);
-                setVersions(loadedBooks.flatMap(toVersionRows).sort(compareVersionRows));
-                setPartialErrorCount(settledBooks.filter((result) => result.status === "rejected").length);
+                setVersions(chapterRevisions);
             } catch {
                 if (isMounted) {
                     setError("Could not load versions.");
@@ -125,7 +94,7 @@ export default function Versions() {
         const normalizedSearch = searchTerm.trim().toLowerCase();
 
         return versions.filter((version) => {
-            if (selectedBookSlug !== "all" && version.bookSlug !== selectedBookSlug) {
+            if (selectedBookSlug !== "all" && version.book.slug !== selectedBookSlug) {
                 return false;
             }
 
@@ -134,19 +103,32 @@ export default function Versions() {
             }
 
             return version.title.toLowerCase().includes(normalizedSearch)
-                || version.bookTitle.toLowerCase().includes(normalizedSearch)
-                || version.createdBy?.username.toLowerCase().includes(normalizedSearch)
+                || version.book.title.toLowerCase().includes(normalizedSearch)
+                || version.creator?.username.toLowerCase().includes(normalizedSearch)
                 || String(version.chapterNumber).includes(normalizedSearch)
                 || String(version.revisionNumber).includes(normalizedSearch);
         });
     }, [searchTerm, selectedBookSlug, versions]);
 
-    const columns: DatatableColumn<VersionRow>[] = [
+    function isLatestRevision(revision: ChapterRevision) {
+        const revisionsInSameChapter = versions.filter((version) => version.bookId === revision.bookId && version.chapterNumber === revision.chapterNumber);
+        
+        let isLatest = true;
+        revisionsInSameChapter.forEach(current => {
+            if (revision.revisionNumber < current.revisionNumber) {
+                isLatest = false;
+            }
+        });
+
+        return isLatest;
+    }
+
+    const columns: DatatableColumn<ChapterRevision>[] = [
         {
             key: "version",
             header: "Version",
             render: (version) => (
-                <Link to={`/admin/book/${version.bookSlug}#versions`} className="datatable-link version-title-link">
+                <Link to={`/admin/book/${version.book.slug}#versions`} className="datatable-link version-title-link">
                     <span>Chapter {version.chapterNumber} / Revision {version.revisionNumber}</span>
                     <strong>{version.title}</strong>
                 </Link>
@@ -155,14 +137,14 @@ export default function Versions() {
         {
             key: "book",
             header: "Book",
-            render: (version) => <Link to={`/admin/book/${version.bookSlug}#versions`} className="datatable-link">{version.bookTitle}</Link>,
+            render: (version) => <Link to={`/admin/book/${version.book.slug}#versions`} className="datatable-link">{version.book.title}</Link>,
         },
         {
             key: "state",
             header: "State",
             render: (version) => (
-                <span className={`status-pill ${version.isLatestForChapter ? "current" : "archived"}`}>
-                    {version.isLatestForChapter ? "Latest" : "Snapshot"}
+                <span className={`status-pill ${isLatestRevision(version) ? "current" : "archived"}`}>
+                    {isLatestRevision(version) ? "Latest" : "Snapshot"}
                 </span>
             ),
             width: 120,
@@ -170,13 +152,13 @@ export default function Versions() {
         {
             key: "words",
             header: "Words",
-            render: (version) => version.wordCount.toLocaleString(),
+            render: (version) => countWords(version.content!).toLocaleString(),
             width: 100,
         },
         {
             key: "createdBy",
             header: "Created By",
-            render: (version) => version.createdBy?.username || "Unknown User",
+            render: (version) => version.creator?.username || "Unknown User",
             width: 140,
         },
         {
@@ -213,12 +195,6 @@ export default function Versions() {
                     </div>
                 </div>
 
-                {partialErrorCount > 0 && (
-                    <div className="admin-state warning">
-                        {partialErrorCount} {partialErrorCount === 1 ? "book could" : "books could"} not be loaded.
-                    </div>
-                )}
-
                 {loading ? (
                     <div className="admin-state">Loading versions...</div>
                 ) : error ? (
@@ -229,7 +205,7 @@ export default function Versions() {
                             title="All Versions"
                             columns={columns}
                             rows={filteredVersions}
-                            getRowKey={(version) => version.id}
+                            getRowKey={(version) => version.id!}
                             emptyMessage="No versions found."
                         />
                     </>
@@ -237,46 +213,6 @@ export default function Versions() {
             </section>
         </div>
     );
-}
-
-function toVersionRows(book: DraftBookResponse): VersionRow[] {
-    const revisions = book.chapterRevisions ?? [];
-    const latestRevisionByChapter = revisions.reduce((latestByChapter, revision) => {
-        const currentLatest = latestByChapter.get(revision.chapterNumber);
-
-        if (!currentLatest || revision.revisionNumber > currentLatest) {
-            latestByChapter.set(revision.chapterNumber, revision.revisionNumber);
-        }
-
-        return latestByChapter;
-    }, new Map<number, number>());
-
-    return revisions.map((revision) => ({
-        id: `${book.id}-${revision.chapterNumber}-${revision.revisionNumber}`,
-        bookId: book.id,
-        bookSlug: book.slug,
-        bookTitle: book.title,
-        chapterNumber: revision.chapterNumber,
-        revisionNumber: revision.revisionNumber,
-        title: revision.title,
-        content: revision.content,
-        sourceBookVersionId: revision.sourceBookVersionId,
-        createdBy: revision.createdBy,
-        createdAt: revision.createdAt,
-        wordCount: countWords(revision.content ?? ""),
-        isLatestForChapter: latestRevisionByChapter.get(revision.chapterNumber) === revision.revisionNumber,
-    }));
-}
-
-function compareVersionRows(a: VersionRow, b: VersionRow) {
-    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-
-    if (aTime !== bTime) {
-        return bTime - aTime;
-    }
-
-    return b.revisionNumber - a.revisionNumber;
 }
 
 function countWords(content: string) {

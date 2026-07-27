@@ -19,6 +19,7 @@ const clientDistPath = isProd
 import userRoutes from './routes/userRoutes.js';
 import bookRoutes from './routes/bookRoutes.js';
 import releasesRoutes from './routes/releasesRoutes.js';
+import revisionRoutes from './routes/revisionRoutes.js';
 
 const app = express();
 app.use(cors({ credentials: true, origin: true }));
@@ -30,6 +31,7 @@ app.use(cookieParser());
 app.use('/api/users', userRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/releases', releasesRoutes);
+app.use('/api/revisions', revisionRoutes);
 
 // Serve React static files
 app.use(
