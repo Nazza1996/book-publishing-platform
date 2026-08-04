@@ -23,7 +23,7 @@ router.get("/", async (req: Request, res: Response) => {
                 ["chapterNumber", "DESC"]
             ]
         })
-        res.json({ releases });
+        res.json(releases);
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch releases" });
     }
@@ -45,7 +45,7 @@ router.get("/scheduled", async (req: Request, res: Response) => {
                 ["chapterNumber", "DESC"]
             ]
         })
-        res.json({ releases });
+        res.json(releases);
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch scheduled releases" });
     }

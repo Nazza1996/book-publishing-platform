@@ -87,13 +87,11 @@ interface UserRow {
 }
 
 interface ReleaseRow extends ChapterRelease {
-    bookSlug: string;
-    bookTitle: string;
+    Book: BookSummary;
 }
 
 interface FeedbackRow extends ReaderFeedbackItem {
-    bookSlug: string;
-    bookTitle: string;
+    Book: BookSummary;
 }
 
 const channelLabels: Record<ReaderChannel, string> = {
@@ -113,8 +111,9 @@ const bookStatusLabels: Record<BookStatus, string> = {
 export default function AdminView() {
     const { logout, user } = useAuth();
     const [books, setBooks] = useState<BookSummary[]>([]);
-    const [draftBooks, setDraftBooks] = useState<DraftBookResponse[]>([]);
     const [users, setUsers] = useState<UserRow[]>([]);
+    const [releases, setReleases] = useState<ReleaseRow[]>([]);
+    const [feedback, setFeedback] = useState<FeedbackRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [partialErrorCount, setPartialErrorCount] = useState(0);
@@ -132,18 +131,23 @@ export default function AdminView() {
             setPartialErrorCount(0);
 
             try {
-                const [booksRes, usersRes] = await Promise.all([
+                const [booksRes, usersRes, releaseRes, feedbackRes] = await Promise.all([
                     apiFetch("/api/books", { toast: false }),
                     apiFetch("/api/users", { toast: false }),
+                    apiFetch("/api/releases", { toast: false }),
+                    apiFetch("/api/feedback", { toast: false }),
                 ]);
 
-                if (!booksRes.ok || !usersRes.ok) {
+                if (!booksRes.ok || !usersRes.ok || !releaseRes.ok || !feedbackRes.ok) {
                     setError("Could not load dashboard.");
                     return;
                 }
 
                 const bookList = await booksRes.json() as BookSummary[];
                 const userData = await usersRes.json() as { users: UserRow[] };
+                const releaseList = await releaseRes.json() as ReleaseRow[];
+                const feedbackList = await feedbackRes.json() as FeedbackRow[];
+
                 const settledDrafts = await Promise.allSettled(
                     bookList.map(async (book) => {
                         const res = await apiFetch(`/api/books/${book.slug}?version=draft`, { toast: false });
@@ -161,9 +165,8 @@ export default function AdminView() {
 
                 setBooks(bookList);
                 setUsers(userData.users ?? []);
-                setDraftBooks(settledDrafts
-                    .filter((result): result is PromiseFulfilledResult<DraftBookResponse> => result.status === "fulfilled")
-                    .map((result) => result.value));
+                setReleases(releaseList);
+                setFeedback(feedbackList);
                 setPartialErrorCount(settledDrafts.filter((result) => result.status === "rejected").length);
             } catch {
                 if (isMounted) {
@@ -183,8 +186,8 @@ export default function AdminView() {
         };
     }, []);
 
-    const releases = useMemo(() => toReleaseRows(draftBooks), [draftBooks]);
-    const feedback = useMemo(() => toFeedbackRows(draftBooks), [draftBooks]);
+    // const releases = useMemo(() => toReleaseRows(draftBooks), [draftBooks]);
+    // const feedback = useMemo(() => toFeedbackRows(draftBooks), [draftBooks]);
 
     const summary = useMemo(() => {
         const scheduledReleases = releases.filter((release) => release.status === "scheduled").length;
@@ -302,14 +305,14 @@ export default function AdminView() {
                                 ) : (
                                     <div className="dashboard-release-list">
                                         {upcomingReleases.map((release) => (
-                                            <Link to={`/admin/book/${release.bookSlug}#releases`} className="dashboard-release-item" key={release.id ?? `${release.bookSlug}-${release.channel}-${release.chapterNumber}`}>
+                                            <Link to={`/admin/book/${release.Book.slug}#releases`} className="dashboard-release-item" key={release.id ?? `${release.Book.slug}-${release.channel}-${release.chapterNumber}`}>
                                                 <time dateTime={release.releaseAt ?? undefined}>
                                                     <strong>{formatDay(release.releaseAt)}</strong>
                                                     <span>{formatMonth(release.releaseAt)}</span>
                                                 </time>
                                                 <div>
                                                     <strong>{release.title || `Chapter ${release.chapterNumber}`}</strong>
-                                                    <span>{release.bookTitle} / {channelLabels[release.channel]} / {formatTime(release.releaseAt)}</span>
+                                                    <span>{release.Book.title} / {channelLabels[release.channel]} / {formatTime(release.releaseAt)}</span>
                                                 </div>
                                             </Link>
                                         ))}
@@ -354,10 +357,10 @@ export default function AdminView() {
                                     {recentFeedback.length === 0 ? (
                                         <div className="dashboard-empty">No feedback yet.</div>
                                     ) : recentFeedback.map((item) => (
-                                        <Link to={`/admin/book/${item.bookSlug}#feedback`} className="dashboard-list-item feedback" key={item.id ?? `${item.bookSlug}-${item.createdAt}`}>
+                                        <Link to={`/admin/book/${item.Book.slug}#feedback`} className="dashboard-list-item feedback" key={item.id ?? `${item.Book.slug}-${item.createdAt}`}>
                                             <div>
                                                 <strong>{item.reader?.username ?? item.readerUsername}</strong>
-                                                <span>{item.bookTitle} / {item.chapterNumber ? `Chapter ${item.chapterNumber}` : "Whole book"}</span>
+                                                <span>{item.Book.title} / {item.chapterNumber ? `Chapter ${item.chapterNumber}` : "Whole book"}</span>
                                                 <p>{item.comment}</p>
                                             </div>
                                             <span className={`status-pill ${item.status === "open" ? "unread" : "read"}`}>
@@ -408,22 +411,6 @@ function PanelHeader({ title, to }: { title: string; to: string }) {
             </Link>
         </div>
     );
-}
-
-function toReleaseRows(books: DraftBookResponse[]): ReleaseRow[] {
-    return books.flatMap((book) => (book.releases ?? []).map((release) => ({
-        ...release,
-        bookSlug: book.slug,
-        bookTitle: book.title,
-    })));
-}
-
-function toFeedbackRows(books: DraftBookResponse[]): FeedbackRow[] {
-    return books.flatMap((book) => (book.feedback ?? []).map((item) => ({
-        ...item,
-        bookSlug: book.slug,
-        bookTitle: book.title,
-    })));
 }
 
 function statusClassName(status: BookStatus) {

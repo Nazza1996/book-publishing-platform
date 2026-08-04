@@ -241,34 +241,22 @@ router.get("/feedback", async (req: Request, res: Response) => {
     }
 
     try {
-        const books = await Book.findAll({
-            order: [["title", "ASC"]]
-        });
-
-        const bookIds = books.map((book) => book.id);
-        const feedback = bookIds.length > 0
-            ? await ReaderFeedback.findAll({
-                where: { bookId: { [Op.in]: bookIds } },
-                include: [{
+        const feedback = await ReaderFeedback.findAll({
+            include: [
+                {
+                    model: Book,
+                    as: "Book",
+                },
+                {
                     model: User,
                     as: "reader",
                     attributes: ["id", "username", "role", "active"],
-                }],
-                order: [["createdAt", "DESC"]]
-            })
-            : [];
+                },
+            ],
+            order: [["createdAt", "DESC"]],
+        });
 
-        const feedbackByBook = new Map<number, ReaderFeedback[]>();
-        for (const item of feedback) {
-            const existing = feedbackByBook.get(item.bookId) ?? [];
-            existing.push(item);
-            feedbackByBook.set(item.bookId, existing);
-        }
-
-        res.json(books.map((book) => ({
-            ...serializeBook(book),
-            feedback: feedbackByBook.get(book.id) ?? [],
-        })));
+        res.json(feedback);
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
     }

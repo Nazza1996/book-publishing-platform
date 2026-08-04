@@ -20,6 +20,7 @@ import userRoutes from './routes/userRoutes.js';
 import bookRoutes from './routes/bookRoutes.js';
 import releasesRoutes from './routes/releasesRoutes.js';
 import revisionRoutes from './routes/revisionRoutes.js';
+import feedbackRoutes from './routes/feedbackRoutes.js';
 
 const app = express();
 app.use(cors({ credentials: true, origin: true }));
@@ -32,6 +33,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/releases', releasesRoutes);
 app.use('/api/revisions', revisionRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Serve React static files
 app.use(

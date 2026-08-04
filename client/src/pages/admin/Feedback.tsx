@@ -38,16 +38,10 @@ interface ReaderFeedbackItem {
     reader?: ReaderAccount | null;
 }
 
-interface DraftBookResponse extends BookSummary {
-    feedback?: ReaderFeedbackItem[];
-}
-
 interface FeedbackRow {
     id: string;
     feedbackId?: number;
-    bookId: number;
-    bookSlug: string;
-    bookTitle: string;
+    Book: BookSummary;
     channel: ReaderChannel;
     chapterNumber: number | null;
     readerUsername: string;
@@ -85,20 +79,26 @@ export default function Feedback() {
             setError("");
 
             try {
-                const feedbackRes = await apiFetch("/api/books/feedback", { toast: false });
+
+                const [feedbackRes, booksRes] = await Promise.all([
+                    apiFetch("/api/feedback", { toast: false }),
+                    apiFetch("/api/books/dropdown", { toast: false }),
+                ]);
+
                 if (!feedbackRes.ok) {
                     setError("Could not load feedback.");
                     return;
                 }
 
-                const loadedBooks = await feedbackRes.json() as DraftBookResponse[];
+                const feedbackList = await feedbackRes.json() as FeedbackRow[];
+                const booksList = await booksRes.json() as BookSummary[];
 
                 if (!isMounted) {
                     return;
                 }
 
-                setBooks(loadedBooks.map(({ id, slug, title }) => ({ id, slug, title })));
-                setFeedback(loadedBooks.flatMap(toFeedbackRows).sort(compareFeedbackRows));
+                setBooks(booksList);
+                setFeedback(feedbackList);
             } catch {
                 if (isMounted) {
                     setError("Could not load feedback.");
@@ -121,7 +121,7 @@ export default function Feedback() {
         const normalizedSearch = searchTerm.trim().toLowerCase();
 
         return feedback.filter((item) => {
-            if (selectedBookSlug !== "all" && item.bookSlug !== selectedBookSlug) {
+            if (selectedBookSlug !== "all" && item.Book.slug !== selectedBookSlug) {
                 return false;
             }
 
@@ -143,7 +143,7 @@ export default function Feedback() {
 
             return item.comment.toLowerCase().includes(normalizedSearch)
                 || item.readerUsername.toLowerCase().includes(normalizedSearch)
-                || item.bookTitle.toLowerCase().includes(normalizedSearch)
+                || item.Book.title.toLowerCase().includes(normalizedSearch)
                 || channelLabels[item.channel].toLowerCase().includes(normalizedSearch)
                 || String(item.chapterNumber ?? "").includes(normalizedSearch);
         });
@@ -173,7 +173,7 @@ export default function Feedback() {
         ));
 
         try {
-            const res = await apiFetch(`/api/books/${item.bookId}/feedback/${item.feedbackId}`, {
+            const res = await apiFetch(`/api/books/${item.Book.id}/feedback/${item.feedbackId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status }),
@@ -201,7 +201,7 @@ export default function Feedback() {
             key: "comment",
             header: "Feedback",
             render: (item) => (
-                <Link to={`/admin/book/${item.bookSlug}#feedback`} className="datatable-link feedback-comment-link">
+                <Link to={`/admin/book/${item.Book.slug}#feedback`} className="datatable-link feedback-comment-link">
                     <strong>{item.readerUsername}</strong>
                     <span>{item.comment}</span>
                 </Link>
@@ -210,7 +210,7 @@ export default function Feedback() {
         {
             key: "book",
             header: "Book",
-            render: (item) => <Link to={`/admin/book/${item.bookSlug}#feedback`} className="datatable-link">{item.bookTitle}</Link>,
+            render: (item) => <Link to={`/admin/book/${item.Book.slug}#feedback`} className="datatable-link">{item.Book.title}</Link>,
             width: 180,
         },
         {
@@ -324,40 +324,6 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
             <strong>{value}</strong>
         </div>
     );
-}
-
-function toFeedbackRows(book: DraftBookResponse): FeedbackRow[] {
-    return (book.feedback ?? []).map((item) => ({
-        id: String(item.id ?? `${book.id}-${item.channel}-${item.chapterNumber ?? "book"}-${item.readerUsername}`),
-        feedbackId: item.id,
-        bookId: book.id,
-        bookSlug: book.slug,
-        bookTitle: book.title,
-        channel: item.channel,
-        chapterNumber: item.chapterNumber,
-        readerUsername: item.reader?.username ?? item.readerUsername,
-        comment: item.comment,
-        status: item.status,
-        createdAt: item.createdAt,
-    }));
-}
-
-function compareFeedbackRows(a: FeedbackRow, b: FeedbackRow) {
-    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-
-    const aStatus = isFeedbackRead(a.status) ? 1 : 0;
-    const bStatus = isFeedbackRead(b.status) ? 1 : 0;
-
-    if (aStatus !== bStatus) {
-        return aStatus - bStatus;
-    }
-
-    if (aTime !== bTime) {
-        return bTime - aTime;
-    }
-
-    return a.bookTitle.localeCompare(b.bookTitle);
 }
 
 function isFeedbackRead(status: FeedbackStatus) {

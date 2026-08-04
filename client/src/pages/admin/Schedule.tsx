@@ -74,7 +74,7 @@ export default function Schedule() {
                 }
 
                 const scheduleRes = await apiFetch("/api/releases/scheduled");
-                const scheduleList = (await scheduleRes.json()).releases as ChapterRelease[];
+                const scheduleList = await scheduleRes.json() as ChapterRelease[];
 
                 setBooks(bookList);
                 setSchedule(scheduleList);

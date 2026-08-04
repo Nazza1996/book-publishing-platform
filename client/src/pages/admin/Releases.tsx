@@ -71,7 +71,7 @@ export default function Releases() {
                 }
 
                 const releasesRes = await apiFetch("/api/releases");
-                const releasesList = (await releasesRes.json()).releases as ChapterRelease[];
+                const releasesList = await releasesRes.json() as ChapterRelease[];
 
                 setBooks(bookList);
                 setReleases(releasesList);
