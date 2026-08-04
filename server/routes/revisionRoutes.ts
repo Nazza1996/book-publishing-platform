@@ -1,7 +1,6 @@
 import { Request, Response, Router } from "express";
 import ChapterRevision from "../models/ChapterRevision.js";
 import { requireAdmin } from "../middleware/auth.js";
-import Book from "../models/Book.js";
 import User from "../models/User.js";
 
 const router = Router();

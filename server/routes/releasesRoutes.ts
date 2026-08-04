@@ -1,6 +1,6 @@
 import { Request, Response, Router } from "express";
 import ChapterRelease from "../models/ChapterRelease.js";
-import { requireAdmin } from "../middleware/auth";
+import { requireAdmin } from "../middleware/auth.js";
 import Book from "../models/Book.js";
 import { Op } from "sequelize";
 
@@ -37,7 +37,7 @@ router.get("/scheduled", async (req: Request, res: Response) => {
                 attributes: ["id", "slug", "title"],
             }],
             where: {
-                releaseAt: { [Op.gt]: new Date() }
+                status: "scheduled",
             },
             order: [
                 ["releaseAt", "DESC"],

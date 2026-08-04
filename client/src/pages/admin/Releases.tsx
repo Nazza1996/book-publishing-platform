@@ -77,7 +77,7 @@ export default function Releases() {
                 setReleases(releasesList);
             } catch (e) {
                 if (isMounted) {
-                    setError("Could not load releases." + e);
+                    setError("Could not load releases.");
                 }
             } finally {
                 if (isMounted) {
