@@ -123,6 +123,71 @@ router.get("/featured", async (req: Request, res: Response) => {
     }
 });
 
+router.get("/chapters", async (req: Request, res: Response) => {
+    const user = await getCurrentActiveUser(req);
+    if (!user?.active || user.role !== "admin") {
+        return res.status(user ? 403 : 401).json({ error: user ? "Admin access required" : "Not authenticated" });
+    }
+
+    try {
+        await promoteDueScheduledReleases();
+
+        const books = await Book.findAll({
+            order: [["title", "ASC"]]
+        });
+
+        const draftVersions = await Promise.all(books.map((book) => ensureWorkingDraftVersion(book)));
+        const versionIds = draftVersions.map((version) => version.id);
+        const bookIds = books.map((book) => book.id);
+
+        const [chapters, releases] = await Promise.all([
+            versionIds.length > 0
+                ? Chapter.findAll({
+                    where: { bookVersionId: { [Op.in]: versionIds } },
+                    order: [["chapterNumber", "ASC"]]
+                })
+                : Promise.resolve([]),
+            bookIds.length > 0
+                ? ChapterRelease.findAll({
+                    where: { bookId: { [Op.in]: bookIds } },
+                    order: [["releaseAt", "ASC"], ["chapterNumber", "ASC"]]
+                })
+                : Promise.resolve([]),
+        ]);
+
+        const chaptersByVersion = new Map<number, Chapter[]>();
+        for (const chapter of chapters) {
+            const existing = chaptersByVersion.get(chapter.bookVersionId) ?? [];
+            existing.push(chapter);
+            chaptersByVersion.set(chapter.bookVersionId, existing);
+        }
+
+        const releasesByBook = new Map<number, ChapterRelease[]>();
+        for (const release of releases) {
+            const existing = releasesByBook.get(release.bookId) ?? [];
+            existing.push(release);
+            releasesByBook.set(release.bookId, existing);
+        }
+
+        res.json(books.map((book, index) => {
+            const draftVersion = draftVersions[index];
+            const versionValues = draftVersion.get({ plain: true }) as any;
+
+            return {
+                ...serializeBook(book),
+                releases: releasesByBook.get(book.id) ?? [],
+                version: {
+                    ...versionValues,
+                    chapters: chaptersByVersion.get(draftVersion.id) ?? [],
+                },
+                versionStatus: "working_draft",
+            };
+        }));
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
 router.get("/:slug", async (req: Request, res: Response) => {
     const { slug } = req.params;
     const { version = 'public' } = req.query;
