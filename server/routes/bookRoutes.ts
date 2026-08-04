@@ -188,6 +188,92 @@ router.get("/chapters", async (req: Request, res: Response) => {
     }
 });
 
+router.get("/readers", async (req: Request, res: Response) => {
+    const user = await getCurrentActiveUser(req);
+    if (!user?.active || user.role !== "admin") {
+        return res.status(user ? 403 : 401).json({ error: user ? "Admin access required" : "Not authenticated" });
+    }
+
+    try {
+        const books = await Book.findAll({
+            order: [["title", "ASC"]]
+        });
+
+        await Promise.all(books.map((book) => ensureReaderGroups(book.id)));
+
+        const bookIds = books.map((book) => book.id);
+        const readerGroups = bookIds.length > 0
+            ? await ReaderGroup.findAll({
+                where: { bookId: { [Op.in]: bookIds } },
+                include: [{
+                    model: ReaderGroupMember,
+                    as: "members",
+                    include: [{
+                        model: User,
+                        as: "user",
+                        attributes: ["id", "username", "role", "active"],
+                    }],
+                }],
+                order: [["channel", "ASC"]]
+            })
+            : [];
+
+        const groupsByBook = new Map<number, ReaderGroup[]>();
+        for (const group of readerGroups) {
+            const existing = groupsByBook.get(group.bookId) ?? [];
+            existing.push(group);
+            groupsByBook.set(group.bookId, existing);
+        }
+
+        res.json(books.map((book) => ({
+            ...serializeBook(book),
+            readerGroups: groupsByBook.get(book.id) ?? [],
+        })));
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+router.get("/feedback", async (req: Request, res: Response) => {
+    const user = await getCurrentActiveUser(req);
+    if (!user?.active || user.role !== "admin") {
+        return res.status(user ? 403 : 401).json({ error: user ? "Admin access required" : "Not authenticated" });
+    }
+
+    try {
+        const books = await Book.findAll({
+            order: [["title", "ASC"]]
+        });
+
+        const bookIds = books.map((book) => book.id);
+        const feedback = bookIds.length > 0
+            ? await ReaderFeedback.findAll({
+                where: { bookId: { [Op.in]: bookIds } },
+                include: [{
+                    model: User,
+                    as: "reader",
+                    attributes: ["id", "username", "role", "active"],
+                }],
+                order: [["createdAt", "DESC"]]
+            })
+            : [];
+
+        const feedbackByBook = new Map<number, ReaderFeedback[]>();
+        for (const item of feedback) {
+            const existing = feedbackByBook.get(item.bookId) ?? [];
+            existing.push(item);
+            feedbackByBook.set(item.bookId, existing);
+        }
+
+        res.json(books.map((book) => ({
+            ...serializeBook(book),
+            feedback: feedbackByBook.get(book.id) ?? [],
+        })));
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
 router.get("/:slug", async (req: Request, res: Response) => {
     const { slug } = req.params;
     const { version = 'public' } = req.query;

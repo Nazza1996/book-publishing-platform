@@ -94,7 +94,6 @@ export default function ReaderGroups({ channel }: { channel: "alpha" | "beta" })
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [partialErrorCount, setPartialErrorCount] = useState(0);
 
     const title = channelLabels[channel];
 
@@ -108,39 +107,23 @@ export default function ReaderGroups({ channel }: { channel: "alpha" | "beta" })
         async function fetchReaderGroups() {
             setLoading(true);
             setError("");
-            setPartialErrorCount(0);
 
             try {
-                const booksRes = await apiFetch("/api/books/dropdown", { toast: false });
-                if (!booksRes.ok) {
+                const readersRes = await apiFetch("/api/books/readers", { toast: false });
+                if (!readersRes.ok) {
                     setError(`Could not load ${title.toLowerCase()}.`);
                     return;
                 }
 
-                const bookList = await booksRes.json() as BookSummary[];
-                const settledBooks = await Promise.allSettled(
-                    bookList.map(async (book) => {
-                        const res = await apiFetch(`/api/books/${book.slug}?version=draft`, { toast: false });
-                        if (!res.ok) {
-                            throw new Error(`Could not load ${book.title}`);
-                        }
-
-                        return await res.json() as DraftBookResponse;
-                    })
-                );
+                const loadedBooks = await readersRes.json() as DraftBookResponse[];
 
                 if (!isMounted) {
                     return;
                 }
 
-                const loadedBooks = settledBooks
-                    .filter((result): result is PromiseFulfilledResult<DraftBookResponse> => result.status === "fulfilled")
-                    .map((result) => result.value);
-
-                setBooks(bookList);
+                setBooks(loadedBooks.map(({ id, slug, title }) => ({ id, slug, title })));
                 setGroups(loadedBooks.map((book) => toGroupRow(book, channel)).filter((row): row is GroupRow => Boolean(row)));
                 setMembers(loadedBooks.flatMap((book) => toMemberRows(book, channel)).sort(compareMemberRows));
-                setPartialErrorCount(settledBooks.filter((result) => result.status === "rejected").length);
             } catch {
                 if (isMounted) {
                     setError(`Could not load ${title.toLowerCase()}.`);
@@ -318,12 +301,6 @@ export default function ReaderGroups({ channel }: { channel: "alpha" | "beta" })
                         />
                     </div>
                 </div>
-
-                {partialErrorCount > 0 && (
-                    <div className="admin-state warning">
-                        {partialErrorCount} {partialErrorCount === 1 ? "book could" : "books could"} not be loaded.
-                    </div>
-                )}
 
                 {loading ? (
                     <div className="admin-state">Loading {title.toLowerCase()}...</div>

@@ -72,7 +72,6 @@ export default function Feedback() {
     const [savingFeedbackId, setSavingFeedbackId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [partialErrorCount, setPartialErrorCount] = useState(0);
 
     useEffect(() => {
         setPageTitle("Feedback");
@@ -84,38 +83,22 @@ export default function Feedback() {
         async function fetchFeedback() {
             setLoading(true);
             setError("");
-            setPartialErrorCount(0);
 
             try {
-                const booksRes = await apiFetch("/api/books/dropdown", { toast: false });
-                if (!booksRes.ok) {
+                const feedbackRes = await apiFetch("/api/books/feedback", { toast: false });
+                if (!feedbackRes.ok) {
                     setError("Could not load feedback.");
                     return;
                 }
 
-                const bookList = await booksRes.json() as BookSummary[];
-                const settledBooks = await Promise.allSettled(
-                    bookList.map(async (book) => {
-                        const res = await apiFetch(`/api/books/${book.slug}?version=draft`, { toast: false });
-                        if (!res.ok) {
-                            throw new Error(`Could not load ${book.title}`);
-                        }
-
-                        return await res.json() as DraftBookResponse;
-                    })
-                );
+                const loadedBooks = await feedbackRes.json() as DraftBookResponse[];
 
                 if (!isMounted) {
                     return;
                 }
 
-                const loadedBooks = settledBooks
-                    .filter((result): result is PromiseFulfilledResult<DraftBookResponse> => result.status === "fulfilled")
-                    .map((result) => result.value);
-
-                setBooks(bookList);
+                setBooks(loadedBooks.map(({ id, slug, title }) => ({ id, slug, title })));
                 setFeedback(loadedBooks.flatMap(toFeedbackRows).sort(compareFeedbackRows));
-                setPartialErrorCount(settledBooks.filter((result) => result.status === "rejected").length);
             } catch {
                 if (isMounted) {
                     setError("Could not load feedback.");
@@ -307,12 +290,6 @@ export default function Feedback() {
                         />
                     </div>
                 </div>
-
-                {partialErrorCount > 0 && (
-                    <div className="admin-state warning">
-                        {partialErrorCount} {partialErrorCount === 1 ? "book could" : "books could"} not be loaded.
-                    </div>
-                )}
 
                 {loading ? (
                     <div className="admin-state">Loading feedback...</div>
