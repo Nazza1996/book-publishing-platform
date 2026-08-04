@@ -31,31 +31,7 @@ type PublicUser = {
     active: boolean;
 };
 
-function serializeUser(user: User): PublicUser {
-    return {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        active: user.active,
-    };
-}
-
-function setAuthCookies(res: Response, user: PublicUser) {
-    const tokenPayload = {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        active: user.active,
-    };
-
-    res.cookie("token", signToken(tokenPayload), accessTokenCookieOptions);
-    res.cookie("refreshToken", signRefreshToken(tokenPayload), refreshTokenCookieOptions);
-}
-
-function clearAuthCookies(res: Response) {
-    res.clearCookie("token", cookieBaseOptions);
-    res.clearCookie("refreshToken", cookieBaseOptions);
-}
+//#region Routes
 
 router.post("/login", async (req: Request, res: Response) => {
     const { username, password } = req.body;
@@ -306,5 +282,33 @@ router.delete("/:id", async (req: Request, res: Response) => {
         res.status(500).json({ error: "Failed to delete user" });
     }
 });
+
+//#region Functions
+
+function serializeUser(user: User): PublicUser {
+    return {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        active: user.active,
+    };
+}
+
+function setAuthCookies(res: Response, user: PublicUser) {
+    const tokenPayload = {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        active: user.active,
+    };
+
+    res.cookie("token", signToken(tokenPayload), accessTokenCookieOptions);
+    res.cookie("refreshToken", signRefreshToken(tokenPayload), refreshTokenCookieOptions);
+}
+
+function clearAuthCookies(res: Response) {
+    res.clearCookie("token", cookieBaseOptions);
+    res.clearCookie("refreshToken", cookieBaseOptions);
+}
 
 export default router;

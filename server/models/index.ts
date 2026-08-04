@@ -40,7 +40,7 @@ ReaderFeedback.belongsTo(User, { foreignKey: 'readerUserId', as: 'reader' });
 
 // Book -> chapter revision snapshots
 Book.hasMany(ChapterRevision, { foreignKey: 'bookId', as: 'chapterRevisions' });
-ChapterRevision.belongsTo(Book, { foreignKey: 'bookId' });
+ChapterRevision.belongsTo(Book, { foreignKey: 'bookId', as: 'book' });
 User.hasMany(ChapterRevision, { foreignKey: 'createdBy', as: 'chapterRevisions' });
 ChapterRevision.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 

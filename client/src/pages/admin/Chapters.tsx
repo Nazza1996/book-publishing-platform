@@ -72,7 +72,6 @@ export default function Chapters() {
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [partialErrorCount, setPartialErrorCount] = useState(0);
 
     useEffect(() => {
         setPageTitle("Chapters");
@@ -84,38 +83,22 @@ export default function Chapters() {
         async function fetchChapters() {
             setLoading(true);
             setError("");
-            setPartialErrorCount(0);
 
             try {
-                const booksRes = await apiFetch("/api/books", { toast: false });
-                if (!booksRes.ok) {
+                const chaptersRes = await apiFetch("/api/books/chapters", { toast: false });
+                if (!chaptersRes.ok) {
                     setError("Could not load chapters.");
                     return;
                 }
 
-                const bookList = await booksRes.json() as BookSummary[];
-                const settledBooks = await Promise.allSettled(
-                    bookList.map(async (book) => {
-                        const res = await apiFetch(`/api/books/${book.slug}?version=draft`, { toast: false });
-                        if (!res.ok) {
-                            throw new Error(`Could not load ${book.title}`);
-                        }
-
-                        return await res.json() as DraftBookResponse;
-                    })
-                );
+                const loadedBooks = await chaptersRes.json() as DraftBookResponse[];
 
                 if (!isMounted) {
                     return;
                 }
 
-                const loadedBooks = settledBooks
-                    .filter((result): result is PromiseFulfilledResult<DraftBookResponse> => result.status === "fulfilled")
-                    .map((result) => result.value);
-
-                setBooks(bookList);
+                setBooks(loadedBooks.map(({ id, slug, title, status }) => ({ id, slug, title, status })));
                 setChapters(loadedBooks.flatMap(toChapterRows));
-                setPartialErrorCount(settledBooks.filter((result) => result.status === "rejected").length);
             } catch {
                 if (isMounted) {
                     setError("Could not load chapters.");
@@ -240,12 +223,6 @@ export default function Chapters() {
                         />
                     </div>
                 </div>
-
-                {partialErrorCount > 0 && (
-                    <div className="admin-state warning">
-                        {partialErrorCount} {partialErrorCount === 1 ? "book could" : "books could"} not be loaded.
-                    </div>
-                )}
 
                 {loading ? (
                     <div className="admin-state">Loading chapters...</div>

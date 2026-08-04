@@ -21,31 +21,13 @@ interface ChapterRelease {
     id?: number;
     channel: ReaderChannel;
     chapterNumber: number;
-    title?: string;
+    Book: BookSummary;
+    title: string;
     content?: string;
     status: ReleaseStatus;
     releaseAt: string | null;
     createdAt?: string;
     updatedAt?: string;
-}
-
-interface DraftBookResponse extends BookSummary {
-    releases?: ChapterRelease[];
-}
-
-interface ReleaseRow {
-    id: string;
-    releaseId?: number;
-    bookId: number;
-    bookSlug: string;
-    bookTitle: string;
-    chapterNumber: number;
-    chapterTitle: string;
-    channel: ReaderChannel;
-    status: ReleaseStatus;
-    releaseAt: string | null;
-    updatedAt?: string;
-    wordCount: number;
 }
 
 const channelLabels: Record<ReaderChannel, string> = {
@@ -55,7 +37,7 @@ const channelLabels: Record<ReaderChannel, string> = {
 };
 
 export default function Releases() {
-    const [releases, setReleases] = useState<ReleaseRow[]>([]);
+    const [releases, setReleases] = useState<ChapterRelease[]>([]);
     const [books, setBooks] = useState<BookSummary[]>([]);
     const [selectedBookSlug, setSelectedBookSlug] = useState("all");
     const [selectedChannel, setSelectedChannel] = useState<"all" | ReaderChannel>("all");
@@ -63,7 +45,6 @@ export default function Releases() {
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [partialErrorCount, setPartialErrorCount] = useState(0);
 
     useEffect(() => {
         setPageTitle("Releases");
@@ -75,39 +56,26 @@ export default function Releases() {
         async function fetchReleases() {
             setLoading(true);
             setError("");
-            setPartialErrorCount(0);
 
             try {
-                const booksRes = await apiFetch("/api/books", { toast: false });
+                const booksRes = await apiFetch("/api/books/dropdown", { toast: false });
                 if (!booksRes.ok) {
                     setError("Could not load releases.");
                     return;
                 }
 
                 const bookList = await booksRes.json() as BookSummary[];
-                const settledBooks = await Promise.allSettled(
-                    bookList.map(async (book) => {
-                        const res = await apiFetch(`/api/books/${book.slug}?version=draft`, { toast: false });
-                        if (!res.ok) {
-                            throw new Error(`Could not load ${book.title}`);
-                        }
-
-                        return await res.json() as DraftBookResponse;
-                    })
-                );
 
                 if (!isMounted) {
                     return;
                 }
 
-                const loadedBooks = settledBooks
-                    .filter((result): result is PromiseFulfilledResult<DraftBookResponse> => result.status === "fulfilled")
-                    .map((result) => result.value);
+                const releasesRes = await apiFetch("/api/releases");
+                const releasesList = await releasesRes.json() as ChapterRelease[];
 
                 setBooks(bookList);
-                setReleases(loadedBooks.flatMap(toReleaseRows).sort(compareReleaseRows));
-                setPartialErrorCount(settledBooks.filter((result) => result.status === "rejected").length);
-            } catch {
+                setReleases(releasesList);
+            } catch (e) {
                 if (isMounted) {
                     setError("Could not load releases.");
                 }
@@ -129,7 +97,7 @@ export default function Releases() {
         const normalizedSearch = searchTerm.trim().toLowerCase();
 
         return releases.filter((release) => {
-            if (selectedBookSlug !== "all" && release.bookSlug !== selectedBookSlug) {
+            if (selectedBookSlug !== "all" && release.Book.slug !== selectedBookSlug) {
                 return false;
             }
 
@@ -145,8 +113,8 @@ export default function Releases() {
                 return true;
             }
 
-            return release.chapterTitle.toLowerCase().includes(normalizedSearch)
-                || release.bookTitle.toLowerCase().includes(normalizedSearch)
+            return release.title.toLowerCase().includes(normalizedSearch)
+                || release.Book.title.toLowerCase().includes(normalizedSearch)
                 || channelLabels[release.channel].toLowerCase().includes(normalizedSearch)
                 || String(release.chapterNumber).includes(normalizedSearch);
         });
@@ -164,21 +132,21 @@ export default function Releases() {
         );
     }, [filteredReleases]);
 
-    const columns: DatatableColumn<ReleaseRow>[] = [
+    const columns: DatatableColumn<ChapterRelease>[] = [
         {
             key: "release",
             header: "Release",
             render: (release) => (
-                <Link to={`/admin/book/${release.bookSlug}#releases`} className="datatable-link release-title-link">
+                <Link to={`/admin/book/${release.Book.slug}#releases`} className="datatable-link release-title-link">
                     <span>Chapter {release.chapterNumber}</span>
-                    <strong>{release.chapterTitle}</strong>
+                    <strong>{release.title}</strong>
                 </Link>
             ),
         },
         {
             key: "book",
             header: "Book",
-            render: (release) => <Link to={`/admin/book/${release.bookSlug}`} className="datatable-link">{release.bookTitle}</Link>,
+            render: (release) => <Link to={`/admin/book/${release.Book.slug}`} className="datatable-link">{release.Book.title}</Link>,
         },
         {
             key: "channel",
@@ -195,7 +163,7 @@ export default function Releases() {
         {
             key: "words",
             header: "Words",
-            render: (release) => release.wordCount.toLocaleString(),
+            render: (release) => countWords(release.content!).toLocaleString(),
             width: 100,
         },
         {
@@ -242,12 +210,6 @@ export default function Releases() {
                     </div>
                 </div>
 
-                {partialErrorCount > 0 && (
-                    <div className="admin-state warning">
-                        {partialErrorCount} {partialErrorCount === 1 ? "book could" : "books could"} not be loaded.
-                    </div>
-                )}
-
                 {loading ? (
                     <div className="admin-state">Loading releases...</div>
                 ) : error ? (
@@ -265,7 +227,7 @@ export default function Releases() {
                             title="All Releases"
                             columns={columns}
                             rows={filteredReleases}
-                            getRowKey={(release) => release.id}
+                            getRowKey={(release) => release.id!}
                             emptyMessage="No releases found."
                         />
                     </>
@@ -292,43 +254,6 @@ function SummaryCard({ label, value, to }: { label: string; value: string; to?: 
             {content}
         </div>
     );
-}
-
-function toReleaseRows(book: DraftBookResponse): ReleaseRow[] {
-    return (book.releases ?? []).map((release) => ({
-        id: String(release.id ?? `${book.id}-${release.channel}-${release.chapterNumber}`),
-        releaseId: release.id,
-        bookId: book.id,
-        bookSlug: book.slug,
-        bookTitle: book.title,
-        chapterNumber: release.chapterNumber,
-        chapterTitle: release.title || `Chapter ${release.chapterNumber}`,
-        channel: release.channel,
-        status: release.status,
-        releaseAt: release.releaseAt,
-        updatedAt: release.updatedAt,
-        wordCount: countWords(release.content ?? ""),
-    }));
-}
-
-function compareReleaseRows(a: ReleaseRow, b: ReleaseRow) {
-    const aTime = getReleaseTime(a);
-    const bTime = getReleaseTime(b);
-
-    if (aTime !== bTime) {
-        return bTime - aTime;
-    }
-
-    if (a.bookTitle !== b.bookTitle) {
-        return a.bookTitle.localeCompare(b.bookTitle);
-    }
-
-    return a.chapterNumber - b.chapterNumber;
-}
-
-function getReleaseTime(release: ReleaseRow) {
-    const dateString = release.releaseAt ?? release.updatedAt;
-    return dateString ? new Date(dateString).getTime() : 0;
 }
 
 function countWords(content: string) {

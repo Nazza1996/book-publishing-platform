@@ -22,28 +22,13 @@ interface ChapterRelease {
     id?: number;
     channel: ReaderChannel;
     chapterNumber: number;
-    title?: string;
+    Book: BookSummary;
+    title: string;
     content?: string;
     status: "scheduled" | "released";
     releaseAt: string | null;
     createdAt?: string;
     updatedAt?: string;
-}
-
-interface DraftBookResponse extends BookSummary {
-    releases?: ChapterRelease[];
-}
-
-interface ScheduleRow {
-    id: string;
-    bookId: number;
-    bookSlug: string;
-    bookTitle: string;
-    chapterNumber: number;
-    chapterTitle: string;
-    channel: ReaderChannel;
-    releaseAt: string | null;
-    wordCount: number;
 }
 
 const channelLabels: Record<ReaderChannel, string> = {
@@ -55,7 +40,7 @@ const channelLabels: Record<ReaderChannel, string> = {
 const scheduleReferenceTime = Date.now();
 
 export default function Schedule() {
-    const [schedule, setSchedule] = useState<ScheduleRow[]>([]);
+    const [schedule, setSchedule] = useState<ChapterRelease[]>([]);
     const [books, setBooks] = useState<BookSummary[]>([]);
     const [selectedBookSlug, setSelectedBookSlug] = useState("all");
     const [selectedChannel, setSelectedChannel] = useState<"all" | ReaderChannel>("all");
@@ -63,7 +48,6 @@ export default function Schedule() {
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [partialErrorCount, setPartialErrorCount] = useState(0);
 
     useEffect(() => {
         setPageTitle("Schedule");
@@ -75,38 +59,25 @@ export default function Schedule() {
         async function fetchSchedule() {
             setLoading(true);
             setError("");
-            setPartialErrorCount(0);
 
             try {
-                const booksRes = await apiFetch("/api/books", { toast: false });
+                const booksRes = await apiFetch("/api/books/dropdown", { toast: false });
                 if (!booksRes.ok) {
                     setError("Could not load schedule.");
                     return;
                 }
 
                 const bookList = await booksRes.json() as BookSummary[];
-                const settledBooks = await Promise.allSettled(
-                    bookList.map(async (book) => {
-                        const res = await apiFetch(`/api/books/${book.slug}?version=draft`, { toast: false });
-                        if (!res.ok) {
-                            throw new Error(`Could not load ${book.title}`);
-                        }
-
-                        return await res.json() as DraftBookResponse;
-                    })
-                );
 
                 if (!isMounted) {
                     return;
                 }
 
-                const loadedBooks = settledBooks
-                    .filter((result): result is PromiseFulfilledResult<DraftBookResponse> => result.status === "fulfilled")
-                    .map((result) => result.value);
+                const scheduleRes = await apiFetch("/api/releases/scheduled");
+                const scheduleList = await scheduleRes.json() as ChapterRelease[];
 
                 setBooks(bookList);
-                setSchedule(loadedBooks.flatMap(toScheduleRows).sort(compareScheduleRows));
-                setPartialErrorCount(settledBooks.filter((result) => result.status === "rejected").length);
+                setSchedule(scheduleList);
             } catch {
                 if (isMounted) {
                     setError("Could not load schedule.");
@@ -129,7 +100,7 @@ export default function Schedule() {
         const normalizedSearch = searchTerm.trim().toLowerCase();
 
         return schedule.filter((item) => {
-            if (selectedBookSlug !== "all" && item.bookSlug !== selectedBookSlug) {
+            if (selectedBookSlug !== "all" && item.Book.slug !== selectedBookSlug) {
                 return false;
             }
 
@@ -145,8 +116,8 @@ export default function Schedule() {
                 return true;
             }
 
-            return item.chapterTitle.toLowerCase().includes(normalizedSearch)
-                || item.bookTitle.toLowerCase().includes(normalizedSearch)
+            return item.title.toLowerCase().includes(normalizedSearch)
+                || item.Book.title.toLowerCase().includes(normalizedSearch)
                 || channelLabels[item.channel].toLowerCase().includes(normalizedSearch)
                 || String(item.chapterNumber).includes(normalizedSearch);
         });
@@ -158,21 +129,21 @@ export default function Schedule() {
             .slice(0, 5);
     }, [filteredSchedule]);
 
-    const columns: DatatableColumn<ScheduleRow>[] = [
+    const columns: DatatableColumn<ChapterRelease>[] = [
         {
             key: "release",
             header: "Scheduled Release",
             render: (item) => (
-                <Link to={`/admin/book/${item.bookSlug}#releases`} className="datatable-link release-title-link">
+                <Link to={`/admin/book/${item.Book.slug}#releases`} className="datatable-link release-title-link">
                     <span>Chapter {item.chapterNumber}</span>
-                    <strong>{item.chapterTitle}</strong>
+                    <strong>{item.title}</strong>
                 </Link>
             ),
         },
         {
             key: "book",
             header: "Book",
-            render: (item) => <Link to={`/admin/book/${item.bookSlug}`} className="datatable-link">{item.bookTitle}</Link>,
+            render: (item) => <Link to={`/admin/book/${item.Book.slug}`} className="datatable-link">{item.Book.title}</Link>,
         },
         {
             key: "channel",
@@ -240,12 +211,6 @@ export default function Schedule() {
                     </div>
                 </div>
 
-                {partialErrorCount > 0 && (
-                    <div className="admin-state warning">
-                        {partialErrorCount} {partialErrorCount === 1 ? "book could" : "books could"} not be loaded.
-                    </div>
-                )}
-
                 {loading ? (
                     <div className="admin-state">Loading schedule...</div>
                 ) : error ? (
@@ -265,14 +230,14 @@ export default function Schedule() {
                             ) : (
                                 <div className="schedule-timeline">
                                     {nextItems.map((item) => (
-                                        <Link to={`/admin/book/${item.bookSlug}#releases`} className="schedule-timeline-item" key={item.id}>
+                                        <Link to={`/admin/book/${item.Book.slug}#releases`} className="schedule-timeline-item" key={item.id}>
                                             <time dateTime={item.releaseAt ?? undefined}>
                                                 <strong>{item.releaseAt ? formatDay(item.releaseAt) : "-"}</strong>
                                                 <span>{item.releaseAt ? formatMonth(item.releaseAt) : ""}</span>
                                             </time>
                                             <div>
-                                                <strong>{item.chapterTitle}</strong>
-                                                <span>{item.bookTitle} / {channelLabels[item.channel]} / {item.releaseAt ? formatTime(item.releaseAt) : "No time"}</span>
+                                                <strong>{item.title}</strong>
+                                                <span>{item.Book.title} / {channelLabels[item.channel]} / {item.releaseAt ? formatTime(item.releaseAt) : "No time"}</span>
                                             </div>
                                         </Link>
                                     ))}
@@ -284,7 +249,7 @@ export default function Schedule() {
                             title="Scheduled Releases"
                             columns={columns}
                             rows={filteredSchedule}
-                            getRowKey={(item) => item.id}
+                            getRowKey={(item) => item.id!}
                             emptyMessage="No scheduled releases found."
                         />
                     </>
@@ -292,37 +257,6 @@ export default function Schedule() {
             </section>
         </div>
     );
-}
-
-function toScheduleRows(book: DraftBookResponse): ScheduleRow[] {
-    return (book.releases ?? [])
-        .filter((release) => release.status === "scheduled")
-        .map((release) => ({
-            id: String(release.id ?? `${book.id}-${release.channel}-${release.chapterNumber}`),
-            bookId: book.id,
-            bookSlug: book.slug,
-            bookTitle: book.title,
-            chapterNumber: release.chapterNumber,
-            chapterTitle: release.title || `Chapter ${release.chapterNumber}`,
-            channel: release.channel,
-            releaseAt: release.releaseAt,
-            wordCount: countWords(release.content ?? ""),
-        }));
-}
-
-function compareScheduleRows(a: ScheduleRow, b: ScheduleRow) {
-    const aTime = a.releaseAt ? new Date(a.releaseAt).getTime() : Number.MAX_SAFE_INTEGER;
-    const bTime = b.releaseAt ? new Date(b.releaseAt).getTime() : Number.MAX_SAFE_INTEGER;
-
-    if (aTime !== bTime) {
-        return aTime - bTime;
-    }
-
-    if (a.bookTitle !== b.bookTitle) {
-        return a.bookTitle.localeCompare(b.bookTitle);
-    }
-
-    return a.chapterNumber - b.chapterNumber;
 }
 
 function getTiming(releaseAt: string | null, now: number): "upcoming" | "overdue" | "undated" {
@@ -339,10 +273,6 @@ function timingLabel(timing: "upcoming" | "overdue" | "undated") {
     }
 
     return timing.charAt(0).toUpperCase() + timing.slice(1);
-}
-
-function countWords(content: string) {
-    return content.trim().split(/\s+/).filter(Boolean).length;
 }
 
 function formatDate(dateString: string) {
