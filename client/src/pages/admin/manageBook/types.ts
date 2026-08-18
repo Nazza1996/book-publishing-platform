@@ -3,6 +3,7 @@ export type BookStatus = "not_started" | "in_progress" | "on_hold" | "finished" 
 
 export interface Chapter {
     id?: number;
+    clientKey?: string;
     title: string;
     content: string;
     chapterNumber: number;
