@@ -235,7 +235,7 @@ router.put("/:id", async (req: Request, res: Response) => {
             return res.status(400).json({ error: "Username already taken" });
         }
 
-        if (password && typeof password === "string" && password.trim()) {
+        if (currentUser.role === "admin" && user.role !== "admin" && password && typeof password === "string" && password.trim()) {
             user.password_hash = await hash(password, 12);
             user.password_changed_at = new Date();
         }
