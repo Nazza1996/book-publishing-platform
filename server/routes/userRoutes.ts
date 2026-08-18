@@ -2,7 +2,7 @@ import { Request, Response, Router } from "express";
 import { signRefreshToken, signToken, verifyRefreshToken, verifyToken } from "../utils/jwt.js";
 import bcrypt, { hash } from "bcrypt";
 import User from "../models/User.js";
-import { getCurrentActiveUser, requireAdmin } from "../middleware/auth.js";
+import { getCurrentActiveUser, isTokenCurrentForUser, requireAdmin, type AuthUser } from "../middleware/auth.js";
 
 
 const router = Router();
@@ -56,7 +56,7 @@ router.post("/login", async (req: Request, res: Response) => {
     }
 
     const publicUser = serializeUser(user);
-    setAuthCookies(res, publicUser);
+    setAuthCookies(res, user);
 
     res.json({ user: publicUser });
 });
@@ -96,7 +96,7 @@ router.post("/register", async (req: Request, res: Response) => {
         const publicUser = serializeUser(newUser);
 
         if (isBootstrap) {
-            setAuthCookies(res, publicUser);
+            setAuthCookies(res, newUser);
         }
 
         res.status(201).json({ user: publicUser });
@@ -123,9 +123,9 @@ router.post("/refresh", async (req: Request, res: Response) => {
     }
 
     try {
-        const payload = verifyRefreshToken(refreshToken) as { id: number; username: string };
+        const payload = verifyRefreshToken(refreshToken) as AuthUser;
         const user = await User.findByPk(payload.id, {
-            attributes: ["id", "username", "role", "active"],
+            attributes: ["id", "username", "role", "active", "password_changed_at"],
         });
 
         if (!user) {
@@ -138,8 +138,13 @@ router.post("/refresh", async (req: Request, res: Response) => {
             return res.status(403).json({ error: "This account no longer has access" });
         }
 
+        if (!isTokenCurrentForUser(payload, user)) {
+            clearAuthCookies(res);
+            return res.status(401).json({ error: "Session expired" });
+        }
+
         const publicUser = serializeUser(user);
-        res.cookie("token", signToken(publicUser), accessTokenCookieOptions);
+        res.cookie("token", signToken(createTokenPayload(user)), accessTokenCookieOptions);
         return res.json({ user: publicUser });
     } catch {
         clearAuthCookies(res);
@@ -156,7 +161,7 @@ router.get("/currentUser", async (req: Request, res: Response) => {
     try {
         const payload: any = verifyToken(token);
         const user = await User.findByPk(payload.id, {
-            attributes: ["id", "username", "role", "active"]
+            attributes: ["id", "username", "role", "active", "password_changed_at"]
         });
 
         if (!user) {
@@ -166,6 +171,11 @@ router.get("/currentUser", async (req: Request, res: Response) => {
         if (!user.active) {
             clearAuthCookies(res);
             return res.status(403).json({ user: null, error: "This account no longer has access" });
+        }
+
+        if (!isTokenCurrentForUser(payload, user)) {
+            clearAuthCookies(res);
+            return res.status(401).json({ user: null, error: "Session expired" });
         }
 
         res.json({ user: serializeUser(user) });
@@ -225,8 +235,9 @@ router.put("/:id", async (req: Request, res: Response) => {
             return res.status(400).json({ error: "Username already taken" });
         }
 
-        if (typeof password === "string" && password.trim()) {
+        if (password && typeof password === "string" && password.trim()) {
             user.password_hash = await hash(password, 12);
+            user.password_changed_at = new Date();
         }
 
         await user.save();
@@ -294,14 +305,18 @@ function serializeUser(user: User): PublicUser {
     };
 }
 
-function setAuthCookies(res: Response, user: PublicUser) {
-    const tokenPayload = {
+function createTokenPayload(user: User) {
+    return {
         id: user.id,
         username: user.username,
         role: user.role,
         active: user.active,
+        passwordChangedAt: user.password_changed_at?.getTime() ?? null,
     };
+}
 
+function setAuthCookies(res: Response, user: User) {
+    const tokenPayload = createTokenPayload(user);
     res.cookie("token", signToken(tokenPayload), accessTokenCookieOptions);
     res.cookie("refreshToken", signRefreshToken(tokenPayload), refreshTokenCookieOptions);
 }

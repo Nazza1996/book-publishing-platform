@@ -7,6 +7,7 @@ export interface AuthUser {
     username: string;
     role: "admin" | "reader";
     active: boolean;
+    passwordChangedAt?: number | null;
 }
 
 export function getAccessTokenUser(req: Request): AuthUser | null {
@@ -36,10 +37,10 @@ export async function getCurrentActiveUser(req: Request): Promise<AuthUser | nul
     }
 
     const user = await User.findByPk(tokenUser.id, {
-        attributes: ["id", "username", "role", "active"],
+        attributes: ["id", "username", "role", "active", "password_changed_at"],
     });
 
-    if (!user || !user.active) {
+    if (!user || !user.active || !isTokenCurrentForUser(tokenUser, user)) {
         return null;
     }
 
@@ -48,7 +49,16 @@ export async function getCurrentActiveUser(req: Request): Promise<AuthUser | nul
         username: user.username,
         role: user.role,
         active: user.active,
+        passwordChangedAt: user.password_changed_at?.getTime() ?? null,
     };
+}
+
+export function isTokenCurrentForUser(tokenUser: AuthUser, user: User) {
+    if (!user.password_changed_at) {
+        return true;
+    }
+
+    return tokenUser.passwordChangedAt === user.password_changed_at.getTime();
 }
 
 export async function requireAccessToken(req: Request, res: Response, next: NextFunction) {
