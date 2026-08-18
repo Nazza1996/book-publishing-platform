@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faAlignCenter, faAlignLeft, faAlignRight, faBold, faCompress, faExpand, faGripVertical, faItalic, faUnderline } from "@fortawesome/free-solid-svg-icons";
+import { faAlignCenter, faAlignLeft, faAlignRight, faBold, faCompress, faExpand, faItalic, faUnderline } from "@fortawesome/free-solid-svg-icons";
 import { countWords } from "./helpers";
 import type { BookEditorState, Chapter, ChapterRelease, ChannelMetadata, ReaderChannel, ReaderGroup } from "./types";
 import { Panel } from "./components/Panel";
