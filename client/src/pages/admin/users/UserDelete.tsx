@@ -1,12 +1,31 @@
+import { apiFetch, toast } from '../../../helpers';
 import '../../../styles/modal.scss'
 
-const props = {
-    closeFunction: () => {},
-    submitFunction: () => {},
-    username: '',
+type UserRole = 'admin' | 'reader';
+
+interface UserRow {
+    id: number;
+    username: string;
+    role: UserRole;
 }
 
-export default function UserDeleteModal({ closeFunction, submitFunction, username }: typeof props) {
+type props = {
+    closeFunction: () => void;
+    user: UserRow;
+}
+
+export default function UserDeleteModal({ closeFunction, user }: props) {
+    const handleSubmit = async () => {
+        const res = await apiFetch(`/api/users/${user.id}`, {
+            method: 'DELETE'
+        });
+
+        if (res.ok) {
+            toast.success('User deleted successfully');
+            closeFunction();
+        }
+    }
+
     return (
         <>
             <div
@@ -33,7 +52,7 @@ export default function UserDeleteModal({ closeFunction, submitFunction, usernam
                     </div>
 
                     <div className="modal-body">
-                        <p>Are you sure you want to delete the user <strong>{username}</strong>? This action cannot be undone.</p>
+                        <p>Are you sure you want to delete the user <strong>{user.username}</strong>? This action cannot be undone.</p>
                     </div>
 
                     <div className="modal-footer">
@@ -49,7 +68,7 @@ export default function UserDeleteModal({ closeFunction, submitFunction, usernam
                         <button
                             type="button"
                             className="btn btn-primary"
-                            onClick={submitFunction}
+                            onClick={handleSubmit}
                         >
                             Delete User
                         </button>

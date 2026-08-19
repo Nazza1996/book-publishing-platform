@@ -11,7 +11,7 @@ import NotFound from './pages/404';
 import Book from './pages/Book';
 import { PrivateRoute } from './components/PrivateRoute';
 import Login from './pages/Login';
-import Users from './pages/admin/Users';
+import Users from './pages/admin/users';
 import AdminView from './pages/admin/AdminView';
 import AllBooks from './pages/admin/AllBooks';
 import ManageBook from './pages/admin/ManageBook';
