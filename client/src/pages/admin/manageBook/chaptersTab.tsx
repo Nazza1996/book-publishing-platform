@@ -5,6 +5,69 @@ import { countWords } from "./helpers";
 import type { BookEditorState, Chapter, ChapterRelease, ChannelMetadata, ReaderChannel, ReaderGroup } from "./types";
 import { Panel } from "./components/Panel";
 import { ReleasePreview } from "./components/ReleasePreview";
+import { DragDropProvider } from "@dnd-kit/react";
+import type { DragEndEvent } from "@dnd-kit/react";
+import { isSortableOperation, useSortable } from "@dnd-kit/react/sortable";
+
+function chapterSortableId(chapter: Chapter) {
+    return chapter.clientKey ?? (chapter.id ? `chapter-id-${chapter.id}` : `chapter-number-${chapter.chapterNumber}`);
+}
+
+function SortableChapterRow({
+    chapter,
+    index,
+    selected,
+    onSelect
+}: {
+    chapter: Chapter;
+    index: number;
+    selected: boolean;
+    onSelect: () => void;
+}) {
+    const { handleRef, isDragSource, isDropTarget, ref } = useSortable({
+        id: chapterSortableId(chapter),
+        index,
+        group: "chapters"
+    });
+
+    function handlePointerDown(event: React.PointerEvent<HTMLButtonElement>) {
+        if (event.pointerType === "mouse" && event.button !== 0) {
+            return;
+        }
+
+        onSelect();
+    }
+
+    return (
+        <div
+            ref={ref}
+            className={[
+                "chapter-list-item",
+                selected ? "active" : "",
+                isDragSource ? "dragging" : "",
+                isDropTarget ? "drop-target" : ""
+            ].filter(Boolean).join(" ")}
+        >
+            <button
+                className="chapter-select-button"
+                type="button"
+                onPointerDown={handlePointerDown}
+                onClick={onSelect}
+            >
+                <span
+                    ref={handleRef}
+                    title="Drag to reorder"
+                    style={{ cursor: "grab" }}
+                >
+                    {chapter.chapterNumber}
+                </span>
+                <strong title={chapter.title}>
+                    {chapter.title}
+                </strong>
+            </button>
+        </div>
+    );
+}
 
 export function ChaptersTab({
     book,
@@ -16,6 +79,7 @@ export function ChaptersTab({
     onAddChapter,
     onSelectChapter,
     onUpdateChapter,
+    onMoveChapter,
     onDeleteChapter,
     onReleaseNow
 }: {
@@ -28,6 +92,7 @@ export function ChaptersTab({
     onAddChapter: () => void;
     onSelectChapter: (index: number) => void;
     onUpdateChapter: (index: number, updates: Partial<Chapter>) => void;
+    onMoveChapter: (from: number, to: number) => void;
     onDeleteChapter: (index: number) => boolean | Promise<boolean>;
     onReleaseNow: (channel: ReaderChannel, chapterNumber: number) => void;
 }) {
@@ -39,6 +104,19 @@ export function ChaptersTab({
     const selectedChapterReleases = selectedChapter
         ? releases.filter((release) => release.chapterNumber === selectedChapter.chapterNumber)
         : [];
+
+    function handleChapterDragEnd(event: DragEndEvent) {
+        if (event.canceled || !isSortableOperation(event.operation)) {
+            return;
+        }
+
+        const from = event.operation.source!.initialIndex;
+        const to = event.operation.source!.index;
+
+        if (from !== to) {
+            onMoveChapter(from, to);
+        }
+    }
 
     useEffect(() => {
         const pendingSelection = pendingSelectionRef.current;
@@ -207,18 +285,19 @@ export function ChaptersTab({
                     <h2>Chapters</h2>
                     <button className="icon-btn" onClick={onAddChapter} aria-label="Add chapter">+</button>
                 </div>
-                <div className="chapter-list">
-                    {book.chapters.map((chapter, index) => (
-                        <button
-                            key={chapter.id ?? chapter.chapterNumber}
-                            className={selectedChapterIndex === index ? "chapter-list-item active" : "chapter-list-item"}
-                            onClick={() => onSelectChapter(index)}
-                        >
-                            <span>{chapter.chapterNumber}</span>
-                            <strong>{chapter.title}</strong>
-                        </button>
-                    ))}
-                </div>
+                <DragDropProvider onDragEnd={handleChapterDragEnd}>
+                    <div className="chapter-list">
+                        {book.chapters.map((chapter, index) => (
+                            <SortableChapterRow
+                                key={chapterSortableId(chapter)}
+                                chapter={chapter}
+                                index={index}
+                                selected={selectedChapterIndex === index}
+                                onSelect={() => onSelectChapter(index)}
+                            />
+                        ))}
+                    </div>
+                </DragDropProvider>
                 <button className="secondary-btn full-width" onClick={onAddChapter}>Add New Chapter</button>
             </aside>
 

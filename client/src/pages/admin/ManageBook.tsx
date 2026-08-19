@@ -16,13 +16,34 @@ import { EMPTY_BOOK, initialChannelMetadata, readerGroups, tabs } from "./manage
 import { formatTabLabel, normalizeGenres, normalizeReaderGroupMember, normalizeReaderGroups } from "./manageBook/helpers";
 import type { BookEditorState, BookStatus, Chapter, ChapterRelease, ChannelMetadata, ReaderAccount, ReaderChannel, ReaderFeedbackItem, ReaderGroupMember, ChapterRevision } from "./manageBook/types";
 
+let draftChapterKeyCounter = 0;
+
+function createDraftChapterKey() {
+    draftChapterKeyCounter += 1;
+    return `draft-chapter-${Date.now()}-${draftChapterKeyCounter}`;
+}
+
+function withChapterClientKeys(chapters: Chapter[]) {
+    return chapters.map((chapter) => ({
+        ...chapter,
+        clientKey: chapter.clientKey ?? (chapter.id ? `chapter-id-${chapter.id}` : createDraftChapterKey())
+    }));
+}
+
+function createEditorState(book: BookEditorState) {
+    return {
+        ...book,
+        chapters: withChapterClientKeys(book.chapters)
+    };
+}
+
 export default function ManageBook() {
     const navigate = useNavigate();
     const location = useLocation();
     const { slug } = useParams();
     const isNewBook = !slug;
 
-    const [book, setBook] = useState<BookEditorState>(EMPTY_BOOK);
+    const [book, setBook] = useState<BookEditorState>(() => createEditorState(EMPTY_BOOK));
     const [selectedChapterIndex, setSelectedChapterIndex] = useState(0);
     const [activeChannel, setActiveChannel] = useState<ReaderChannel>("alpha");
     const [channelMetadata, setChannelMetadata] = useState(initialChannelMetadata);
@@ -75,7 +96,7 @@ export default function ManageBook() {
 
     useEffect(() => {
         if (isNewBook) {
-            setBook(EMPTY_BOOK);
+            setBook(createEditorState(EMPTY_BOOK));
             setChannelMetadata(initialChannelMetadata);
             setSelectedChapterIndex(0);
             setPendingReleaseDeleteIds([]);
@@ -102,7 +123,7 @@ export default function ManageBook() {
                     return;
                 }
 
-                const chapters = data.version?.chapters?.length ? data.version.chapters : EMPTY_BOOK.chapters;
+                const chapters = withChapterClientKeys(data.version?.chapters?.length ? data.version.chapters : EMPTY_BOOK.chapters);
 
                 setBook({
                     id: data.id,
@@ -263,6 +284,7 @@ export default function ManageBook() {
     function handleAddChapter() {
         setBook((current) => {
             const nextChapter = {
+                clientKey: createDraftChapterKey(),
                 title: `Chapter ${current.chapters.length + 1}`,
                 content: "",
                 chapterNumber: current.chapters.length + 1
@@ -284,6 +306,62 @@ export default function ManageBook() {
                 chapterIndex === index ? { ...chapter, ...updates } : chapter
             )
         }));
+    }
+
+    function moveChapter(from: number, to: number) {
+        if (from === to || from < 0 || to < 0 || from >= book.chapters.length || to >= book.chapters.length) {
+            return;
+        }
+
+        setBook((current) => {
+            const previousNumbersByChapter = new Map(
+                current.chapters.map((chapter) => [chapter, chapter.chapterNumber])
+            );
+            const chapters = [...current.chapters];
+            const [moved] = chapters.splice(from, 1);
+
+            if (!moved) {
+                return current;
+            }
+
+            chapters.splice(to, 0, moved);
+
+            const nextNumberByPreviousNumber = new Map<number, number>();
+            const renumberedChapters = chapters.map((chapter, index) => {
+                const nextChapterNumber = index + 1;
+                const previousChapterNumber = previousNumbersByChapter.get(chapter) ?? chapter.chapterNumber;
+
+                nextNumberByPreviousNumber.set(previousChapterNumber, nextChapterNumber);
+
+                return {
+                    ...chapter,
+                    chapterNumber: nextChapterNumber
+                };
+            });
+
+            const remapChapterNumber = (chapterNumber: number | null) => (
+                chapterNumber === null ? null : nextNumberByPreviousNumber.get(chapterNumber) ?? chapterNumber
+            );
+
+            return {
+                ...current,
+                chapters: renumberedChapters,
+                releases: current.releases.map((release) => ({
+                    ...release,
+                    chapterNumber: remapChapterNumber(release.chapterNumber) ?? release.chapterNumber
+                })),
+                feedback: current.feedback.map((item) => ({
+                    ...item,
+                    chapterNumber: remapChapterNumber(item.chapterNumber)
+                })),
+                chapterRevisions: current.chapterRevisions.map((revision) => ({
+                    ...revision,
+                    chapterNumber: remapChapterNumber(revision.chapterNumber) ?? revision.chapterNumber
+                }))
+            };
+        });
+
+        setSelectedChapterIndex(to);
     }
 
     async function handleDeleteChapter(index: number) {
@@ -317,7 +395,7 @@ export default function ManageBook() {
 
             return {
                 ...current,
-                chapters: chapters.length ? chapters : EMPTY_BOOK.chapters,
+                chapters: chapters.length ? chapters : withChapterClientKeys(EMPTY_BOOK.chapters),
                 releases: current.releases.filter((release) =>
                     release.chapterNumber !== chapterToDelete.chapterNumber
                 )
@@ -505,6 +583,8 @@ export default function ManageBook() {
                 : [
                     ...current.chapters,
                     {
+                        id: restoredChapter.id,
+                        clientKey: restoredChapter.id ? `chapter-id-${restoredChapter.id}` : createDraftChapterKey(),
                         title: restoredChapter.title,
                         content: restoredChapter.content ?? "",
                         chapterNumber: restoredChapter.chapterNumber,
@@ -676,6 +756,7 @@ export default function ManageBook() {
                                     onAddChapter={handleAddChapter}
                                     onSelectChapter={setSelectedChapterIndex}
                                     onUpdateChapter={updateChapter}
+                                    onMoveChapter={moveChapter}
                                     onDeleteChapter={handleDeleteChapter}
                                     onReleaseNow={(channel, chapterNumber) => handleScheduleRelease({ channel, chapterNumber, releaseAt: new Date().toISOString(), status: "released" })}
                                 />

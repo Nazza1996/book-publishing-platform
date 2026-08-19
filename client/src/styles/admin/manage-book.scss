@@ -605,14 +605,45 @@
     border: 1px solid transparent;
     background: transparent;
     color: var(--body-text-color);
+    border-radius: v.$radius-sm;
+
+    &.active,
+    &:hover {
+        border-color: var(--admin-purple);
+        background: var(--admin-purple-soft);
+    }
+    
+    &.dragging {
+        opacity: 0.68;
+    }
+
+    &.drop-target {
+        border-color: var(--admin-blue);
+        box-shadow: inset 3px 0 0 var(--admin-blue);
+    }
+}
+
+.chapter-select-button {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+}
+
+.chapter-select-button {
+    width: 100%;
+    min-width: 0;
     cursor: pointer;
     display: grid;
-    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    grid-template-columns: 1rem minmax(0, 1fr);
     align-items: center;
     gap: 0.5rem;
-    border-radius: v.$radius-sm;
     padding: 0.65rem;
     text-align: left;
+
+    .chapter-number-handle {
+        cursor: grab;
+    }
 
     strong {
         overflow: hidden;
@@ -620,10 +651,9 @@
         white-space: nowrap;
     }
 
-    &.active,
-    &:hover {
-        border-color: var(--admin-purple);
-        background: var(--admin-purple-soft);
+    &:focus-visible {
+        outline: 2px solid var(--admin-purple);
+        outline-offset: -2px;
     }
 }
 
