@@ -1,17 +1,51 @@
+import { useEffect, useState } from 'react';
 import '../../../styles/modal.scss'
+import { apiFetch, toast } from '../../../helpers';
 
-const props = {
-    closeFunction: () => {},
-    submitFunction: () => {},
-    username: '',
-    role: 'reader' as 'admin' | 'reader',
-    password: '',
-    setUsername: (_username: string) => {},
-    setRole: (_role: 'admin' | 'reader') => {},
-    setPassword: (_password: string) => {}
+type UserRole = 'admin' | 'reader';
+
+interface UserRow {
+    id: number;
+    username: string;
+    role: UserRole;
 }
 
-export default function UserCreateModal({ closeFunction, submitFunction, username, role, password, setUsername, setRole, setPassword }: typeof props) {
+type props = {
+    closeFunction: () => void;
+    user: UserRow;
+}
+
+export default function UserCreateModal({ closeFunction, user }: props) {
+    const [username, setUsername] = useState(user?.username);
+    const [role, setRole] = useState(user?.role ?? 'reader');
+    const [password, setPassword] = useState('');
+
+    const isUpdate = user != null;
+    const showPasswordField = !isUpdate || (isUpdate && role != 'admin');
+
+    useEffect(() => {
+        if (role === 'admin') {
+            setPassword('');
+        }
+    }, [role]);
+
+    const handleSubmit = async () => {
+        const res = await apiFetch(isUpdate ? `/api/users/${user.id}` : '/api/users/register', {
+            method: isUpdate ? 'PUT' : 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                username: username,
+                role: role,
+                password: password.length > 0 ? password : null
+            })
+        });
+
+        if (res.ok) {
+            toast.success(`User ${isUpdate ? 'updated' : 'created'} successfully`);
+            closeFunction();
+        }
+    }
+
     return (
         <>
             <div
@@ -26,7 +60,7 @@ export default function UserCreateModal({ closeFunction, submitFunction, usernam
                             className="modal-title"
                             id="userCreateModalLabel"
                         >
-                            Create User
+                            {isUpdate ? 'Update User' : 'Create User'}
                         </h2>
 
                         <button
@@ -37,9 +71,9 @@ export default function UserCreateModal({ closeFunction, submitFunction, usernam
                         ></button>
                     </div>
 
-                    <form onSubmit={(e) => {
+                    <form onSubmit={async (e) => {
                         e.preventDefault();
-                        submitFunction();
+                        await handleSubmit();
                     }}>
                         <div className="modal-body">
                                 <div className="mb-3">
@@ -74,24 +108,29 @@ export default function UserCreateModal({ closeFunction, submitFunction, usernam
                                     </select>
                                 </div>
 
-                                <div className="mb-3">
-                                    <label
-                                        htmlFor="password"
-                                        className="form-label"
-                                    >
-                                        Password
-                                    </label>
+                                {
+                                    showPasswordField && (
+                                        <div className="mb-3">
+                                            <label
+                                                htmlFor="password"
+                                                className="form-label"
+                                            >
+                                                Password
+                                            </label>
 
-                                    <input
-                                        type="password"
-                                        className="form-control"
-                                        id="password"
-                                        placeholder="Enter password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        required
-                                    />
-                                </div>
+                                            <input
+                                                type="password"
+                                                className="form-control"
+                                                id="password"
+                                                placeholder="Enter password"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                required={isUpdate ? false : true}
+                                            />
+                                        </div>
+                                    )
+                                }
+
                         </div>
 
                         <div className="modal-footer">
@@ -108,7 +147,7 @@ export default function UserCreateModal({ closeFunction, submitFunction, usernam
                                 type="submit"
                                 className="btn btn-primary"
                                 >
-                                Create User
+                                {isUpdate ? 'Update User' : 'Create User'}
                             </button>
                         </div>
                     </form>

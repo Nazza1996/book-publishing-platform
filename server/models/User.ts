@@ -7,6 +7,7 @@ class User extends Model {
     public password_hash!: string;
     public role!: "admin" | "reader";
     public active!: boolean;
+    public password_changed_at!: Date | null;
 }
 
 User.init(
@@ -34,6 +35,10 @@ User.init(
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: true,
+        },
+        password_changed_at: {
+            type: DataTypes.DATE,
+            allowNull: true,
         },
     },
     {
