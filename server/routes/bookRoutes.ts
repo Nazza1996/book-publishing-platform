@@ -11,6 +11,7 @@ import ReaderGroup from "../models/ReaderGroup.js";
 import ReaderGroupMember from "../models/ReaderGroupMember.js";
 import User from "../models/User.js";
 import { getCurrentActiveUser, requireAccessToken, requireAdmin, type AuthUser } from "../middleware/auth.js";
+import { recordAuditLog } from "../services/auditLog.js";
 import { promoteDueScheduledReleases } from "../services/releaseScheduler.js";
 import { sequelize } from "../utils/database.js";
 
@@ -384,6 +385,21 @@ router.post("/:id/feedback", requireAccessToken, async (req: Request, res: Respo
             status: "open",
         });
 
+        (req as any).user = currentUser;
+        await recordAuditLog(req, {
+            action: "CREATE",
+            entityType: "ReaderFeedback",
+            entityId: feedback.id,
+            entityLabel: existingBook.title,
+            metadata: {
+                bookId: existingBook.id,
+                channel,
+                chapterNumber: feedback.chapterNumber,
+                readerUserId: feedback.readerUserId,
+                status: feedback.status,
+            },
+        });
+
         res.json(feedback);
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
@@ -394,13 +410,13 @@ router.use(requireAdmin);
 
 router.post("/saveDraft", async (req: Request, res: Response) => {
     const { book, scope = 'all', currentChapter, currentChapterNumber, channelMetadata } = req.body;
-
     try {
         if (book.id) {
             // Update existing book
             const existingBook = await Book.findOne({ where: { id: book.id } });
             
             if (existingBook) {
+                const previousBook = serializeBook(existingBook);
                 const slug = await buildUniqueSlug(book.title, existingBook.id);
                 await existingBook.update({
                     slug,
@@ -437,6 +453,23 @@ router.post("/saveDraft", async (req: Request, res: Response) => {
                         });
                     }
 
+                    await recordAuditLog(req, {
+                        action: "UPDATE",
+                        entityType: "Book",
+                        entityId: existingBook.id,
+                        entityLabel: existingBook.title,
+                        metadata: {
+                            scope,
+                            slug: existingBook.slug,
+                            previous: pickBookAuditValues(previousBook),
+                            next: pickBookAuditValues(serializeBook(existingBook)),
+                            chapter: {
+                                chapterNumber,
+                                title: currentChapter.title,
+                            },
+                        },
+                    });
+
                     return res.json({ id: existingBook.id, slug: existingBook.slug, versionId: draftVersion.id });
                 }
 
@@ -452,6 +485,20 @@ router.post("/saveDraft", async (req: Request, res: Response) => {
                 }));
         
                 await Chapter.bulkCreate(chaptersToCreate);
+
+                await recordAuditLog(req, {
+                    action: "UPDATE",
+                    entityType: "Book",
+                    entityId: existingBook.id,
+                    entityLabel: existingBook.title,
+                    metadata: {
+                        scope,
+                        slug: existingBook.slug,
+                        previous: pickBookAuditValues(previousBook),
+                        next: pickBookAuditValues(serializeBook(existingBook)),
+                        chapterCount: chaptersToCreate.length,
+                    },
+                });
         
                 return res.json({ id: existingBook.id, slug: existingBook.slug, versionId: draftVersion.id });
             }
@@ -482,6 +529,20 @@ router.post("/saveDraft", async (req: Request, res: Response) => {
                 content: currentChapter.content,
             });
 
+            await recordAuditLog(req, {
+                action: "CREATE",
+                entityType: "Book",
+                entityId: newBook.id,
+                entityLabel: newBook.title,
+                metadata: {
+                    scope,
+                    slug: newBook.slug,
+                    status: newBook.status,
+                    genres: newBook.genres,
+                    chapterCount: 1,
+                },
+            });
+
             return res.json({ id: newBook.id, slug: newBook.slug, versionId: draftVersion.id });
         }
 
@@ -493,6 +554,20 @@ router.post("/saveDraft", async (req: Request, res: Response) => {
         }));
 
         await Chapter.bulkCreate(chaptersToCreate);
+
+        await recordAuditLog(req, {
+            action: "CREATE",
+            entityType: "Book",
+            entityId: newBook.id,
+            entityLabel: newBook.title,
+            metadata: {
+                scope,
+                slug: newBook.slug,
+                status: newBook.status,
+                genres: newBook.genres,
+                chapterCount: chaptersToCreate.length,
+            },
+        });
 
         return res.json({ id: newBook.id, slug: newBook.slug, versionId: draftVersion.id });
     } catch (error: any) {
@@ -508,6 +583,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
         if (!existingBook) {
             return res.status(404).json({ error: "Book not found" });
         }
+        const deletedBook = serializeBook(existingBook);
 
         await sequelize.transaction(async (transaction) => {
             const bookVersions = await BookVersion.findAll({
@@ -548,6 +624,20 @@ router.delete("/:id", async (req: Request, res: Response) => {
             ]);
 
             await existingBook.destroy({ transaction });
+
+            await recordAuditLog(req, {
+                action: "DELETE",
+                entityType: "Book",
+                entityId: deletedBook.id,
+                entityLabel: deletedBook.title,
+                metadata: {
+                    slug: deletedBook.slug,
+                    status: deletedBook.status,
+                    versionCount: bookVersionIds.length,
+                    readerGroupCount: readerGroupIds.length,
+                },
+                transaction,
+            });
         });
 
         res.json({ message: "Book deleted successfully" });
@@ -584,7 +674,20 @@ router.post("/toggleFeatured", async (req: Request, res: Response) => {
             return res.status(400).json({ error: "Only books with public releases can be featured" });
         }
 
+        const previousIsFeatured = existingBook.isFeatured;
         await existingBook.update({ isFeatured: !existingBook.isFeatured });
+
+        await recordAuditLog(req, {
+            action: "UPDATE",
+            entityType: "Book",
+            entityId: existingBook.id,
+            entityLabel: existingBook.title,
+            metadata: {
+                field: "isFeatured",
+                previous: previousIsFeatured,
+                next: existingBook.isFeatured,
+            },
+        });
 
         res.json({ message: "Book featured status toggled successfully" });
     } catch (error: any) {
@@ -607,7 +710,19 @@ router.patch("/:id/status", async (req: Request, res: Response) => {
             return res.status(404).json({ error: "Book not found" });
         }
 
+        const previousStatus = existingBook.status;
         await existingBook.update({ status });
+        await recordAuditLog(req, {
+            action: "UPDATE",
+            entityType: "Book",
+            entityId: existingBook.id,
+            entityLabel: existingBook.title,
+            metadata: {
+                field: "status",
+                previous: previousStatus,
+                next: status,
+            },
+        });
         res.json(serializeBook(existingBook));
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
@@ -668,7 +783,7 @@ router.post("/:id/releases", async (req: Request, res: Response) => {
             snapshotContent ||= chapter.content;
         }
 
-        const [release] = await ChapterRelease.findOrCreate({
+        const [release, created] = await ChapterRelease.findOrCreate({
             where: {
                 bookId: existingBook.id,
                 channel,
@@ -685,7 +800,7 @@ router.post("/:id/releases", async (req: Request, res: Response) => {
             }
         });
 
-        if (!release.isNewRecord) {
+        if (!created) {
             await release.update({
                 title: snapshotTitle,
                 content: snapshotContent,
@@ -693,6 +808,21 @@ router.post("/:id/releases", async (req: Request, res: Response) => {
                 releaseAt: normalizedReleaseAt,
             });
         }
+
+        await recordAuditLog(req, {
+            action: created ? "CREATE" : "UPDATE",
+            entityType: "ChapterRelease",
+            entityId: release.id,
+            entityLabel: `${existingBook.title} chapter ${normalizedChapterNumber} ${channel}`,
+            metadata: {
+                bookId: existingBook.id,
+                channel,
+                chapterNumber: normalizedChapterNumber,
+                status: release.status,
+                releaseAt: release.releaseAt,
+                title: release.title,
+            },
+        });
 
         res.json(release);
     } catch (error: any) {
@@ -715,7 +845,23 @@ router.delete("/:id/releases/:releaseId", async (req: Request, res: Response) =>
             return res.status(404).json({ error: "Release not found" });
         }
 
+        const deletedRelease = release.get({ plain: true }) as any;
         await release.destroy();
+
+        await recordAuditLog(req, {
+            action: "DELETE",
+            entityType: "ChapterRelease",
+            entityId: deletedRelease.id,
+            entityLabel: `Chapter ${deletedRelease.chapterNumber} ${deletedRelease.channel}`,
+            metadata: {
+                bookId: deletedRelease.bookId,
+                channel: deletedRelease.channel,
+                chapterNumber: deletedRelease.chapterNumber,
+                status: deletedRelease.status,
+                releaseAt: deletedRelease.releaseAt,
+                title: deletedRelease.title,
+            },
+        });
 
         res.json({ message: "Release removed" });
     } catch (error: any) {
@@ -780,6 +926,21 @@ router.post("/:id/reader-groups/:groupId/members", async (req: Request, res: Res
         });
         await group.update({ memberCount });
 
+        await recordAuditLog(req, {
+            action: created ? "CREATE" : "UPDATE",
+            entityType: "ReaderGroupMember",
+            entityId: member.id,
+            entityLabel: `Reader user ${reader.id}`,
+            metadata: {
+                bookId: group.bookId,
+                readerGroupId: group.id,
+                channel: group.channel,
+                userId: reader.id,
+                status: member.status,
+                memberCount,
+            },
+        });
+
         res.json({
             ...member.dataValues,
             readerGroupId: group.id,
@@ -825,12 +986,29 @@ router.patch("/:id/reader-groups/:groupId/members/:memberId", async (req: Reques
             return res.status(404).json({ error: "Reader group member not found" });
         }
 
+        const previousStatus = member.status;
         await member.update({ status });
 
         const memberCount = await ReaderGroupMember.count({
             where: { readerGroupId: group.id, status: "active" }
         });
         await group.update({ memberCount });
+
+        await recordAuditLog(req, {
+            action: "UPDATE",
+            entityType: "ReaderGroupMember",
+            entityId: member.id,
+            entityLabel: `Reader group member ${member.id}`,
+            metadata: {
+                bookId: group.bookId,
+                readerGroupId: group.id,
+                channel: group.channel,
+                field: "status",
+                previous: previousStatus,
+                next: status,
+                memberCount,
+            },
+        });
 
         res.json({
             ...member.dataValues,
@@ -864,7 +1042,22 @@ router.patch("/:id/feedback/:feedbackId", async (req: Request, res: Response) =>
             return res.status(404).json({ error: "Feedback not found" });
         }
 
+        const previousStatus = feedback.status;
         await feedback.update({ status });
+        await recordAuditLog(req, {
+            action: "UPDATE",
+            entityType: "ReaderFeedback",
+            entityId: feedback.id,
+            entityLabel: `Feedback ${feedback.id}`,
+            metadata: {
+                bookId: feedback.bookId,
+                channel: feedback.channel,
+                chapterNumber: feedback.chapterNumber,
+                field: "status",
+                previous: previousStatus,
+                next: status,
+            },
+        });
         res.json(feedback);
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
@@ -918,6 +1111,20 @@ router.post("/:id/chapters/:chapterNumber/revisions", async (req: Request, res: 
             createdBy: currentUser?.id,
         });
 
+        await recordAuditLog(req, {
+            action: "CREATE",
+            entityType: "ChapterRevision",
+            entityId: revision.id,
+            entityLabel: `${existingBook.title} chapter ${normalizedChapterNumber} revision ${revision.revisionNumber}`,
+            metadata: {
+                bookId: existingBook.id,
+                chapterNumber: normalizedChapterNumber,
+                revisionNumber: revision.revisionNumber,
+                sourceBookVersionId: draftVersion.id,
+                title: revision.title,
+            },
+        });
+
         res.json(serializeChapterRevision(revision, currentUser));
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
@@ -952,7 +1159,7 @@ router.post("/:id/chapters/:chapterNumber/revisions/:revisionId/restore", async 
 
         const draftVersion = await ensureWorkingDraftVersion(existingBook);
 
-        const [chapter] = await Chapter.findOrCreate({
+        const [chapter, created] = await Chapter.findOrCreate({
             where: {
                 bookVersionId: draftVersion.id,
                 chapterNumber: normalizedChapterNumber,
@@ -965,12 +1172,26 @@ router.post("/:id/chapters/:chapterNumber/revisions/:revisionId/restore", async 
             }
         });
 
-        if (!chapter.isNewRecord) {
+        if (!created) {
             await chapter.update({
                 title: revision.title,
                 content: revision.content ?? "",
             });
         }
+
+        await recordAuditLog(req, {
+            action: created ? "CREATE" : "UPDATE",
+            entityType: "Chapter",
+            entityId: chapter.id,
+            entityLabel: `${existingBook.title} chapter ${normalizedChapterNumber}`,
+            metadata: {
+                bookId: existingBook.id,
+                chapterNumber: normalizedChapterNumber,
+                restoredFromRevisionId: revision.id,
+                revisionNumber: revision.revisionNumber,
+                title: chapter.title,
+            },
+        });
 
         res.json(chapter);
     } catch (error: any) {
@@ -1034,6 +1255,17 @@ function serializeBook(book: Book) {
     return {
         ...values,
         genres: normalizeBookGenres(values.genres),
+    };
+}
+
+function pickBookAuditValues(book: any) {
+    return {
+        slug: book.slug,
+        title: book.title,
+        description: book.description,
+        genres: normalizeBookGenres(book.genres),
+        status: book.status,
+        isFeatured: book.isFeatured,
     };
 }
 

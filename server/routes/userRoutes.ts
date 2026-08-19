@@ -3,6 +3,7 @@ import { signRefreshToken, signToken, verifyRefreshToken, verifyToken } from "..
 import bcrypt, { hash } from "bcrypt";
 import User from "../models/User.js";
 import { getCurrentActiveUser, isTokenCurrentForUser, requireAdmin, type AuthUser } from "../middleware/auth.js";
+import { recordAuditLog } from "../services/auditLog.js";
 
 
 const router = Router();
@@ -97,7 +98,22 @@ router.post("/register", async (req: Request, res: Response) => {
 
         if (isBootstrap) {
             setAuthCookies(res, newUser);
+            (req as any).user = createTokenPayload(newUser);
+        } else if (requestingUser) {
+            (req as any).user = requestingUser;
         }
+
+        await recordAuditLog(req, {
+            action: "CREATE",
+            entityType: "User",
+            entityId: newUser.id,
+            entityLabel: newUser.username,
+            metadata: {
+                role: newUser.role,
+                active: newUser.active,
+                bootstrap: isBootstrap,
+            },
+        });
 
         res.status(201).json({ user: publicUser });
     } catch (error: any) {
@@ -206,6 +222,7 @@ router.put("/:id", async (req: Request, res: Response) => {
         if (!user) {
             return res.status(404).json({ error: "User not found" });
         }
+        const previousUser = serializeUserAuditValues(user);
 
         const currentUser = (req as any).user as PublicUser;
 
@@ -229,6 +246,7 @@ router.put("/:id", async (req: Request, res: Response) => {
         user.username = nextUsername;
         user.role = role || user.role;
         user.active = active ?? user.active;
+        let passwordChanged = false;
 
         const existingUsername = await User.findOne({ where: { username: user.username } });
         if (existingUsername && existingUsername.id !== user.id) {
@@ -238,9 +256,21 @@ router.put("/:id", async (req: Request, res: Response) => {
         if (currentUser.role === "admin" && user.role !== "admin" && password && typeof password === "string" && password.trim()) {
             user.password_hash = await hash(password, 12);
             user.password_changed_at = new Date();
+            passwordChanged = true;
         }
 
         await user.save();
+        await recordAuditLog(req, {
+            action: "UPDATE",
+            entityType: "User",
+            entityId: user.id,
+            entityLabel: user.username,
+            metadata: {
+                previous: previousUser,
+                next: serializeUserAuditValues(user),
+                passwordChanged,
+            },
+        });
         res.json({ user: serializeUser(user), message: "User updated successfully" });
     } catch (error) {
         res.status(500).json({ error: "Failed to update user" });
@@ -266,7 +296,19 @@ router.patch("/:id/access", async (req: Request, res: Response) => {
             return res.status(400).json({ error: "You cannot revoke your own account" });
         }
 
+        const previousActive = user.active;
         await user.update({ active });
+        await recordAuditLog(req, {
+            action: "UPDATE",
+            entityType: "User",
+            entityId: user.id,
+            entityLabel: user.username,
+            metadata: {
+                field: "active",
+                previous: previousActive,
+                next: active,
+            },
+        });
         res.json({ user: serializeUser(user) });
     } catch (error) {
         res.status(500).json({ error: "Failed to update access" });
@@ -287,7 +329,19 @@ router.delete("/:id", async (req: Request, res: Response) => {
             return res.status(400).json({ error: "You cannot delete your own account" });
         }
 
+        const deletedUser = serializeUser(user);
         await user.destroy();
+        await recordAuditLog(req, {
+            action: "DELETE",
+            entityType: "User",
+            entityId: deletedUser.id,
+            entityLabel: deletedUser.username,
+            metadata: {
+                id: deletedUser.id,
+                role: deletedUser.role,
+                active: deletedUser.active,
+            },
+        });
         res.json({ message: "User deleted successfully" });
     } catch (error) {
         res.status(500).json({ error: "Failed to delete user" });
@@ -300,6 +354,14 @@ function serializeUser(user: User): PublicUser {
     return {
         id: user.id,
         username: user.username,
+        role: user.role,
+        active: user.active,
+    };
+}
+
+function serializeUserAuditValues(user: User) {
+    return {
+        id: user.id,
         role: user.role,
         active: user.active,
     };

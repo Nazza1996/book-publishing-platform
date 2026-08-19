@@ -1,4 +1,5 @@
 import { Op } from "sequelize";
+import AuditLog from "../models/AuditLog.js";
 import ChapterRelease from "../models/ChapterRelease.js";
 
 const DEFAULT_RELEASE_CHECK_INTERVAL_MS = 60_000;
@@ -10,9 +11,8 @@ export async function promoteDueScheduledReleases(now = new Date()) {
         return promotionInFlight;
     }
 
-    promotionInFlight = ChapterRelease.update(
-        { status: "released" },
-        {
+    promotionInFlight = (async () => {
+        const dueReleases = await ChapterRelease.findAll({
             where: {
                 status: "scheduled",
                 releaseAt: {
@@ -20,11 +20,46 @@ export async function promoteDueScheduledReleases(now = new Date()) {
                     [Op.lte]: now,
                 },
             },
-        }
-    ).then(([updatedCount]) => updatedCount)
-        .finally(() => {
-            promotionInFlight = null;
         });
+
+        if (dueReleases.length === 0) {
+            return 0;
+        }
+
+        const dueReleaseIds = dueReleases.map((release) => release.id);
+        const [updatedCount] = await ChapterRelease.update(
+            { status: "released" },
+            {
+                where: {
+                    id: { [Op.in]: dueReleaseIds },
+                    status: "scheduled",
+                },
+            }
+        );
+
+        if (updatedCount > 0) {
+            await AuditLog.bulkCreate(dueReleases.map((release) => ({
+                action: "UPDATE" as const,
+                entityType: "ChapterRelease",
+                entityId: String(release.id),
+                entityLabel: `Chapter ${release.chapterNumber} ${release.channel}`,
+                metadata: {
+                    bookId: release.bookId,
+                    channel: release.channel,
+                    chapterNumber: release.chapterNumber,
+                    field: "status",
+                    previous: "scheduled",
+                    next: "released",
+                    releaseAt: release.releaseAt,
+                    title: release.title,
+                },
+            })));
+        }
+
+        return updatedCount;
+    })().finally(() => {
+        promotionInFlight = null;
+    });
 
     return promotionInFlight;
 }

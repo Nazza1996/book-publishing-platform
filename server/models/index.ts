@@ -1,3 +1,4 @@
+import AuditLog from './AuditLog.js';
 import Book from './Book.js';
 import BookVersion from './BookVersion.js';
 import BookChannelMetadata from './BookChannelMetadata.js';
@@ -8,6 +9,10 @@ import ReaderFeedback from './ReaderFeedback.js';
 import ReaderGroup from './ReaderGroup.js';
 import ReaderGroupMember from './ReaderGroupMember.js';
 import User from './User.js';
+
+// User -> audit logs
+User.hasMany(AuditLog, { foreignKey: 'userId', as: 'auditLogs' });
+AuditLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 // Book -> BookVersion relationship
 Book.hasMany(BookVersion, { foreignKey: 'bookId', as: 'versions' });
@@ -45,6 +50,7 @@ User.hasMany(ChapterRevision, { foreignKey: 'createdBy', as: 'chapterRevisions' 
 ChapterRevision.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 
 export {
+  AuditLog,
   Book,
   BookVersion,
   BookChannelMetadata,
