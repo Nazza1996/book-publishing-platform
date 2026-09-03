@@ -6,6 +6,7 @@ import '../../styles/admin/all-books.scss';
 import AdminNav from "./AdminNav";
 import Datatable, { type DatatableColumn } from "./Datatable";
 import { Search } from "../../components/Search";
+import { formatReleaseDate, formatReleaseDateTitle } from "../../utils/releaseDates";
 
 type BookStatus = "not_started" | "in_progress" | "on_hold" | "finished" | "cancelled";
 
@@ -312,8 +313,8 @@ function BooksTable({
         {
             key: "nextRelease",
             header: "Next Release",
-            render: (book) => book.nextRelease ? formatDate(book.nextRelease.releaseAt) : "-",
-            title: (book) => book.nextRelease ? formatDateTitle(book.nextRelease.releaseAt) : "",
+            render: (book) => book.nextRelease ? formatReleaseDate(book.nextRelease.releaseAt) : "-",
+            title: (book) => book.nextRelease ? formatReleaseDateTitle(book.nextRelease.releaseAt) : "",
         },
     ];
 

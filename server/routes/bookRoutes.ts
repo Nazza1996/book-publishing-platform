@@ -14,6 +14,7 @@ import { getCurrentActiveUser, requireAccessToken, requireAdmin, type AuthUser }
 import { recordAuditLog } from "../services/auditLog.js";
 import { promoteDueScheduledReleases } from "../services/releaseScheduler.js";
 import { sequelize } from "../utils/database.js";
+import { parseReleaseDate } from "../utils/dateTime.js";
 
 const router = Router();
 const readerChannels: ReaderChannel[] = ["alpha", "beta", "public"];
@@ -752,7 +753,7 @@ router.post("/:id/releases", async (req: Request, res: Response) => {
             return res.status(404).json({ error: "Book not found" });
         }
 
-        const normalizedReleaseAt = releaseAt ? new Date(releaseAt) : null;
+        const normalizedReleaseAt = parseReleaseDate(releaseAt);
         if (normalizedReleaseAt && Number.isNaN(normalizedReleaseAt.getTime())) {
             return res.status(400).json({ error: "A valid release date is required" });
         }

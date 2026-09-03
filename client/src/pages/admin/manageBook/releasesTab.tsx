@@ -4,6 +4,7 @@ import { Panel } from "./components/Panel";
 import { ReleasePreview } from "./components/ReleasePreview";
 import { StatusPill } from "./components/StatusPill";
 import { SelectPicker } from "../../../components/SelectPicker";
+import { formatReleaseDay, formatReleaseMonth, formatReleaseTime, toReleaseIsoString } from "../../../utils/releaseDates";
 
 export function ReleasesTab({
     groups,
@@ -33,7 +34,7 @@ export function ReleasesTab({
     const [releaseTime, setReleaseTime] = useState("10:00");
 
     function submitSchedule() {
-        const releaseAt = releaseDate ? `${releaseDate}T${releaseTime || "10:00"}:00` : null;
+        const releaseAt = releaseDate ? toReleaseIsoString(releaseDate, releaseTime) : null;
 
         onScheduleRelease({
             channel: scheduleChannel,
@@ -96,17 +97,17 @@ export function ReleasesTab({
                         releases.map((release) => {
                             const group = groups.find((item) => item.key === release.channel);
                             const chapter = chapters.find((item) => item.chapterNumber === release.chapterNumber);
-                            const date = release.releaseAt ? new Date(release.releaseAt) : null;
+                            const hasReleaseDate = Boolean(release.releaseAt);
 
                             return (
                                 <div className="schedule-item" key={release.id ?? `${release.channel}-${release.chapterNumber}`}>
                                     <div className="schedule-date">
-                                        <span>{date ? date.toLocaleString('en-GB', { month: 'short' }).toUpperCase() : "TBD"}</span>
-                                        <strong>{date ? date.getDate() : "-"}</strong>
+                                        <span>{hasReleaseDate ? formatReleaseMonth(release.releaseAt).toUpperCase() : "TBD"}</span>
+                                        <strong>{hasReleaseDate ? formatReleaseDay(release.releaseAt) : "-"}</strong>
                                     </div>
                                     <div>
                                         <strong>{chapter?.title ?? `Chapter ${release.chapterNumber}`}</strong>
-                                        <span>{group?.label ?? release.channel} {date ? `at ${date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : ""}</span>
+                                        <span>{group?.label ?? release.channel} {hasReleaseDate ? `at ${formatReleaseTime(release.releaseAt)}` : ""}</span>
                                     </div>
                                     <StatusPill label={release.status.charAt(0).toUpperCase() + release.status.slice(1)} />
                                     {release.id && (

@@ -7,6 +7,7 @@ import AdminNav from "./AdminNav";
 import Datatable, { type DatatableColumn } from "./Datatable";
 import { SelectPicker } from "../../components/SelectPicker";
 import { Search } from "../../components/Search";
+import { formatReleaseDate, formatReleaseDateTitle } from "../../utils/releaseDates";
 
 type ReaderChannel = "alpha" | "beta" | "public";
 type ReleaseStatus = "scheduled" | "released";
@@ -75,7 +76,7 @@ export default function Releases() {
 
                 setBooks(bookList);
                 setReleases(releasesList);
-            } catch (e) {
+            } catch {
                 if (isMounted) {
                     setError("Could not load releases.");
                 }
@@ -170,7 +171,7 @@ export default function Releases() {
             key: "releaseAt",
             header: "Release Date",
             render: (release) => release.releaseAt ? (
-                <span title={formatDateTitle(release.releaseAt)}>{formatDate(release.releaseAt)}</span>
+                <span title={formatReleaseDateTitle(release.releaseAt)}>{formatReleaseDate(release.releaseAt)}</span>
             ) : "-",
             width: 150,
         },
@@ -264,21 +265,3 @@ function capitalize(value: string) {
     return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function formatDate(dateString: string) {
-    return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "2-digit",
-        year: "numeric",
-    }).format(new Date(dateString));
-}
-
-function formatDateTitle(dateString: string) {
-    return new Intl.DateTimeFormat("en-GB", {
-        month: "long",
-        day: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZoneName: "short",
-    }).format(new Date(dateString));
-}

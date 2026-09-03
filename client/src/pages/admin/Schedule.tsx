@@ -9,6 +9,7 @@ import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SelectPicker } from "../../components/SelectPicker";
 import { Search } from "../../components/Search";
+import { formatReleaseDate, formatReleaseDateTitle, formatReleaseDay, formatReleaseMonth, formatReleaseTime } from "../../utils/releaseDates";
 
 type ReaderChannel = "alpha" | "beta" | "public";
 
@@ -155,14 +156,14 @@ export default function Schedule() {
             key: "date",
             header: "Date",
             render: (item) => item.releaseAt ? (
-                <span title={formatDateTitle(item.releaseAt)}>{formatDate(item.releaseAt)}</span>
+                <span title={formatReleaseDateTitle(item.releaseAt)}>{formatReleaseDate(item.releaseAt)}</span>
             ) : "-",
             width: 150,
         },
         {
             key: "time",
             header: "Time",
-            render: (item) => item.releaseAt ? formatTime(item.releaseAt) : "-",
+            render: (item) => item.releaseAt ? formatReleaseTime(item.releaseAt) : "-",
             width: 100,
         },
         {
@@ -232,12 +233,12 @@ export default function Schedule() {
                                     {nextItems.map((item) => (
                                         <Link to={`/admin/book/${item.Book.slug}#releases`} className="schedule-timeline-item" key={item.id}>
                                             <time dateTime={item.releaseAt ?? undefined}>
-                                                <strong>{item.releaseAt ? formatDay(item.releaseAt) : "-"}</strong>
-                                                <span>{item.releaseAt ? formatMonth(item.releaseAt) : ""}</span>
+                                                <strong>{item.releaseAt ? formatReleaseDay(item.releaseAt) : "-"}</strong>
+                                                <span>{item.releaseAt ? formatReleaseMonth(item.releaseAt) : ""}</span>
                                             </time>
                                             <div>
                                                 <strong>{item.title}</strong>
-                                                <span>{item.Book.title} / {channelLabels[item.channel]} / {item.releaseAt ? formatTime(item.releaseAt) : "No time"}</span>
+                                                <span>{item.Book.title} / {channelLabels[item.channel]} / {item.releaseAt ? formatReleaseTime(item.releaseAt) : "No time"}</span>
                                             </div>
                                         </Link>
                                     ))}
@@ -275,40 +276,3 @@ function timingLabel(timing: "upcoming" | "overdue" | "undated") {
     return timing.charAt(0).toUpperCase() + timing.slice(1);
 }
 
-function formatDate(dateString: string) {
-    return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "2-digit",
-        year: "numeric",
-    }).format(new Date(dateString));
-}
-
-function formatDateTitle(dateString: string) {
-    return new Intl.DateTimeFormat("en-GB", {
-        month: "long",
-        day: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZoneName: "short",
-    }).format(new Date(dateString));
-}
-
-function formatTime(dateString: string) {
-    return new Intl.DateTimeFormat("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-    }).format(new Date(dateString));
-}
-
-function formatDay(dateString: string) {
-    return new Intl.DateTimeFormat("en-US", {
-        day: "2-digit",
-    }).format(new Date(dateString));
-}
-
-function formatMonth(dateString: string) {
-    return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-    }).format(new Date(dateString));
-}

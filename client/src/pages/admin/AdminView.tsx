@@ -15,6 +15,7 @@ import { apiFetch, setPageTitle } from "../../helpers";
 import "../../styles/admin-dashboard.scss";
 import "../../styles/admin/shared-admin.scss";
 import AdminNav from "./AdminNav";
+import { formatReleaseDay, formatReleaseMonth, formatReleaseTime } from "../../utils/releaseDates";
 
 type ReaderChannel = "alpha" | "beta" | "public";
 type BookStatus = "not_started" | "in_progress" | "on_hold" | "finished" | "cancelled";
@@ -307,12 +308,12 @@ export default function AdminView() {
                                         {upcomingReleases.map((release) => (
                                             <Link to={`/admin/book/${release.Book.slug}#releases`} className="dashboard-release-item" key={release.id ?? `${release.Book.slug}-${release.channel}-${release.chapterNumber}`}>
                                                 <time dateTime={release.releaseAt ?? undefined}>
-                                                    <strong>{formatDay(release.releaseAt)}</strong>
-                                                    <span>{formatMonth(release.releaseAt)}</span>
+                                                    <strong>{formatReleaseDay(release.releaseAt)}</strong>
+                                                    <span>{formatReleaseMonth(release.releaseAt)}</span>
                                                 </time>
                                                 <div>
                                                     <strong>{release.title || `Chapter ${release.chapterNumber}`}</strong>
-                                                    <span>{release.Book.title} / {channelLabels[release.channel]} / {formatTime(release.releaseAt)}</span>
+                                                    <span>{release.Book.title} / {channelLabels[release.channel]} / {formatReleaseTime(release.releaseAt)}</span>
                                                 </div>
                                             </Link>
                                         ))}
@@ -415,33 +416,6 @@ function PanelHeader({ title, to }: { title: string; to: string }) {
 
 function statusClassName(status: BookStatus) {
     return status.replace(/_/g, "-");
-}
-
-function formatDay(dateString: string | null) {
-    if (!dateString) {
-        return "--";
-    }
-
-    return new Intl.DateTimeFormat("en-US", { day: "2-digit" }).format(new Date(dateString));
-}
-
-function formatMonth(dateString: string | null) {
-    if (!dateString) {
-        return "";
-    }
-
-    return new Intl.DateTimeFormat("en-US", { month: "short" }).format(new Date(dateString));
-}
-
-function formatTime(dateString: string | null) {
-    if (!dateString) {
-        return "No time";
-    }
-
-    return new Intl.DateTimeFormat("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-    }).format(new Date(dateString));
 }
 
 function formatRelativeDate(dateString: string) {
