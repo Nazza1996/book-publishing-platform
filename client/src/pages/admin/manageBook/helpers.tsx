@@ -62,6 +62,20 @@ export function countScheduledChapters(releases: ChapterRelease[], channel: Read
     return releases.filter((release) => release.channel === channel && release.status === "scheduled").length;
 }
 
+export function sortReleasesByDate(releases: ChapterRelease[]) {
+    return releases
+        .map((release, index) => ({ release, index }))
+        .sort((a, b) => {
+            const aParsedTime = a.release.releaseAt ? Date.parse(a.release.releaseAt) : Number.POSITIVE_INFINITY;
+            const bParsedTime = b.release.releaseAt ? Date.parse(b.release.releaseAt) : Number.POSITIVE_INFINITY;
+            const aTime = Number.isFinite(aParsedTime) ? aParsedTime : Number.POSITIVE_INFINITY;
+            const bTime = Number.isFinite(bParsedTime) ? bParsedTime : Number.POSITIVE_INFINITY;
+
+            return (aTime - bTime) || (a.index - b.index);
+        })
+        .map(({ release }) => release);
+}
+
 export function getChannelReleaseStatus(
     channel: ReaderChannel,
     _metadata: Record<ReaderChannel, ChannelMetadata>,
