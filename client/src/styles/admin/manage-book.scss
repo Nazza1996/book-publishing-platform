@@ -928,6 +928,47 @@
     align-items: stretch;
 }
 
+.schedule-section {
+    display: grid;
+    gap: 0.65rem;
+
+    h3 {
+        margin: 0.35rem 0 0;
+        font-size: 0.9rem;
+    }
+}
+
+.schedule-empty-state {
+    display: grid;
+    place-items: center;
+    gap: 0.45rem;
+    padding: 1.25rem 1rem;
+    border: 1px dashed var(--border-color);
+    border-radius: v.$radius-md;
+    color: var(--secondary-text-color);
+    text-align: center;
+
+    svg {
+        margin-bottom: 0.35rem;
+        color: var(--admin-purple);
+        font-size: 2.25rem;
+    }
+
+    strong {
+        color: var(--body-text-color);
+    }
+}
+
+.schedule-item-details {
+    flex: 1;
+}
+
+.schedule-action {
+    width: 2.25rem;
+    min-width: 2.25rem;
+    padding: 0.5rem;
+}
+
 .schedule-date {
     width: 3.3rem;
     border-right: 1px solid var(--border-color);
