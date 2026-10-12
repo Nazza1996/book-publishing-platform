@@ -1,9 +1,9 @@
 export function setPageTitle(title: string) {
   if (!title) {
-    document.title = "NateThePlot";
+    document.title = "Book Publishing Platform";
     return;
   }
-  document.title = "NateThePlot - " + title;
+  document.title = "Book Publishing Platform - " + title;
 }
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';

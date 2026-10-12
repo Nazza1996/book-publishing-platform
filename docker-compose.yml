@@ -1,29 +1,53 @@
 services:
+  app:
+    build:
+      context: .
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_NAME: ${DB_NAME:-app}
+      DB_USER: ${DB_USER:-appuser}
+      DB_PASS: ${DB_PASS:-secret}
+      DB_HOST: db
+      JWT_SECRET: ${JWT_SECRET:-local-development-jwt-secret}
+      REFRESH_SECRET: ${REFRESH_SECRET:-local-development-refresh-secret}
+    depends_on:
+      db:
+        condition: service_healthy
+
   db:
     image: mysql:8.0
-    restart: unless-stopped
     ports:
       - "3306:3306"
     environment:
-      MYSQL_DATABASE: app
-      MYSQL_USER: appuser
-      MYSQL_PASSWORD: secret
-      MYSQL_ROOT_PASSWORD: rootsecret
+      MYSQL_DATABASE: ${DB_NAME:-app}
+      MYSQL_USER: ${DB_USER:-appuser}
+      MYSQL_PASSWORD: ${DB_PASS:-secret}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootsecret}
     volumes:
       - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    restart: unless-stopped
+    profiles:
+      - tools
     ports:
       - "8081:80"
     environment:
       PMA_HOST: db
       PMA_PORT: 3306
       PMA_USER: root
-      PMA_PASSWORD: rootsecret
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootsecret}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   db_data:

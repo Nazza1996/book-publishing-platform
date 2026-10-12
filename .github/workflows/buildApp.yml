@@ -35,7 +35,7 @@ jobs:
         id: zip_build
         run: |
           TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
-          ZIP_FILE="nateThePlot-$TIMESTAMP.zip"
+          ZIP_FILE="book-publishing-platform-$TIMESTAMP.zip"
           
           # Remove any previous zip files just in case
           rm -f app-build*.zip

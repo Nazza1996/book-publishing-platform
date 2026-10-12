@@ -9,8 +9,8 @@ export default function Navbar() {
     return (
         <nav>
             <Link to="/" className="branding">
-                <img src="/favicon.ico" alt="NateThePlot Logo" />
-                <span>NateThePlot</span>
+                <img src="/favicon.ico" alt="Book Publishing Platform logo" />
+                <span>Book Publishing Platform</span>
             </Link>
             <ul className="nav-list">
                 <li><Link to="/">Home</Link></li>

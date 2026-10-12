@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import profilePic from "../assets/Pfp.jpg";
 import { apiFetch, setPageTitle } from "../helpers";
 
 export default function Home() {
@@ -27,22 +26,8 @@ export default function Home() {
 
     return (
         <>
-            <section className="hero-section">
-                <div className="bio-container">
-                    <div className="bio-content">
-                        <h1 className="name">Hi,<br/>I am<br/>NateThePlot</h1>
-                        <h3>I'm Nate — NateThePlot across all Socials. The plot in question has not yet been located.</h3>
-                        <h3>I love writing in many different genres of story; typically Sci-fi and Fantasy. I go where the story takes me, no real plan in sight.</h3>
-                        <h3>I have dozens of ongoing projects scattered across many docs. Short stories, novellas, and one or two novels lurking in the shadows.</h3>
-                        <h3>If any of that sounds like your kind of chaos, you're in the right place.</h3>
-                    </div>
-                    <img src={profilePic} alt="Profile Picture" className="profile-pic" />
-                </div>
-            </section>
-
             <section id="stories">
                 <h2>Featured Stories</h2>
-                <p>Step into the worlds I build, one chapter at a time. A collection of sci-fi and fantasy shorts for the curious traveller.</p>
                 <ul className="story-list">
                     {Array.isArray(featuredBooks) ? featuredBooks.map((book, index) => (
                         book.title == "Placeholder" ? <ComingSoon key={index} /> : <FeaturedBookCard key={index} book={book} />
